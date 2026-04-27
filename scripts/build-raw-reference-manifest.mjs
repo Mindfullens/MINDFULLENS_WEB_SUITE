@@ -26,7 +26,7 @@ function parseArgs(argv) {
     minItems: DEFAULT_MIN_ITEMS,
     /** Gdy `true` — nie łącz z poprzednim manifestem (czysta regeneracja expected/thresholds z raportów). */
     noMerge: false,
-    /** Gdy `true` — przelicz i wpisz progi quality (maxDeltaEMean/maxDeltaEP95/minSsim). */
+    /** Gdy `true` — przelicz i wpisz progi quality/recovery (DeltaE/SSIM + recovery2d residual clip). */
     applySuggestedThresholds: false,
   };
 
@@ -301,6 +301,26 @@ function buildSuggestedThresholds(metrics) {
   };
 }
 
+function buildSuggestedRecoveryThresholds(reportPayload) {
+  const metrics = reportPayload?.render?.qualityQa?.metrics ?? {};
+  const postHighlight = toFiniteOrNull(metrics?.rawRecovery2dPostHighlightClipRatio);
+  const postShadow = toFiniteOrNull(metrics?.rawRecovery2dPostShadowClipRatio);
+  if (postHighlight == null && postShadow == null) {
+    return null;
+  }
+  const withMargin = (value) => {
+    if (value == null) {
+      return null;
+    }
+    // Keep a small floor for stable zero-baselines.
+    return roundTo(Math.max(0.01, value * 1.25), 5);
+  };
+  return {
+    maxRecoveryPostHighlightClipRatio: withMargin(postHighlight),
+    maxRecoveryPostShadowClipRatio: withMargin(postShadow),
+  };
+}
+
 /**
  * Pola gate'a DCP/ICC v0 / kolorymetryki — z DIAG (`pipeline.rawColorimetry` + `pipeline.info.capabilities`).
  * LibRaw (`librawDevelopSettings`, `librawMetadataSummary`) tylko gdy obecne w raporcie.
@@ -328,6 +348,10 @@ function buildColorimetryExpected(reportPayload) {
   }
   if (adapter) {
     out.rawDecodeAdapter = adapter;
+  }
+  const recoveryEnabled = rawCm?.rawRecovery2d?.enabled ?? caps?.rawRecovery2d?.enabled ?? null;
+  if (typeof recoveryEnabled === 'boolean') {
+    out.rawRecovery2dEnabled = recoveryEnabled;
   }
 
   const dev = rawCm?.librawDevelopSettings ?? caps?.librawDevelopSettings ?? null;
@@ -464,6 +488,21 @@ function main() {
           };
         }
       }
+      if (options.applySuggestedThresholds) {
+        const reportPayload = readJsonIfExists(path.resolve(projectRoot, entry.report));
+        const suggestedRecovery = buildSuggestedRecoveryThresholds(reportPayload);
+        if (suggestedRecovery) {
+          entry.thresholds = {
+            ...entry.thresholds,
+            ...(suggestedRecovery.maxRecoveryPostHighlightClipRatio != null
+              ? { maxRecoveryPostHighlightClipRatio: suggestedRecovery.maxRecoveryPostHighlightClipRatio }
+              : {}),
+            ...(suggestedRecovery.maxRecoveryPostShadowClipRatio != null
+              ? { maxRecoveryPostShadowClipRatio: suggestedRecovery.maxRecoveryPostShadowClipRatio }
+              : {}),
+          };
+        }
+      }
       return entry;
     })
     .filter(Boolean);
@@ -488,7 +527,9 @@ function main() {
     );
   }
   if (options.applySuggestedThresholds) {
-    console.log('INFO  Zastosowano suggested thresholds dla wpisów z qualityComparison (gdy metryki były policzalne).');
+    console.log(
+      'INFO  Zastosowano suggested thresholds dla qualityComparison i recovery2d (gdy metryki były dostępne).'
+    );
   }
 
   console.log(

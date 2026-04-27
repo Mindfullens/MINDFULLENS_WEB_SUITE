@@ -633,6 +633,9 @@ function writeTrendArtifacts(projectRoot, outDir, summary, trendSummary, compari
         abMeanDelta: item.abMeanDelta,
         blackGuard: item.blackGuard,
         suspectedBlackFrame: item.suspectedBlackFrame,
+        rawRecovery2dEnabled: item.rawRecovery2dEnabled,
+        rawRecovery2dPostHighlightClipRatio: item.rawRecovery2dPostHighlightClipRatio,
+        rawRecovery2dPostShadowClipRatio: item.rawRecovery2dPostShadowClipRatio,
         deltaEMean: item.deltaEMean,
         deltaEP95: item.deltaEP95,
         ssim: item.ssim,
@@ -664,6 +667,9 @@ function writeTrendArtifacts(projectRoot, outDir, summary, trendSummary, compari
     'abMeanDelta',
     'blackGuard',
     'suspectedBlackFrame',
+    'rawRecovery2dEnabled',
+    'rawRecovery2dPostHighlightClipRatio',
+    'rawRecovery2dPostShadowClipRatio',
     'deltaEMean',
     'deltaEP95',
     'ssim',
@@ -679,6 +685,9 @@ function writeTrendArtifacts(projectRoot, outDir, summary, trendSummary, compari
       item.abMeanDelta,
       item.blackGuard,
       item.suspectedBlackFrame,
+      item.rawRecovery2dEnabled,
+      item.rawRecovery2dPostHighlightClipRatio,
+      item.rawRecovery2dPostShadowClipRatio,
       item.deltaEMean,
       item.deltaEP95,
       item.ssim,
@@ -739,6 +748,11 @@ function evaluateEntry(projectRoot, entry, defaultThresholds) {
   const abMeanDelta = toFiniteOrNull(renderQa?.metrics?.abMeanDelta);
   const blackGuard = ensureBoolean(renderQa?.metrics?.blackOutputGuardTriggered, false);
   const suspectedBlackFrame = ensureBoolean(renderQa?.metrics?.suspectedBlackFrame, false);
+  const rawRecovery2dEnabled = ensureBoolean(renderQa?.metrics?.rawRecovery2dEnabled, false);
+  const rawRecovery2dPostHighlightClipRatio = toFiniteOrNull(
+    renderQa?.metrics?.rawRecovery2dPostHighlightClipRatio
+  );
+  const rawRecovery2dPostShadowClipRatio = toFiniteOrNull(renderQa?.metrics?.rawRecovery2dPostShadowClipRatio);
   const qualityComparison = computeImageQualityComparison(projectRoot, entry);
   const deltaEMean = toFiniteOrNull(qualityComparison?.deltaEMean);
   const deltaEP95 = toFiniteOrNull(qualityComparison?.deltaEP95);
@@ -768,6 +782,20 @@ function evaluateEntry(projectRoot, entry, defaultThresholds) {
   }
   if (!ensureBoolean(thresholds.allowSuspectedBlackFrame, false)) {
     assert.equal(suspectedBlackFrame, false, `Entry "${id}" flagged suspected black frame.`);
+  }
+  const maxRecoveryPostHighlightClipRatio = toFiniteOrNull(thresholds?.maxRecoveryPostHighlightClipRatio);
+  if (maxRecoveryPostHighlightClipRatio != null && rawRecovery2dPostHighlightClipRatio != null) {
+    assert.ok(
+      rawRecovery2dPostHighlightClipRatio <= maxRecoveryPostHighlightClipRatio,
+      `Entry "${id}" recovery highlight residual ${rawRecovery2dPostHighlightClipRatio} exceeds ${maxRecoveryPostHighlightClipRatio}`
+    );
+  }
+  const maxRecoveryPostShadowClipRatio = toFiniteOrNull(thresholds?.maxRecoveryPostShadowClipRatio);
+  if (maxRecoveryPostShadowClipRatio != null && rawRecovery2dPostShadowClipRatio != null) {
+    assert.ok(
+      rawRecovery2dPostShadowClipRatio <= maxRecoveryPostShadowClipRatio,
+      `Entry "${id}" recovery shadow residual ${rawRecovery2dPostShadowClipRatio} exceeds ${maxRecoveryPostShadowClipRatio}`
+    );
   }
   const maxDeltaEMean = toFiniteOrNull(thresholds?.maxDeltaEMean);
   if (maxDeltaEMean != null && deltaEMean != null) {
@@ -825,6 +853,14 @@ function evaluateEntry(projectRoot, entry, defaultThresholds) {
       gotAdapter.toLowerCase(),
       expectedDecodeAdapter.toLowerCase(),
       `Entry "${id}" rawDecodeAdapter mismatch: expected "${expectedDecodeAdapter}", got "${gotAdapter || 'n/a'}"`
+    );
+  }
+  const expectedRecovery2dEnabled = entry?.expected?.rawRecovery2dEnabled;
+  if (expectedRecovery2dEnabled != null) {
+    assert.equal(
+      rawRecovery2dEnabled,
+      ensureBoolean(expectedRecovery2dEnabled, false),
+      `Entry "${id}" rawRecovery2dEnabled mismatch: expected ${Boolean(expectedRecovery2dEnabled)}, got ${rawRecovery2dEnabled}`
     );
   }
 
@@ -909,6 +945,9 @@ function evaluateEntry(projectRoot, entry, defaultThresholds) {
     abMeanDelta,
     blackGuard,
     suspectedBlackFrame,
+    rawRecovery2dEnabled,
+    rawRecovery2dPostHighlightClipRatio,
+    rawRecovery2dPostShadowClipRatio,
     riskScore,
     deltaEMean,
     deltaEP95,
