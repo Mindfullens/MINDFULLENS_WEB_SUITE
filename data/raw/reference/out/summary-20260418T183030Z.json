@@ -1,0 +1,139 @@
+{
+  "schema": "mindfullens.raw-reference-trend.v1",
+  "generatedAt": "2026-04-18T18:30:30.497Z",
+  "entryCount": 39,
+  "trendSummary": {
+    "highlightClipRatio": {
+      "mean": 0,
+      "min": 0,
+      "max": 0
+    },
+    "shadowClipRatio": {
+      "mean": 0,
+      "min": 0,
+      "max": 0
+    },
+    "abMeanDelta": {
+      "mean": 5.646820512820513,
+      "min": 0.2,
+      "max": 13.977
+    },
+    "riskScore": {
+      "mean": 0.08470230769230769,
+      "min": 0.003,
+      "max": 0.20965499999999998
+    }
+  },
+  "topRiskEntries": [
+    {
+      "id": "mindfullens_render_debug_1776535631075",
+      "reportPath": "data/raw/reference/reports/mindfullens_render_debug_1776535631075.json",
+      "selectedBackend": "macOS ImageIO / sips",
+      "riskScore": 0.20965499999999998,
+      "highlightClipRatio": 0,
+      "shadowClipRatio": 0,
+      "abMeanDelta": 13.977,
+      "blackGuard": false,
+      "suspectedBlackFrame": false
+    },
+    {
+      "id": "mindfullens_render_debug_1776535005013",
+      "reportPath": "data/raw/reference/reports/mindfullens_render_debug_1776535005013.json",
+      "selectedBackend": "macOS ImageIO / sips",
+      "riskScore": 0.198765,
+      "highlightClipRatio": 0,
+      "shadowClipRatio": 0,
+      "abMeanDelta": 13.251,
+      "blackGuard": false,
+      "suspectedBlackFrame": false
+    },
+    {
+      "id": "mindfullens_render_debug_1776535591285",
+      "reportPath": "data/raw/reference/reports/mindfullens_render_debug_1776535591285.json",
+      "selectedBackend": "macOS QuickLook / qlmanage",
+      "riskScore": 0.18361499999999997,
+      "highlightClipRatio": 0,
+      "shadowClipRatio": 0,
+      "abMeanDelta": 12.241,
+      "blackGuard": false,
+      "suspectedBlackFrame": false
+    },
+    {
+      "id": "mindfullens_render_debug_1776534931219",
+      "reportPath": "data/raw/reference/reports/mindfullens_render_debug_1776534931219.json",
+      "selectedBackend": "macOS ImageIO / sips",
+      "riskScore": 0.142485,
+      "highlightClipRatio": 0,
+      "shadowClipRatio": 0,
+      "abMeanDelta": 9.499,
+      "blackGuard": false,
+      "suspectedBlackFrame": false
+    },
+    {
+      "id": "mindfullens_render_debug_1776534882261",
+      "reportPath": "data/raw/reference/reports/mindfullens_render_debug_1776534882261.json",
+      "selectedBackend": "macOS QuickLook / qlmanage",
+      "riskScore": 0.141255,
+      "highlightClipRatio": 0,
+      "shadowClipRatio": 0,
+      "abMeanDelta": 9.417,
+      "blackGuard": false,
+      "suspectedBlackFrame": false
+    },
+    {
+      "id": "mindfullens_render_debug_1776534854074",
+      "reportPath": "data/raw/reference/reports/mindfullens_render_debug_1776534854074.json",
+      "selectedBackend": "macOS ImageIO / sips",
+      "riskScore": 0.14041499999999998,
+      "highlightClipRatio": 0,
+      "shadowClipRatio": 0,
+      "abMeanDelta": 9.361,
+      "blackGuard": false,
+      "suspectedBlackFrame": false
+    },
+    {
+      "id": "mindfullens_render_debug_1776535582044",
+      "reportPath": "data/raw/reference/reports/mindfullens_render_debug_1776535582044.json",
+      "selectedBackend": "macOS ImageIO / sips",
+      "riskScore": 0.12588,
+      "highlightClipRatio": 0,
+      "shadowClipRatio": 0,
+      "abMeanDelta": 8.392,
+      "blackGuard": false,
+      "suspectedBlackFrame": false
+    },
+    {
+      "id": "mindfullens_render_debug_1776536169822",
+      "reportPath": "data/raw/reference/reports/mindfullens_render_debug_1776536169822.json",
+      "selectedBackend": "macOS QuickLook / qlmanage",
+      "riskScore": 0.12139499999999999,
+      "highlightClipRatio": 0,
+      "shadowClipRatio": 0,
+      "abMeanDelta": 8.093,
+      "blackGuard": false,
+      "suspectedBlackFrame": false
+    },
+    {
+      "id": "mindfullens_render_debug_1776534908488",
+      "reportPath": "data/raw/reference/reports/mindfullens_render_debug_1776534908488.json",
+      "selectedBackend": "macOS QuickLook / qlmanage",
+      "riskScore": 0.12130499999999998,
+      "highlightClipRatio": 0,
+      "shadowClipRatio": 0,
+      "abMeanDelta": 8.087,
+      "blackGuard": false,
+      "suspectedBlackFrame": false
+    },
+    {
+      "id": "mindfullens_render_debug_1776534992778",
+      "reportPath": "data/raw/reference/reports/mindfullens_render_debug_1776534992778.json",
+      "selectedBackend": "macOS ImageIO / sips",
+      "riskScore": 0.12031500000000002,
+      "highlightClipRatio": 0,
+      "shadowClipRatio": 0,
+      "abMeanDelta": 8.021,
+      "blackGuard": false,
+      "suspectedBlackFrame": false
+    }
+  ]
+}

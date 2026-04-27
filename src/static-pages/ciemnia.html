@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mindfullens — Wirtualna Ciemnia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Outfit:wght@200;300;400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#08070c;--bg2:#0e0d15;--bg3:#15141f;--bg4:#1d1c29;--surface:rgba(255,255,255,0.03);--surface2:rgba(255,255,255,0.06);--border:rgba(255,255,255,0.06);--border-h:rgba(196,148,78,0.2);--t1:#ede8df;--t2:#9e978b;--t3:#5e584f;--film:#c4944e;--film2:#a67938;--film3:#e8b868;--film4:rgba(196,148,78,0.08);--red:#e85d5d;--green:#5de88a;--blue:#5d8ae8;--r:12px;--r2:20px;--ease:cubic-bezier(0.16,1,0.3,1)}
+*{margin:0;padding:0;box-sizing:border-box}html{scroll-behavior:smooth;-webkit-font-smoothing:antialiased}
+body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--t1);line-height:1.6;overflow-x:hidden; display: flex; flex-direction: column; min-height: 100dvh;}
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='5' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");opacity:0.018;mix-blend-mode:overlay}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--film2);border-radius:2px}
+
+/* ===================== ZUNIFIKOWANA NAWIGACJA + MEGA MENU ===================== */
+.nav { position: fixed; top: 0; left: 0; right: 0; z-index: 1000; padding: 14px 0; transition: all 0.5s var(--ease); background: rgba(8,7,12,0.92); backdrop-filter: blur(30px) saturate(1.6); border-bottom: 1px solid var(--border); }
+.nav.scrolled { padding: 10px 0; }
+.nav-inner { max-width: 1400px; margin: 0 auto; padding: 0 24px; display: flex; justify-content: space-between; align-items: center; }
+.nav-logo { font-family: 'Instrument Serif', serif; font-size: 1.3rem; text-decoration: none; color: var(--t1); display: flex; align-items: center; gap: 10px; letter-spacing: 1px; text-transform: uppercase; }
+.nav-logo img { height: 32px; width: auto; border-radius: 50%; border: 1px solid var(--film2); }
+
+.nav-links { display: flex; gap: 4px; align-items: center; }
+.nav-link { padding: 8px 16px; border-radius: 50px; text-decoration: none; text-transform: uppercase; font-size: 0.78rem; font-weight: 400; color: var(--t2); letter-spacing: 0.3px; transition: all 0.3s ease; position: relative; white-space: nowrap; }
+.nav-link:hover, .nav-link.active { color: var(--t1); background: var(--surface2); }
+.nav-link-badge { position: absolute; top: 4px; right: 4px; width: 6px; height: 6px; border-radius: 50%; background: var(--film3); animation: pulse 2s infinite; }
+.nav-link-new { position: absolute; top: -2px; right: -2px; font-family: 'JetBrains Mono', monospace; font-size: 0.45rem; background: var(--film); color: var(--bg); padding: 1px 4px; border-radius: 3px; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.3; }
+
+.nav-dropdown { position: relative; }
+.nav-dropdown-trigger { padding: 8px 16px; border-radius: 50px; text-decoration: none; text-transform: uppercase; font-size: 0.78rem; font-weight: 400; color: var(--t2); letter-spacing: 0.3px; transition: all 0.3s ease; cursor: pointer; display: flex; align-items: center; gap: 5px; background: none; border: none; font-family: 'Outfit', sans-serif; }
+.nav-dropdown-trigger:hover, .nav-dropdown.open .nav-dropdown-trigger { color: var(--t1); background: var(--surface2); }
+.nav-dropdown-arrow { font-size: 0.6rem; transition: transform 0.3s; }
+.nav-dropdown.open .nav-dropdown-arrow { transform: rotate(180deg); }
+
+.mega-menu { position: absolute; top: calc(100% + 12px); left: 50%; transform: translateX(-50%); width: 620px; background: var(--bg2); border: 1px solid var(--border-h); border-radius: 16px; padding: 20px; display: none; box-shadow: 0 20px 60px rgba(0,0,0,0.6); z-index: 100; }
+.nav-dropdown.open .mega-menu { display: block; animation: menuIn 0.3s var(--ease); }
+@keyframes menuIn { from { opacity: 0; transform: translateX(-50%) translateY(-8px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+
+.mega-menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.mega-item { display: flex; align-items: flex-start; gap: 12px; padding: 12px; border-radius: 10px; text-decoration: none; color: var(--t1); transition: all 0.2s; border: 1px solid transparent; }
+.mega-item:hover { background: var(--surface2); border-color: var(--border); }
+.mega-item-icon { font-size: 1.5rem; flex-shrink: 0; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: var(--surface2); border-radius: 8px; }
+.mega-item-text { flex: 1; min-width: 0; }
+.mega-item-name { font-size: 0.85rem; font-weight: 600; margin-bottom: 2px; display: flex; align-items: center; gap: 6px; }
+.mega-item-tag { font-family: 'JetBrains Mono', monospace; font-size: 0.45rem; padding: 2px 5px; border-radius: 3px; text-transform: uppercase; letter-spacing: 0.5px; }
+.mega-item-tag-free { background: rgba(93,232,138,0.15); color: #5de88a; }
+.mega-item-tag-new { background: rgba(196,148,78,0.15); color: var(--film3); }
+.mega-item-tag-pro { background: rgba(93,138,232,0.15); color: #5d8ae8; }
+.mega-item-desc { font-size: 0.75rem; color: var(--t3); line-height: 1.4; }
+
+.mega-footer { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+.mega-footer-text { font-size: 0.8rem; color: var(--t2); }
+.mega-footer-btn { padding: 8px 20px; border-radius: 50px; background: linear-gradient(135deg, var(--film), var(--film2)); color: var(--bg); font-family: 'Outfit', sans-serif; font-size: 0.75rem; font-weight: 600; text-decoration: none; text-transform: uppercase; transition: all 0.3s; border: none; cursor: pointer; }
+.mega-footer-btn:hover { box-shadow: 0 4px 16px rgba(196,148,78,0.3); }
+
+.nav-cta{padding:8px 18px;border-radius:50px;border:1px solid var(--border-h);background:transparent;color:var(--t1);font-size:0.75rem;font-weight:600;text-transform:uppercase;cursor:pointer;transition:all 0.4s;font-family:'Outfit',sans-serif;display:flex;align-items:center}
+.nav-cta:hover{border-color:var(--film);color:var(--film);background:var(--film4)}
+.cart-count{background:var(--film);color:var(--bg);width:20px;height:20px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:700;margin-left:8px}
+.nav-mobile-toggle{display:none;background:none;border:none;color:var(--t1);font-size:1.4rem;cursor:pointer;padding:6px}
+
+/* APP LAYOUT */
+.app-wrapper { flex: 1; display: flex; flex-direction: column; }
+.app{display:grid;grid-template-columns:340px 1fr 300px;height:calc(100dvh - 65px);margin-top:65px;background:var(--bg)}
+
+/* LEFT: CHEMISTRY PANEL */
+.chem-panel{background:var(--bg2);border-right:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column}
+.chem-header{padding:16px;border-bottom:1px solid var(--border);text-align:center}
+.chem-header h2{font-family:'Instrument Serif',serif;font-size:1.4rem;margin-bottom:4px}
+.chem-header p{font-size:0.72rem;color:var(--t3)}
+.chem-section{padding:14px;border-bottom:1px solid var(--border)}
+.chem-section-title{font-family:'JetBrains Mono',monospace;font-size:0.55rem;color:var(--t3);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
+.slider-group{margin-bottom:10px}.slider-group:last-child{margin-bottom:0}
+.slider-label{display:flex;justify-content:space-between;margin-bottom:4px}
+.slider-name{font-size:0.72rem;color:var(--t2)}
+.slider-val{font-family:'JetBrains Mono',monospace;font-size:0.62rem;color:var(--film);min-width:30px;text-align:right}
+input[type="range"]{-webkit-appearance:none;width:100%;height:3px;border-radius:2px;background:var(--bg4);outline:none;cursor:pointer}
+input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;border-radius:50%;background:var(--film);border:2px solid var(--bg2);cursor:pointer}
+
+/* Curves mini */
+.curves-wrap{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:4px;margin-top:6px}
+.curves-wrap canvas{width:100%;height:140px;display:block;cursor:crosshair;border-radius:3px}
+.curves-tabs{display:flex;gap:3px;margin-bottom:6px}
+.curves-tab{flex:1;padding:4px;border:1px solid var(--border);border-radius:4px;background:transparent;font-family:'JetBrains Mono',monospace;font-size:0.5rem;cursor:pointer;text-align:center;text-transform:uppercase;transition:all 0.2s}
+.curves-tab.active{background:rgba(255,255,255,0.03)}
+.curves-tab[data-c="rgb"]{color:var(--t2)}.curves-tab[data-c="rgb"].active{border-color:var(--t2)}
+.curves-tab[data-c="r"]{color:var(--red)}.curves-tab[data-c="r"].active{border-color:var(--red)}
+.curves-tab[data-c="g"]{color:var(--green)}.curves-tab[data-c="g"].active{border-color:var(--green)}
+.curves-tab[data-c="b"]{color:var(--blue)}.curves-tab[data-c="b"].active{border-color:var(--blue)}
+
+/* Split tone color */
+.split-row{display:flex;gap:10px;align-items:center;margin-bottom:8px}
+.split-label{font-size:0.7rem;color:var(--t2);min-width:45px}
+.color-dot{width:24px;height:24px;border-radius:50%;border:2px solid var(--border);cursor:pointer;position:relative;overflow:hidden;flex-shrink:0}
+.color-dot:hover{border-color:var(--film)}
+.color-dot input[type="color"]{position:absolute;inset:-4px;width:32px;height:32px;border:none;cursor:pointer;opacity:0}
+
+/* AI suggestion */
+.ai-box{margin:8px 14px 14px;padding:10px;background:linear-gradient(135deg,rgba(196,148,78,0.06),rgba(196,148,78,0.02));border:1px solid var(--border-h);border-radius:8px}
+.ai-box-title{font-family:'JetBrains Mono',monospace;font-size:0.52rem;color:var(--film3);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px}
+.ai-box-text{font-size:0.73rem;color:var(--t2);line-height:1.4}
+
+/* CENTER: CANVAS */
+.canvas-area{background:var(--bg3);display:flex;flex-direction:column;position:relative;overflow:hidden}
+.canvas-center{flex:1;display:flex;align-items:center;justify-content:center;padding:20px; min-height: 0;}
+.canvas-center canvas{max-width:100%;max-height:100%;object-fit:contain;border-radius:3px;box-shadow:0 8px 40px rgba(0,0,0,0.6)}
+.upload-zone{width:360px;height:260px;border:2px dashed rgba(196,148,78,0.25);border-radius:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;cursor:pointer;transition:all 0.4s;background:radial-gradient(ellipse,rgba(196,148,78,0.04),transparent)}
+.upload-zone:hover{border-color:var(--film);background:radial-gradient(ellipse,rgba(196,148,78,0.1),transparent)}
+.upload-icon{font-size:2.5rem;opacity:0.4}
+.upload-text{font-family:'Instrument Serif',serif;font-size:1.4rem}
+.upload-sub{font-family:'JetBrains Mono',monospace;font-size:0.58rem;color:var(--t3);text-transform:uppercase}
+.upload-btn{padding:10px 24px;border-radius:50px;background:linear-gradient(135deg,var(--film),var(--film2));color:var(--bg);font-weight:600;border:none;cursor:pointer;font-size:0.8rem;text-transform:uppercase}
+
+.canvas-bar{padding:14px 16px;background:var(--bg2);border-top:1px solid var(--border);display:none;justify-content:center;gap:12px;flex-shrink:0;z-index:10;}
+.bar-btn{padding:7px 16px;border-radius:50px;font-family:'Outfit',sans-serif;font-size:0.75rem;font-weight:600;cursor:pointer;transition:all 0.3s;text-transform:uppercase;border:none}
+.bar-btn-primary{background:linear-gradient(135deg,var(--film),var(--film2));color:var(--bg)}
+.bar-btn-ghost{background:transparent;border:1px solid var(--border-h);color:var(--t1)}
+
+/* RIGHT: RECIPE PREVIEW */
+.recipe-panel{background:var(--bg2);border-left:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column}
+.recipe-header{padding:16px;border-bottom:1px solid var(--border);text-align:center}
+.recipe-header h3{font-family:'Instrument Serif',serif;font-size:1.2rem;margin-bottom:4px}
+.recipe-card{margin:12px;padding:16px;background:var(--bg3);border:1px solid var(--border);border-radius:10px}
+.recipe-card-title{font-family:'JetBrains Mono',monospace;font-size:0.55rem;color:var(--film);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+.recipe-row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.03);font-size:0.75rem}
+.recipe-row:last-child{border:none}
+.recipe-key{color:var(--t3)}
+.recipe-value{color:var(--t1);font-family:'JetBrains Mono',monospace;font-size:0.7rem}
+
+/* Presets */
+.preset-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:12px}
+.preset-btn{padding:10px 6px;border:1px solid var(--border);border-radius:6px;background:transparent;color:var(--t2);font-family:'Outfit',sans-serif;font-size:0.68rem;cursor:pointer;transition:all 0.2s;text-align:center}
+.preset-btn:hover{border-color:rgba(255,255,255,0.1);color:var(--t1)}
+.preset-btn.active{border-color:var(--film);color:var(--film);background:var(--film4)}
+
+/* History */
+.history-section{padding:12px;border-top:1px solid var(--border);margin-top:auto}
+.history-title{font-family:'JetBrains Mono',monospace;font-size:0.55rem;color:var(--t3);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px}
+.history-item{padding:6px 8px;border-radius:4px;font-size:0.7rem;color:var(--t2);cursor:pointer;transition:background 0.2s;margin-bottom:2px}
+.history-item:hover{background:var(--surface2)}
+
+/* CTA BANNER (Zamiast cennika) */
+.cta-banner-wrapper { width: 100%; background: var(--bg2); padding: 40px 24px; border-top: 1px solid var(--border); display: flex; justify-content: center; }
+.cta-banner { background: var(--bg3); border: 1px solid var(--film); border-radius: var(--r2); padding: 30px 40px; display: flex; align-items: center; justify-content: space-between; max-width: 900px; width: 100%; box-shadow: 0 10px 40px rgba(196,148,78,0.15); gap: 30px; }
+.cta-banner-text h3 { font-family: 'Instrument Serif', serif; font-size: 2rem; margin-bottom: 8px; color: var(--t1); font-weight: 400; }
+.cta-banner-text p { color: var(--t2); font-size: 0.95rem; line-height: 1.5; }
+.cta-btn { padding: 14px 28px; border-radius: 50px; background: linear-gradient(135deg, var(--film), var(--film2)); color: var(--bg); font-family: 'Outfit', sans-serif; font-size: 0.9rem; font-weight: 700; text-decoration: none; text-transform: uppercase; white-space: nowrap; transition: transform 0.3s, box-shadow 0.3s; }
+.cta-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(196,148,78,0.3); }
+
+/* KOSZYK */
+.cart-drawer{position:fixed;top:0;right:-420px;bottom:0;width:360px;z-index:2500;background:var(--bg3);border-left:1px solid var(--border);box-shadow:-10px 0 50px rgba(0,0,0,0.5);transition:right 0.4s var(--ease);display:flex;flex-direction:column}
+.cart-drawer.open{right:0}
+.cart-drawer-header{padding:18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.cart-drawer-title{font-family:'Instrument Serif',serif;font-size:1.3rem}
+.modal-close{background:var(--surface2);border:1px solid var(--border);width:30px;height:30px;border-radius:50%;color:var(--t2);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.3s}
+.modal-close:hover{border-color:var(--film);color:var(--film)}
+.cart-items{flex:1;overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:12px}
+.cart-empty{text-align:center;padding:40px 14px;color:var(--t3);font-weight:300}
+.cart-item{display:flex;justify-content:space-between;align-items:center;padding-bottom:12px;border-bottom:1px solid var(--border)}
+.cart-item-remove{background:none;border:none;color:var(--t3);font-size:0.68rem;text-transform:uppercase;cursor:pointer;letter-spacing:1px;transition:color 0.2s}
+.cart-item-remove:hover{color:var(--red)}
+.cart-footer{padding:18px;border-top:1px solid var(--border);background:var(--bg4)}
+.cart-total{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;font-family:'Instrument Serif',serif;font-size:1.6rem}
+
+@media(max-width:1100px){.app{grid-template-columns:280px 1fr 260px}}
+@media(max-width:900px){
+  .app{grid-template-columns:1fr;grid-template-rows:auto 1fr auto;height:auto;min-height:100dvh}
+  .chem-panel{max-height:350px; border-right: none; border-bottom: 1px solid var(--border);}
+  .recipe-panel{max-height:300px; border-left: none; border-top: 1px solid var(--border);}
+  .cta-banner { flex-direction: column; text-align: center; padding: 30px 20px;}
+}
+@media(max-width:700px){
+  .nav-links{display:none;flex-direction:column;position:absolute;top:100%;left:0;width:100%;background:var(--bg2);border-bottom:1px solid var(--border);padding:16px 0}
+  .nav-links.active{display:flex}
+  .nav-mobile-toggle{display:block}
+  .mega-menu { position: static; transform: none; width: 100%; border-radius: 0; border: none; box-shadow: none; padding: 12px; display: none; }
+  .nav-dropdown.open .mega-menu { display: block; animation: none; }
+  .mega-menu-grid { grid-template-columns: 1fr; }
+  .mega-footer { flex-direction: column; gap: 10px; align-items: flex-start; }
+  .cart-drawer{width:100%;right:-100%}
+}
+/* Unified landing menu + CTA */
+.nav-link-red{color:#ff4757 !important;font-weight:600;text-shadow:0 0 10px rgba(255,71,87,0.3)}
+.nav-link-red:hover{color:#ff6b81 !important;background:rgba(255,71,87,0.1) !important;text-shadow:0 0 15px rgba(255,71,87,0.5)}
+#bundles{padding:80px 24px;background:var(--bg)}
+.cta-banner-wrapper{width:100%;max-width:1000px;margin:0 auto}
+.cta-banner{position:relative;overflow:hidden;background:linear-gradient(135deg,var(--bg3),var(--bg2));border:1px solid var(--film);border-radius:var(--r2);padding:42px 44px;display:flex;align-items:center;justify-content:space-between;gap:32px;box-shadow:0 10px 40px rgba(196,148,78,0.15);text-align:left}
+.cta-banner::before{content:'';position:absolute;left:-10px;top:50%;transform:translateY(-50%);width:40px;height:40px;border-radius:50%;background:rgba(196,148,78,0.2);border:1px solid rgba(196,148,78,0.35)}
+.cta-banner-text{position:relative;z-index:2;max-width:640px}
+.cta-banner-tag{font-family:'JetBrains Mono',monospace;font-size:0.62rem;letter-spacing:2px;text-transform:uppercase;color:var(--film3);margin-bottom:12px;display:inline-block}
+.cta-banner-text h3{font-family:'Instrument Serif',serif;font-size:2.2rem;margin:0 0 12px;color:var(--t1);font-weight:400;line-height:1.12}
+.cta-banner-text p{margin:0;color:var(--t2);font-size:0.95rem;line-height:1.6}
+.cta-banner-text p + p{margin-top:12px}
+.cta-banner-text .cta-banner-highlight{font-size:1.08rem;color:var(--t1);line-height:1.5}
+.cta-btn,.btn-buy{padding:16px 34px;border-radius:50px;background:linear-gradient(135deg,var(--film),var(--film2));color:var(--bg);font-family:'Outfit',sans-serif;font-size:0.92rem;font-weight:700;text-decoration:none;text-transform:uppercase;white-space:nowrap;transition:transform 0.3s,box-shadow 0.3s;border:none;cursor:pointer;position:relative;z-index:2;display:inline-block}
+.cta-btn:hover,.btn-buy:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(196,148,78,0.35)}
+@media(max-width:900px){#bundles{padding:56px 20px}.cta-banner{flex-direction:column;text-align:center;padding:32px 22px}.cta-banner::before{display:none}.cta-banner-text{max-width:100%}}
+</style>
+</head>
+<body>
+
+<nav class="nav" id="mainNav">
+  <div class="nav-inner">
+    <a href="https://mindfullens.pl/" class="nav-logo">
+      <img src="https://mindfullens.pl/logo.png" alt="Mindfullens Logo" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'32\' height=\'32\'><circle cx=\'16\' cy=\'16\' r=\'16\' fill=\'%23c4944e\'/></svg>'">
+      Mindfullens
+    </a>
+    <div class="nav-links" id="navLinks">
+      <a href="https://mindfullens.pl/" class="nav-link">Strona Główna</a>
+      <div class="nav-dropdown" id="toolsDropdown">
+        <button class="nav-dropdown-trigger" onclick="event.stopPropagation();document.getElementById('toolsDropdown').classList.toggle('open')">
+          Narzędzia <span class="nav-dropdown-arrow">▾</span>
+        </button>
+        <div class="mega-menu">
+          <div class="mega-menu-grid">
+            <a href="https://mindfullens.pl/film-lab/" class="mega-item"><div class="mega-item-icon">⚗️</div><div class="mega-item-text"><div class="mega-item-name">Film Lab <span class="mega-item-tag mega-item-tag-free">Free</span></div><div class="mega-item-desc">Nakładaj symulacje klisz w przeglądarce</div></div></a>
+            <a href="https://mindfullens.pl/live/" class="mega-item"><div class="mega-item-icon">📸</div><div class="mega-item-text"><div class="mega-item-name">Live Cam <span class="mega-item-tag mega-item-tag-free">Free</span></div><div class="mega-item-desc">Testuj profile na żywo kamerą w telefonie</div></div></a>
+            <a href="https://mindfullens.pl/matcher/" class="mega-item"><div class="mega-item-icon">🧠</div><div class="mega-item-text"><div class="mega-item-name">AI Matcher <span class="mega-item-tag mega-item-tag-pro">AI</span></div><div class="mega-item-desc">Wrzuć inspirację, AI dopasuje idealny profil</div></div></a>
+            <a href="https://mindfullens.pl/timemachine/" class="mega-item"><div class="mega-item-icon">⏳</div><div class="mega-item-text"><div class="mega-item-name">Time Machine <span class="mega-item-tag mega-item-tag-new">Nowe</span></div><div class="mega-item-desc">Symulacja starzenia kliszy dekady do tyłu</div></div></a>
+            <a href="https://mindfullens.pl/ciemnia/" class="mega-item"><div class="mega-item-icon">🧪</div><div class="mega-item-text"><div class="mega-item-name">Recipe Lab <span class="mega-item-tag mega-item-tag-new">Nowe</span></div><div class="mega-item-desc">Stwórz własną recepturę filmową od zera</div></div></a>
+            <a href="https://mindfullens.pl/blendstudio/" class="mega-item"><div class="mega-item-icon">⚗️</div><div class="mega-item-text"><div class="mega-item-name">Blend Studio <span class="mega-item-tag mega-item-tag-new">Nowe</span></div><div class="mega-item-desc">Miksuj dwie klisze w jedno zdjęcie</div></div></a>
+            <a href="https://mindfullens.pl/contact-sheet/" class="mega-item"><div class="mega-item-icon">🎞️</div><div class="mega-item-text"><div class="mega-item-name">Contact Sheet</div><div class="mega-item-desc">109 profili na jednym arkuszu porównania</div></div></a>
+            <a href="https://mindfullens.pl/color-sync/" class="mega-item"><div class="mega-item-icon">🔄</div><div class="mega-item-text"><div class="mega-item-name">Color Sync <span class="mega-item-tag mega-item-tag-pro">Pro</span></div><div class="mega-item-desc">Zrównaj kolory z 2-3 aparatów kliknięciem</div></div></a>
+          </div>
+          <div class="mega-footer"><span class="mega-footer-text">Zobacz profile i szybkie porównania przed/po</span><a href="https://mindfullens.pl/cennik/" class="mega-footer-btn">Przejdź do pakietów</a></div>
+        </div>
+      </div>
+      <a href="https://mindfullens.pl/camera-settings-app" class="nav-link">Camera App</a>
+      <a href="https://mindfullens.pl/analog-signature/" class="nav-link nav-link-red">Analog Signature</a>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <button class="nav-mobile-toggle" onclick="document.getElementById('navLinks').classList.toggle('active')" aria-label="Menu">☰</button>
+      <button class="nav-cta" onclick="toggleCart()">Koszyk <span class="cart-count" id="cartCount">0</span></button>
+    </div>
+  </div>
+</nav>
+
+<div class="app-wrapper">
+<div class="app">
+<div class="chem-panel">
+<div class="chem-header"><h2>🧪 Ciemnia</h2><p>Stwórz własną recepturę filmową</p></div>
+
+<div class="ai-box" id="aiBox">
+<div class="ai-box-title">✦ AI Chemik</div>
+<div class="ai-box-text" id="aiText">Wgraj zdjęcie i zacznij modyfikować parametry — podpowiem, którą kliszę przypomina Twoja receptura.</div>
+</div>
+
+<div class="chem-section">
+<div class="chem-section-title"><span>🌡️ Wywoływanie — Temperatura</span></div>
+<div class="slider-group"><div class="slider-label"><span class="slider-name">Temperatura barwowa</span><span class="slider-val" id="tempVal">0</span></div><input type="range" min="-100" max="100" value="0" id="tempSlider" oninput="U()"></div>
+<div class="slider-group"><div class="slider-label"><span class="slider-name">Tint (magenta-zielony)</span><span class="slider-val" id="tintVal">0</span></div><input type="range" min="-100" max="100" value="0" id="tintSlider" oninput="U()"></div>
+</div>
+
+<div class="chem-section">
+<div class="chem-section-title"><span>⚗️ Chemia — Kontrast</span></div>
+<div class="slider-group"><div class="slider-label"><span class="slider-name">Czas wywoływania (kontrast)</span><span class="slider-val" id="contrastVal">0</span></div><input type="range" min="-100" max="100" value="0" id="contrastSlider" oninput="U()"></div>
+<div class="slider-group"><div class="slider-label"><span class="slider-name">Lifted blacks (niedowywoł.)</span><span class="slider-val" id="liftVal">0</span></div><input type="range" min="0" max="100" value="0" id="liftSlider" oninput="U()"></div>
+<div class="slider-group"><div class="slider-label"><span class="slider-name">Fade (blaknięcie)</span><span class="slider-val" id="fadeVal">0</span></div><input type="range" min="0" max="100" value="0" id="fadeSlider" oninput="U()"></div>
+</div>
+
+<div class="chem-section">
+<div class="chem-section-title"><span>🎨 Barwniki — Kolor</span></div>
+<div class="slider-group"><div class="slider-label"><span class="slider-name">Nasycenie</span><span class="slider-val" id="satVal">0</span></div><input type="range" min="-100" max="100" value="0" id="satSlider" oninput="U()"></div>
+<div class="slider-group"><div class="slider-label"><span class="slider-name">Vibrance</span><span class="slider-val" id="vibVal">0</span></div><input type="range" min="-100" max="100" value="0" id="vibSlider" oninput="U()"></div>
+</div>
+
+<div class="chem-section">
+<div class="chem-section-title"><span>📐 Krzywe tonalne</span></div>
+<div class="curves-tabs"><button class="curves-tab active" data-c="rgb" onclick="setCh('rgb',this)">RGB</button><button class="curves-tab" data-c="r" onclick="setCh('r',this)">R</button><button class="curves-tab" data-c="g" onclick="setCh('g',this)">G</button><button class="curves-tab" data-c="b" onclick="setCh('b',this)">B</button></div>
+<div class="curves-wrap"><canvas id="curvesCanvas" width="310" height="140"></canvas></div>
+</div>
+
+<div class="chem-section">
+<div class="chem-section-title"><span>🌈 Split Toning</span></div>
+<div class="split-row"><span class="split-label">Światła</span><div class="color-dot" id="stHighDot" style="background:#e8c878"><input type="color" value="#e8c878" onchange="stHighColor=this.value;document.getElementById('stHighDot').style.background=this.value;U()"></div><div style="flex:1"><input type="range" min="0" max="100" value="0" id="stHighSlider" oninput="U()"></div><span class="slider-val" id="stHighVal">0</span></div>
+<div class="split-row"><span class="split-label">Cienie</span><div class="color-dot" id="stShadDot" style="background:#5d7898"><input type="color" value="#5d7898" onchange="stShadColor=this.value;document.getElementById('stShadDot').style.background=this.value;U()"></div><div style="flex:1"><input type="range" min="0" max="100" value="0" id="stShadSlider" oninput="U()"></div><span class="slider-val" id="stShadVal">0</span></div>
+</div>
+
+<div class="chem-section">
+<div class="chem-section-title"><span>🎞️ Emulsja — Tekstura</span></div>
+<div class="slider-group"><div class="slider-label"><span class="slider-name">Ziarno filmowe</span><span class="slider-val" id="grainVal">0</span></div><input type="range" min="0" max="100" value="0" id="grainSlider" oninput="U()"></div>
+<div class="slider-group"><div class="slider-label"><span class="slider-name">Winieta</span><span class="slider-val" id="vigVal">0</span></div><input type="range" min="0" max="100" value="0" id="vigSlider" oninput="U()"></div>
+</div>
+</div>
+
+<div class="canvas-area">
+<div class="canvas-center" id="canvasCenter">
+<div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+<div class="upload-icon">🧪</div>
+<div class="upload-text">Wgraj zdjęcie testowe</div>
+<div class="upload-sub">Twoja receptura będzie aplikowana na żywo</div>
+<button class="upload-btn">Wybierz z dysku</button>
+</div>
+<canvas id="mainCanvas" style="display:none"></canvas>
+</div>
+<div class="canvas-bar" id="canvasBar">
+<button class="bar-btn bar-btn-ghost" onclick="changePhoto()">Zmień zdjęcie</button>
+<button class="bar-btn bar-btn-ghost" onclick="resetRecipe()">Wyczyść recepturę</button>
+<button class="bar-btn bar-btn-primary" onclick="downloadResult()">Zapisz wynik</button>
+</div>
+<input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp,image/tiff,image/avif,image/heic,image/heif,.raw,.dng,.nef,.nrw,.cr2,.cr3,.arw,.srw,.srf,.sr2,.dcr,.raf,.rwl,.rw2,.mef,.orf,.pef,.iiq,.3fr,.erf,.fff,.kdc,.mos,.mrw,.x3f,.heic,.heif" style="display:none">
+</div>
+
+<div class="recipe-panel">
+<div class="recipe-header"><h3>📋 Receptura</h3></div>
+
+<div style="padding:12px 12px 0"><div class="chem-section-title"><span>Baza startowa</span></div></div>
+<div class="preset-grid" id="presetGrid"></div>
+
+<div class="recipe-card" id="recipeCard">
+<div class="recipe-card-title">Twoja receptura</div>
+<div id="recipeRows"></div>
+</div>
+
+<div class="recipe-card">
+<div class="recipe-card-title">✦ AI rozpoznaje jako...</div>
+<div id="aiMatch" style="font-size:0.85rem;color:var(--film);font-weight:500">Wgraj zdjęcie, aby rozpocząć</div>
+</div>
+
+<div class="history-section">
+<div class="history-title">Historia zmian</div>
+<div id="historyList"><div class="history-item" style="color:var(--t3)">Brak zmian</div></div>
+</div>
+</div>
+</div>
+
+<!-- NOWY BANER CTA (zamiast cennika) -->
+<section id="bundles">
+  <div class="cta-banner-wrapper">
+    <div class="cta-banner">
+      <div class="cta-banner-text">
+        <span class="cta-banner-tag">✦ Odblokuj pełną moc</span>
+        <h3>Wybierz swój pakiet</h3>
+        <p class="cta-banner-highlight">Profile Lightroom, receptury Camera App, system Analog Signature i 9 narzędzi AI.</p>
+        <p>Wybierz rozwiązanie idealne dla siebie. Kup pakiet <strong>Complete Studio</strong> i otrzymaj wszystkie nasze produkty w jednym: potężny ekosystem do edycji plików RAW (.xmp), gotowe ustawienia JPEG prosto z aparatu oraz dożywotni dostęp do wszystkich narzędzi webowych.</p>
+      </div>
+      <a href="https://mindfullens.pl/cennik/" class="cta-btn">Zobacz pakiety →</a>
+    </div>
+  </div>
+</section>
+</div> <!-- End app-wrapper -->
+
+<div class="cart-drawer" id="cartDrawer">
+  <div class="cart-drawer-header">
+    <div class="cart-drawer-title">Twój Koszyk</div>
+    <button class="modal-close" onclick="toggleCart()">✕</button>
+  </div>
+  <div class="cart-items" id="cartItems">
+    <div class="cart-empty">Twój koszyk jest pusty. Wybierz pakiet z oferty.</div>
+  </div>
+  <div class="cart-footer">
+    <div class="cart-total">
+      <span style="font-family: 'Outfit', sans-serif; font-size: 1rem; color: var(--t2); font-weight: 400;">Razem</span>
+      <span id="cartTotal">0 PLN</span>
+    </div>
+    <button class="btn-footer-checkout" style="width:100%; padding:16px; border-radius:50px; background:linear-gradient(135deg, var(--film), var(--film2)); color:var(--bg); font-weight:700; text-transform:uppercase; border:none; cursor:pointer;" onclick="checkout()">Przejdź do kasy →</button>
+  </div>
+</div>
+
+<script>
+// ==================== NAWIGACJA & KOSZYK ====================
+const nav = document.getElementById('mainNav');
+window.addEventListener('scroll', () => { nav.classList.toggle('scrolled', window.scrollY > 50) });
+
+function toggleMobileMenu() {
+  document.getElementById('navLinks').classList.toggle('active');
+  document.getElementById('toolsDropdown').classList.remove('open');
+}
+
+function toggleDropdown(e) {
+  if(e) e.stopPropagation();
+  const dd = document.getElementById('toolsDropdown');
+  dd.classList.toggle('open');
+}
+
+document.addEventListener('click', (e) => {
+  const dd = document.getElementById('toolsDropdown');
+  if (dd && !dd.contains(e.target)) {
+    dd.classList.remove('open');
+  }
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    const dd = document.getElementById('toolsDropdown');
+    if(dd) dd.classList.remove('open');
+  }
+});
+
+let cart = [];
+function toggleCart() { document.getElementById('cartDrawer').classList.toggle('open'); }
+function addToCart(name, price) {
+  const existingItem = cart.find(item => item.name === name);
+  if(!existingItem) {
+    cart.push({ name, price });
+    updateCartUI();
+    const badge = document.getElementById('cartCount');
+    if(badge) {
+      badge.classList.add('bump');
+      setTimeout(() => badge.classList.remove('bump'), 300);
+    }
+  }
+  document.getElementById('cartDrawer').classList.add('open');
+}
+function removeFromCart(index) { cart.splice(index, 1); updateCartUI(); }
+function updateCartUI() {
+  const container = document.getElementById('cartItems');
+  const totalEl = document.getElementById('cartTotal');
+  const badge = document.getElementById('cartCount');
+  if(badge) badge.textContent = cart.length;
+  
+  if (cart.length === 0) {
+    container.innerHTML = '<div class="cart-empty">Twój koszyk jest pusty. Wybierz pakiet z oferty.</div>';
+    totalEl.textContent = '0 PLN'; return;
+  }
+  let total = 0;
+  container.innerHTML = cart.map((item, i) => {
+    total += item.price;
+    return `<div class="cart-item">
+      <div class="cart-item-info"><h4 style="font-family:'Outfit',sans-serif;font-size:1rem;color:var(--t1);margin-bottom:4px;">${item.name}</h4><div style="font-family:'JetBrains Mono',monospace;color:var(--film);font-size:0.85rem;">${item.price} PLN</div></div>
+      <button class="cart-item-remove" onclick="removeFromCart(${i})">Usuń</button>
+    </div>`;
+  }).join('');
+  totalEl.textContent = `${total} PLN`;
+}
+function checkout() { if(cart.length>0) alert('Przechodzisz do kasy z kwotą ' + document.getElementById('cartTotal').textContent); else alert('Koszyk jest pusty'); }
+
+
+// ===== KNOWN FILM SIGNATURES (for AI matching) =====
+const KNOWN=[
+  {name:'Kodak Portra 400',sig:{temp:8,sat:-5,contrast:5,lift:10,fade:0,vib:5}},
+  {name:'Kodak Gold 200',sig:{temp:20,sat:-4,contrast:0,lift:15,fade:5,vib:12}},
+  {name:'Fuji Velvia 50',sig:{temp:-5,sat:10,contrast:12,lift:0,fade:0,vib:40}},
+  {name:'CineStill 800T',sig:{temp:-25,sat:-8,contrast:-8,lift:10,fade:5,vib:10}},
+  {name:'Kodak Tri-X 400',sig:{temp:0,sat:-100,contrast:40,lift:5,fade:0,vib:0}},
+  {name:'Fuji Pro 400H',sig:{temp:5,sat:-8,contrast:-5,lift:10,fade:3,vib:5}},
+  {name:'Kodak Ektar 100',sig:{temp:8,sat:5,contrast:15,lift:0,fade:0,vib:20}},
+  {name:'Ilford HP5',sig:{temp:0,sat:-100,contrast:50,lift:3,fade:0,vib:0}},
+  {name:'Kodachrome',sig:{temp:15,sat:8,contrast:20,lift:0,fade:0,vib:10}},
+  {name:'Lomography CN 800',sig:{temp:15,sat:10,contrast:15,lift:12,fade:8,vib:15}},
+  {name:'Portra 160',sig:{temp:5,sat:-5,contrast:3,lift:8,fade:3,vib:5}},
+  {name:'Kodak Vision3 500T',sig:{temp:-20,sat:-10,contrast:-5,lift:8,fade:0,vib:8}},
+];
+
+const PRESETS=[
+  {name:'Neutral',vals:{temp:0,tint:0,contrast:0,lift:0,fade:0,sat:0,vib:0,grain:0,vig:0,stHigh:0,stShad:0}},
+  {name:'Portra Look',vals:{temp:10,tint:0,contrast:5,lift:12,fade:5,sat:-8,vib:8,grain:15,vig:10,stHigh:0,stShad:0}},
+  {name:'Cinematic',vals:{temp:-20,tint:0,contrast:-5,lift:15,fade:8,sat:-10,vib:10,grain:20,vig:15,stHigh:10,stShad:15}},
+  {name:'Velvia Pop',vals:{temp:-3,tint:0,contrast:15,lift:0,fade:0,sat:15,vib:40,grain:8,vig:5,stHigh:0,stShad:0}},
+  {name:'BW Classic',vals:{temp:0,tint:0,contrast:45,lift:5,fade:0,sat:-100,vib:0,grain:25,vig:12,stHigh:0,stShad:0}},
+  {name:'Lo-Fi Vintage',vals:{temp:18,tint:3,contrast:8,lift:20,fade:15,sat:-5,vib:12,grain:30,vig:18,stHigh:15,stShad:10}},
+  {name:'Pastel Dream',vals:{temp:5,tint:-5,contrast:-10,lift:15,fade:12,sat:-15,vib:5,grain:10,vig:8,stHigh:8,stShad:5}},
+  {name:'Cross Process',vals:{temp:-15,tint:10,contrast:20,lift:8,fade:0,sat:15,vib:20,grain:18,vig:10,stHigh:20,stShad:20}},
+];
+
+let origData=null, stHighColor='#e8c878', stShadColor='#5d7898';
+let recipeHistory=[]; // <--- ZMIENIONA NAZWA ZMIENNEJ (FIX CRASHU)
+const canvas=document.getElementById('mainCanvas');
+const ctx=canvas.getContext('2d',{willReadFrequently:true});
+let curves={rgb:[[0,0],[255,255]],r:[[0,0],[255,255]],g:[[0,0],[255,255]],b:[[0,0],[255,255]]};
+let activeCh='rgb', curveDrag=null;
+
+// ===== FILE LOAD =====
+document.getElementById('fileInput').addEventListener('change',e=>{if(e.target.files[0])loadImage(e.target.files[0])});
+const dz=document.getElementById('uploadZone');
+['dragover','dragenter'].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.style.borderColor='#c4944e'}));
+['dragleave','drop'].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.style.borderColor=''}));
+dz.addEventListener('drop',e=>{if(e.dataTransfer.files[0])loadImage(e.dataTransfer.files[0])});
+
+function loadImage(file){
+  const reader=new FileReader();
+  reader.onload=e=>{const img=new Image();img.onload=()=>{
+    const mx=1200;let w=img.width,h=img.height;
+    if(w>mx||h>mx){const r=Math.min(mx/w,mx/h);w=Math.round(w*r);h=Math.round(h*r)}
+    canvas.width=w;canvas.height=h;ctx.drawImage(img,0,0,w,h);
+    origData=ctx.getImageData(0,0,w,h);
+    document.getElementById('uploadZone').style.display='none';
+    canvas.style.display='block';
+    document.getElementById('canvasBar').style.display='flex';
+    U();
+  };img.src=e.target.result};reader.readAsDataURL(file);
+}
+
+// ===== LUT =====
+function buildLUT(pts){
+  const lut=new Uint8Array(256);
+  if(!pts||pts.length<2){for(let i=0;i<256;i++)lut[i]=i;return lut}
+  const s=[...pts].sort((a,b)=>a[0]-b[0]);
+  for(let i=0;i<256;i++){
+    if(i<=s[0][0]){lut[i]=Math.max(0,Math.min(255,s[0][1]));continue}
+    if(i>=s[s.length-1][0]){lut[i]=Math.max(0,Math.min(255,s[s.length-1][1]));continue}
+    for(let j=0;j<s.length-1;j++){
+      if(i>=s[j][0]&&i<=s[j+1][0]){
+        const t=(i-s[j][0])/(s[j+1][0]-s[j][0]);
+        lut[i]=Math.max(0,Math.min(255,Math.round(s[j][1]+(s[j+1][1]-s[j][1])*t)));
+        break;
+      }
+    }
+  }
+  return lut;
+}
+
+// ===== GET VALUES =====
+function getVals(){
+  return{
+    temp:+document.getElementById('tempSlider').value,
+    tint:+document.getElementById('tintSlider').value,
+    contrast:+document.getElementById('contrastSlider').value,
+    lift:+document.getElementById('liftSlider').value,
+    fade:+document.getElementById('fadeSlider').value,
+    sat:+document.getElementById('satSlider').value,
+    vib:+document.getElementById('vibSlider').value,
+    grain:+document.getElementById('grainSlider').value,
+    vig:+document.getElementById('vigSlider').value,
+    stHigh:+document.getElementById('stHighSlider').value,
+    stShad:+document.getElementById('stShadSlider').value,
+  };
+}
+
+// ===== RENDER =====
+let renderQ=false;
+function U(){
+  ['temp','tint','contrast','lift','fade','sat','vib','grain','vig','stHigh','stShad'].forEach(k=>{
+    const el=document.getElementById(k+'Val');
+    if(el)el.textContent=document.getElementById(k+'Slider').value+(k==='temp'||k==='tint'||k==='contrast'||k==='sat'||k==='vib'?'':'%');
+  });
+  if(!renderQ){renderQ=true;requestAnimationFrame(()=>{renderQ=false;render()})}
+}
+
+function render(){
+  if(!origData)return;
+  const v=getVals();
+  const w=canvas.width,h=canvas.height;
+  const imgData=new ImageData(new Uint8ClampedArray(origData.data),w,h);
+  const d=imgData.data;
+  
+  const cLUT={rgb:buildLUT(curves.rgb),r:buildLUT(curves.r),g:buildLUT(curves.g),b:buildLUT(curves.b)};
+  const con=1+v.contrast/200;
+  const satMul=1+v.sat/100;
+  const vibAmt=v.vib/100;
+  const fadeMix=v.fade/100*0.4;
+  const stHR=parseInt(stHighColor.substr(1,2),16)/255,stHG=parseInt(stHighColor.substr(3,2),16)/255,stHB=parseInt(stHighColor.substr(5,2),16)/255;
+  const stSR=parseInt(stShadColor.substr(1,2),16)/255,stSG=parseInt(stShadColor.substr(3,2),16)/255,stSB=parseInt(stShadColor.substr(5,2),16)/255;
+  const stHA=v.stHigh/100,stSA=v.stShad/100;
+
+  for(let i=0;i<d.length;i+=4){
+    let r=d[i],g=d[i+1],b=d[i+2];
+    
+    r+=v.temp*0.5;b-=v.temp*0.5;g+=v.tint*0.3;
+    
+    r=cLUT.r[Math.max(0,Math.min(255,Math.round(r)))];
+    g=cLUT.g[Math.max(0,Math.min(255,Math.round(g)))];
+    b=cLUT.b[Math.max(0,Math.min(255,Math.round(b)))];
+    let lm=Math.max(0,Math.min(255,Math.round(0.299*r+0.587*g+0.114*b)));
+    let ls=cLUT.rgb[lm]-lm;r+=ls;g+=ls;b+=ls;
+    
+    r=((r/255-0.5)*con+0.5)*255+v.lift*0.4;
+    g=((g/255-0.5)*con+0.5)*255+v.lift*0.4;
+    b=((b/255-0.5)*con+0.5)*255+v.lift*0.4;
+    
+    let gray=0.299*r+0.587*g+0.114*b;
+    let sm=satMul;
+    if(vibAmt!==0){const mx=Math.max(r,g,b),mn=Math.min(r,g,b);sm+=vibAmt*(1-(mx>0?(mx-mn)/mx:0))}
+    r=gray+(r-gray)*sm;g=gray+(g-gray)*sm;b=gray+(b-gray)*sm;
+    
+    if(fadeMix>0){r=r*(1-fadeMix)+190*fadeMix;g=g*(1-fadeMix)+185*fadeMix;b=b*(1-fadeMix)+178*fadeMix}
+    
+    let lum=(0.299*r+0.587*g+0.114*b)/255;
+    if(stHA>0&&lum>0.5){const bl=stHA*Math.min(1,(lum-0.5)*2)*0.15;r=r*(1-bl)+stHR*255*bl;g=g*(1-bl)+stHG*255*bl;b=b*(1-bl)+stHB*255*bl}
+    if(stSA>0&&lum<0.5){const bl=stSA*Math.min(1,(0.5-lum)*2)*0.15;r=r*(1-bl)+stSR*255*bl;g=g*(1-bl)+stSG*255*bl;b=b*(1-bl)+stSB*255*bl}
+    
+    d[i]=r<0?0:r>255?255:r;d[i+1]=g<0?0:g>255?255:g;d[i+2]=b<0?0:b>255?255:b;
+  }
+  ctx.putImageData(imgData,0,0);
+  
+  if(v.grain>0){const gd=ctx.getImageData(0,0,w,h);const gp=gd.data;const intensity=v.grain*0.6;for(let i=0;i<gp.length;i+=4){const n=(Math.random()-0.5)*intensity;gp[i]+=n;gp[i+1]+=n;gp[i+2]+=n}ctx.putImageData(gd,0,0)}
+  
+  if(v.vig>0){const cx2=w/2,cy2=h/2,mR=Math.sqrt(cx2*cx2+cy2*cy2);const grad=ctx.createRadialGradient(cx2,cy2,mR*0.3,cx2,cy2,mR*0.85);grad.addColorStop(0,'rgba(0,0,0,0)');grad.addColorStop(1,`rgba(0,0,0,${v.vig/100*0.7})`);ctx.fillStyle=grad;ctx.fillRect(0,0,w,h)}
+  
+  updateRecipeCard(v);
+  matchToKnown(v);
+}
+
+// ===== RECIPE CARD =====
+function updateRecipeCard(v){
+  const rows=document.getElementById('recipeRows');
+  const items=[
+    ['Temperatura',v.temp],['Tint',v.tint],['Kontrast',v.contrast],
+    ['Lifted Blacks',v.lift+'%'],['Fade',v.fade+'%'],
+    ['Nasycenie',v.sat],['Vibrance',v.vib],
+    ['Ziarno',v.grain+'%'],['Winieta',v.vig+'%'],
+    ['Split High',v.stHigh+'%'],['Split Shad',v.stShad+'%'],
+  ];
+  rows.innerHTML=items.map(([k,val])=>`<div class="recipe-row"><span class="recipe-key">${k}</span><span class="recipe-value">${val}</span></div>`).join('');
+}
+
+// ===== AI MATCHING =====
+function matchToKnown(v){
+  let bestMatch='Twoja unikalna receptura',bestDist=Infinity;
+  KNOWN.forEach(k=>{
+    let dist=0;
+    dist+=Math.abs((v.temp||0)-(k.sig.temp||0))*0.8;
+    dist+=Math.abs((v.sat||0)-(k.sig.sat||0))*0.5;
+    dist+=Math.abs((v.contrast||0)-(k.sig.contrast||0))*0.6;
+    dist+=Math.abs((v.lift||0)-(k.sig.lift||0))*0.4;
+    dist+=Math.abs((v.fade||0)-(k.sig.fade||0))*0.3;
+    dist+=Math.abs((v.vib||0)-(k.sig.vib||0))*0.4;
+    if(dist<bestDist){bestDist=dist;bestMatch=k.name}
+  });
+  const similarity=Math.max(0,Math.min(98,Math.round(100-bestDist*0.8)));
+  document.getElementById('aiMatch').innerHTML=`<span style="font-size:1.1rem">${bestMatch}</span><br><span style="font-size:0.7rem;color:var(--t2)">Podobieństwo: ${similarity}%</span>`;
+  document.getElementById('aiText').textContent=similarity>70?`Twoja receptura mocno przypomina ${bestMatch}. Spróbuj dostroić ${v.temp>0?'chłodniejszą temperaturę':'cieplejszą temperaturę'} dla unikalnego efektu.`:`Tworzysz coś oryginalnego! Najbliżej jest ${bestMatch}, ale Twoja receptura ma własny charakter.`;
+}
+
+// ===== PRESETS =====
+function buildPresets(){
+  document.getElementById('presetGrid').innerHTML=PRESETS.map((p,i)=>`<button class="preset-btn" onclick="applyPreset(${i},this)">${p.name}</button>`).join('');
+}
+function applyPreset(i,btn){
+  const v=PRESETS[i].vals;
+  Object.keys(v).forEach(k=>{const el=document.getElementById(k+'Slider');if(el)el.value=v[k]});
+  document.querySelectorAll('.preset-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  recipeHistory.push(PRESETS[i].name);
+  updateHistory();
+  U();
+}
+function updateHistory(){
+  const list=document.getElementById('historyList');
+  list.innerHTML=recipeHistory.slice(-6).reverse().map(h=>`<div class="history-item">${h}</div>`).join('');
+}
+
+// ===== CURVES =====
+function drawCurves(){
+  const c=document.getElementById('curvesCanvas'),cx=c.getContext('2d');const w=c.width,h=c.height;cx.clearRect(0,0,w,h);
+  cx.strokeStyle='rgba(255,255,255,0.06)';cx.lineWidth=0.5;
+  for(let i=1;i<4;i++){cx.beginPath();cx.moveTo(w*i/4,0);cx.lineTo(w*i/4,h);cx.stroke();cx.beginPath();cx.moveTo(0,h*i/4);cx.lineTo(w,h*i/4);cx.stroke()}
+  cx.strokeStyle='rgba(255,255,255,0.1)';cx.beginPath();cx.moveTo(0,h);cx.lineTo(w,0);cx.stroke();
+  const colors={rgb:'#aaa',r:'#e85d5d',g:'#5de88a',b:'#5d8ae8'};
+  const pts=curves[activeCh];const lut=buildLUT(pts);
+  cx.beginPath();cx.strokeStyle=colors[activeCh];cx.lineWidth=1.5;
+  for(let i=0;i<256;i++){const x=(i/255)*w,y=h-(lut[i]/255)*h;i===0?cx.moveTo(x,y):cx.lineTo(x,y)}cx.stroke();
+  pts.forEach(([px,py])=>{const x=(px/255)*w,y=h-(py/255)*h;cx.beginPath();cx.arc(x,y,4,0,Math.PI*2);cx.fillStyle=colors[activeCh];cx.fill();cx.strokeStyle='#0e0d15';cx.lineWidth=1.5;cx.stroke()});
+}
+function setCh(ch,btn){activeCh=ch;document.querySelectorAll('.curves-tab').forEach(t=>t.classList.remove('active'));btn.classList.add('active');drawCurves()}
+const curvesCV=document.getElementById('curvesCanvas');
+curvesCV.addEventListener('mousedown',e=>{const rect=curvesCV.getBoundingClientRect();const sx=(e.clientX-rect.left)/rect.width*255;const sy=255-(e.clientY-rect.top)/rect.height*255;const pts=curves[activeCh];let near=-1;pts.forEach((p,i)=>{if(Math.abs(p[0]-sx)<15&&Math.abs(p[1]-sy)<15)near=i});if(near>=0&&near!==0&&near!==pts.length-1){if(e.detail===2){pts.splice(near,1);drawCurves();U();return}curveDrag=near}else{pts.push([Math.round(sx),Math.round(sy)]);pts.sort((a,b)=>a[0]-b[0]);curveDrag=pts.findIndex(p=>p[0]===Math.round(sx)&&p[1]===Math.round(sy))}drawCurves()});
+curvesCV.addEventListener('mousemove',e=>{if(curveDrag===null)return;const rect=curvesCV.getBoundingClientRect();const sx=Math.max(0,Math.min(255,Math.round((e.clientX-rect.left)/rect.width*255)));const sy=Math.max(0,Math.min(255,Math.round(255-(e.clientY-rect.top)/rect.height*255)));curves[activeCh][curveDrag]=[sx,sy];drawCurves();U()});
+document.addEventListener('mouseup',()=>{curveDrag=null});
+
+function resetRecipe(){
+  ['temp','tint','contrast','lift','fade','sat','vib','grain','vig','stHigh','stShad'].forEach(k=>{const el=document.getElementById(k+'Slider');if(el)el.value=0});
+  curves={rgb:[[0,0],[255,255]],r:[[0,0],[255,255]],g:[[0,0],[255,255]],b:[[0,0],[255,255]]};
+  drawCurves();U();recipeHistory.push('Reset');updateHistory();
+}
+function changePhoto(){document.getElementById('fileInput').value='';document.getElementById('fileInput').click()}
+function downloadResult(){
+  if(!origData)return;
+  canvas.toBlob(blob=>{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='Mindfullens_Recipe.jpg';a.click();URL.revokeObjectURL(a.href)},'image/jpeg',0.95);
+}
+
+// INIT
+buildPresets();drawCurves();
+</script>
+</body>
+</html>

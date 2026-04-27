@@ -1,0 +1,169 @@
+{
+  "schema": "mindfullens.raw-reference-trend.v1",
+  "generatedAt": "2026-04-27T06:13:42.720Z",
+  "entryCount": 39,
+  "trendSummary": {
+    "highlightClipRatio": {
+      "mean": 0.04301925973138199,
+      "min": 0,
+      "max": 0.24396411092985318
+    },
+    "shadowClipRatio": {
+      "mean": 0.0003565890888170554,
+      "min": 0,
+      "max": 0.013182650682650683
+    },
+    "abMeanDelta": {
+      "mean": 5.2155641025641035,
+      "min": 0.272,
+      "max": 13.124
+    },
+    "riskScore": {
+      "mean": 0.16095744735245632,
+      "min": 0.00408,
+      "max": 0.433897037037037
+    }
+  },
+  "comparison": {
+    "previousGeneratedAt": "2026-04-27T05:46:22.830Z",
+    "trendDelta": {
+      "highlightClipRatio": {
+        "meanDelta": 0,
+        "meanDeltaPct": 0,
+        "direction": "stable",
+        "isRegression": false
+      },
+      "shadowClipRatio": {
+        "meanDelta": 0,
+        "meanDeltaPct": 0,
+        "direction": "stable",
+        "isRegression": false
+      },
+      "abMeanDelta": {
+        "meanDelta": 0,
+        "meanDeltaPct": 0,
+        "direction": "stable",
+        "isRegression": false
+      },
+      "riskScore": {
+        "meanDelta": 0,
+        "meanDeltaPct": 0,
+        "direction": "stable",
+        "isRegression": false
+      }
+    },
+    "alerts": []
+  },
+  "topRiskEntries": [
+    {
+      "id": "mindfullens_render_debug_1776535390891",
+      "reportPath": "data/raw/reference/reports/mindfullens_render_debug_1776535390891.json",
+      "selectedBackend": "macOS ImageIO / sips",
+      "riskScore": 0.433897037037037,
+      "highlightClipRatio": 0.12139629948364888,
+      "shadowClipRatio": 0,
+      "abMeanDelta": 13.124,
+      "blackGuard": false,
+      "suspectedBlackFrame": false
+    },
+    {
+      "id": "mindfullens_render_debug_1776535631075",
+      "reportPath": "data/raw/reference/reports/mindfullens_render_debug_1776535631075.json",
+      "selectedBackend": "macOS ImageIO / sips",
+      "riskScore": 0.431317037037037,
+      "highlightClipRatio": 0.11998468606431853,
+      "shadowClipRatio": 0,
+      "abMeanDelta": 12.952,
+      "blackGuard": false,
+      "suspectedBlackFrame": false
+    },
+    {
+      "id": "mindfullens_render_debug_1776534838108",
+      "reportPath": "data/raw/reference/reports/mindfullens_render_debug_1776534838108.json",
+      "selectedBackend": "macOS ImageIO / sips",
+      "riskScore": 0.358402037037037,
+      "highlightClipRatio": 0.2331820956820957,
+      "shadowClipRatio": 0,
+      "abMeanDelta": 8.091,
+      "blackGuard": false,
+      "suspectedBlackFrame": false
+    },
+    {
+      "id": "mindfullens_render_debug_1776534931219",
+      "reportPath": "data/raw/reference/reports/mindfullens_render_debug_1776534931219.json",
+      "selectedBackend": "macOS ImageIO / sips",
+      "riskScore": 0.3525465324584828,
+      "highlightClipRatio": 0.15553176860330656,
+      "shadowClipRatio": 0.0006422477107228803,
+      "abMeanDelta": 7.615,
+      "blackGuard": false,
+      "suspectedBlackFrame": false
+    },
+    {
+      "id": "mindfullens_render_debug_1776534940397",
+      "reportPath": "data/raw/reference/reports/mindfullens_render_debug_1776534940397.json",
+      "selectedBackend": "macOS ImageIO / sips",
+      "riskScore": 0.346987037037037,
+      "highlightClipRatio": 0.09383067162546489,
+      "shadowClipRatio": 0,
+      "abMeanDelta": 7.33,
+      "blackGuard": false,
+      "suspectedBlackFrame": false
+    },
+    {
+      "id": "mindfullens_render_debug_1776534992778",
+      "reportPath": "data/raw/reference/reports/mindfullens_render_debug_1776534992778.json",
+      "selectedBackend": "macOS ImageIO / sips",
+      "riskScore": 0.309007037037037,
+      "highlightClipRatio": 0.12163114663114663,
+      "shadowClipRatio": 0,
+      "abMeanDelta": 4.798,
+      "blackGuard": false,
+      "suspectedBlackFrame": false
+    },
+    {
+      "id": "mindfullens_render_debug_1776534980344",
+      "reportPath": "data/raw/reference/reports/mindfullens_render_debug_1776534980344.json",
+      "selectedBackend": "macOS ImageIO / sips",
+      "riskScore": 0.30228703703703697,
+      "highlightClipRatio": 0.09993339993339993,
+      "shadowClipRatio": 0,
+      "abMeanDelta": 4.35,
+      "blackGuard": false,
+      "suspectedBlackFrame": false
+    },
+    {
+      "id": "mindfullens_render_debug_1776534854074",
+      "reportPath": "data/raw/reference/reports/mindfullens_render_debug_1776534854074.json",
+      "selectedBackend": "macOS ImageIO / sips",
+      "riskScore": 0.2989132319077003,
+      "highlightClipRatio": 0.0820341868217604,
+      "shadowClipRatio": 0.00007270019150294347,
+      "abMeanDelta": 5.334,
+      "blackGuard": false,
+      "suspectedBlackFrame": false
+    },
+    {
+      "id": "mindfullens_render_debug_1776536032045",
+      "reportPath": "data/raw/reference/reports/mindfullens_render_debug_1776536032045.json",
+      "selectedBackend": "macOS ImageIO / sips",
+      "riskScore": 0.297157037037037,
+      "highlightClipRatio": 0.24396411092985318,
+      "shadowClipRatio": 0,
+      "abMeanDelta": 4.008,
+      "blackGuard": false,
+      "suspectedBlackFrame": false
+    },
+    {
+      "id": "mindfullens_render_debug_1776535364753",
+      "reportPath": "data/raw/reference/reports/mindfullens_render_debug_1776535364753.json",
+      "selectedBackend": "macOS ImageIO / sips",
+      "riskScore": 0.2873266035875107,
+      "highlightClipRatio": 0.08782935134531651,
+      "shadowClipRatio": 0,
+      "abMeanDelta": 3.541,
+      "blackGuard": false,
+      "suspectedBlackFrame": false
+    }
+  ]
+}

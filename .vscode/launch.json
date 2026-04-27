@@ -1,0 +1,12 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Film Lab: Chrome → 127.0.0.1:4174/film-lab",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://127.0.0.1:4174/film-lab",
+      "webRoot": "${workspaceFolder}"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+# Dependencies & build
+node_modules
+dist
+dist-ssr
+.vite
+.eslintcache
+coverage
+
+# Env (kopiuj z .env.example)
+.env
+.env.*
+!.env.example
+
+# Tooling (lokalne cache; nie trzymaj w repo)
+.turbo
+.cache
+
+# Logs & OS
+*.log
+npm-debug.log*
+.DS_Store
+._*

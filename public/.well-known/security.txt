@@ -1,0 +1,4 @@
+# Mindfullens — ujawnianie kontaktu bezpieczeństwa (RFC 9116)
+Contact: https://mindfullens.pl
+Preferred-Languages: pl, en
+Expires: 2028-01-01T00:00:00.000Z

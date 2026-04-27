@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": false,
+    "baseUrl": ".",
+    "jsx": "react-jsx",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "noEmit": true,
+    "resolveJsonModule": true,
+    "target": "ES2022"
+  },
+  "include": ["src/**/*", "vite.config.js", "eslint.config.mjs", "scripts/**/*.mjs"],
+  "exclude": ["node_modules", "dist", "public"]
+}

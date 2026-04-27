@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mindfullens — AI Style Matcher</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Outfit:wght@200;300;400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#08070c;--bg2:#0e0d15;--bg3:#15141f;--bg4:#1d1c29;--bg5:#26243a;--surface:rgba(255,255,255,0.03);--surface2:rgba(255,255,255,0.06);--border:rgba(255,255,255,0.06);--border-h:rgba(196,148,78,0.2);--t1:#ede8df;--t2:#9e978b;--t3:#5e584f;--film:#c4944e;--film2:#a67938;--film3:#e8b868;--film4:rgba(196,148,78,0.08);--r:12px;--r2:20px;--ease:cubic-bezier(0.16,1,0.3,1)}
+*{margin:0;padding:0;box-sizing:border-box}html{scroll-behavior:smooth;-webkit-font-smoothing:antialiased}
+body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--t1);line-height:1.6;overflow-x:hidden}
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='5' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");opacity:0.018;mix-blend-mode:overlay}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--film2);border-radius:3px}
+
+/* --- NAV & MEGA MENU --- */
+.nav{position:fixed;top:0;left:0;right:0;z-index:1000;padding:14px 0;transition:all 0.5s var(--ease);background:rgba(8,7,12,0.92);backdrop-filter:blur(30px) saturate(1.6);border-bottom:1px solid var(--border)}
+.nav.scrolled{padding:10px 0}
+.nav-inner{max-width:1400px;margin:0 auto;padding:0 24px;display:flex;justify-content:space-between;align-items:center}
+.nav-logo{font-family:'Instrument Serif',serif;font-size:1.3rem;text-decoration:none;color:var(--t1);display:flex;align-items:center;gap:10px;letter-spacing:1px;text-transform:uppercase;cursor:pointer}
+.nav-logo img{height:32px;width:auto;border-radius:50%;border:1px solid var(--film2)}
+.nav-links{display:flex;gap:4px;align-items:center}
+.nav-link{padding:8px 16px;border-radius:50px;text-decoration:none;text-transform:uppercase;font-size:0.78rem;font-weight:400;color:var(--t2);letter-spacing:0.3px;transition:all 0.3s ease}
+.nav-link:hover,.nav-link.active{color:var(--t1);background:var(--surface2)}
+.nav-cta{padding:9px 18px;border-radius:50px;border:1px solid var(--border-h);background:transparent;color:var(--t1);font-size:0.75rem;font-weight:600;text-transform:uppercase;cursor:pointer;transition:all 0.4s;font-family:'Outfit',sans-serif;display:flex;align-items:center}
+.cart-count{background:var(--film);color:var(--bg);width:20px;height:20px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:700;margin-left:8px}
+.nav-mobile-toggle{display:none;background:none;border:none;color:var(--t1);font-size:1.4rem;cursor:pointer;padding:6px}
+
+.nav-dropdown{position:relative}
+.nav-dropdown-trigger{padding:8px 16px;border-radius:50px;text-transform:uppercase;font-size:0.78rem;font-weight:400;color:var(--t2);letter-spacing:0.3px;cursor:pointer;display:flex;align-items:center;gap:5px;background:none;border:none;font-family:'Outfit',sans-serif;transition:all 0.3s}
+.nav-dropdown-trigger:hover,.nav-dropdown.open .nav-dropdown-trigger{color:var(--t1);background:var(--surface2)}
+.nav-dropdown-arrow{font-size:0.6rem;transition:transform 0.3s}
+.nav-dropdown.open .nav-dropdown-arrow{transform:rotate(180deg)}
+.mega-menu{position:absolute;top:calc(100% + 12px);left:50%;transform:translateX(-50%);width:580px;background:var(--bg2);border:1px solid var(--border-h);border-radius:16px;padding:18px;display:none;box-shadow:0 20px 60px rgba(0,0,0,0.6);z-index:100}
+.nav-dropdown.open .mega-menu{display:block;animation:menuIn 0.3s var(--ease)}
+@keyframes menuIn{from{opacity:0;transform:translateX(-50%) translateY(-8px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+.mega-menu-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.mega-item{display:flex;align-items:flex-start;gap:10px;padding:10px;border-radius:8px;text-decoration:none;color:var(--t1);transition:all 0.2s;border:1px solid transparent}
+.mega-item:hover{background:var(--surface2);border-color:var(--border)}
+.mega-item-icon{font-size:1.3rem;flex-shrink:0;width:32px;height:32px;display:flex;align-items:center;justify-content:center;background:var(--surface2);border-radius:7px}
+.mega-item-text{flex:1;min-width:0}
+.mega-item-name{font-size:0.8rem;font-weight:600;margin-bottom:1px;display:flex;align-items:center;gap:5px}
+.mega-item-tag{font-family:'JetBrains Mono',monospace;font-size:0.42rem;padding:2px 4px;border-radius:3px;text-transform:uppercase;letter-spacing:0.5px}
+.mega-item-tag-free{background:rgba(93,232,138,0.15);color:#5de88a}
+.mega-item-tag-new{background:rgba(196,148,78,0.15);color:var(--film3)}
+.mega-item-tag-pro{background:rgba(93,138,232,0.15);color:#5d8ae8}
+.mega-item-desc{font-size:0.68rem;color:var(--t3);line-height:1.3}
+.mega-footer{margin-top:14px;padding-top:14px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.mega-footer-text{font-size:0.75rem;color:var(--t2)}
+.mega-footer-btn{padding:7px 18px;border-radius:50px;background:linear-gradient(135deg,var(--film),var(--film2));color:var(--bg);font-family:'Outfit',sans-serif;font-size:0.7rem;font-weight:600;text-decoration:none;text-transform:uppercase;border:none;cursor:pointer}
+
+@media(max-width:900px){
+  .nav-links{position:absolute;top:100%;left:0;width:100%;background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 0;flex-direction:column;display:none}
+  .nav-links.active{display:flex}
+  .mega-menu{position:static;transform:none;width:100%;border-radius:0;border:none;box-shadow:none;padding:10px}
+  .nav-dropdown.open .mega-menu{animation:none}
+  .mega-menu-grid{grid-template-columns:1fr}
+  .mega-footer{flex-direction:column;gap:8px;align-items:flex-start}
+}
+/* ----------------------- */
+
+.matcher-section{min-height:90vh;padding:120px 24px 60px;display:flex;flex-direction:column;align-items:center;position:relative}
+.hero-glow-1{position:absolute;top:-10%;left:-10%;width:500px;height:500px;background:radial-gradient(circle,var(--film4),transparent 70%);filter:blur(100px);z-index:0;pointer-events:none}
+.hero-glow-2{position:absolute;bottom:-10%;right:-10%;width:400px;height:400px;background:radial-gradient(circle,rgba(100,80,180,0.04),transparent 70%);filter:blur(100px);z-index:0;pointer-events:none}
+
+.matcher-header{text-align:center;max-width:700px;margin-bottom:40px;z-index:2;position:relative}
+.matcher-badge{display:inline-flex;align-items:center;gap:8px;padding:6px 20px;background:var(--surface2);border:1px solid var(--border-h);border-radius:50px;font-family:'JetBrains Mono',monospace;font-size:0.65rem;color:var(--film);margin-bottom:18px;text-transform:uppercase;letter-spacing:1.5px}
+.matcher-badge .dot{width:6px;height:6px;background:var(--film);border-radius:50%;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(0.8)}}
+.matcher-header h1{font-family:'Instrument Serif',serif;font-size:clamp(2.5rem,5.5vw,4.5rem);font-weight:400;line-height:1.05;margin-bottom:16px}
+.matcher-header h1 em{font-style:italic;background:linear-gradient(135deg,var(--film3),var(--film));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.matcher-header p{font-size:1.05rem;color:var(--t2);font-weight:300;line-height:1.7;max-width:550px;margin:0 auto}
+
+.upload-area{width:100%;max-width:640px;height:360px;border:2px dashed rgba(196,148,78,0.25);border-radius:var(--r2);display:flex;flex-direction:column;justify-content:center;align-items:center;background:radial-gradient(circle at center,rgba(196,148,78,0.04),transparent);cursor:pointer;transition:all 0.4s var(--ease);z-index:2;position:relative}
+.upload-area:hover{border-color:var(--film);background:radial-gradient(circle at center,rgba(196,148,78,0.12),transparent);transform:translateY(-3px)}
+.upload-icon{font-size:3.5rem;margin-bottom:14px;filter:drop-shadow(0 4px 10px rgba(196,148,78,0.3))}
+.upload-title{font-family:'Instrument Serif',serif;font-size:1.9rem;margin-bottom:6px}
+.upload-desc{color:var(--t3);font-size:0.75rem;font-family:'JetBrains Mono',monospace;margin-bottom:24px;text-transform:uppercase;letter-spacing:1px}
+.upload-btn{padding:14px 36px;border-radius:50px;background:linear-gradient(135deg,var(--film),var(--film2));color:var(--bg);font-weight:700;border:none;cursor:pointer;font-family:'Outfit',sans-serif;font-size:0.9rem;text-transform:uppercase;transition:all 0.3s;box-shadow:0 4px 18px rgba(196,148,78,0.2)}
+.upload-btn:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(196,148,78,0.4)}
+
+.processing-area{width:100%;max-width:640px;display:none;flex-direction:column;align-items:center;z-index:2;position:relative}
+.image-preview-wrapper{position:relative;width:100%;max-width:480px;border-radius:var(--r);overflow:hidden;box-shadow:0 16px 50px rgba(0,0,0,0.6);border:1px solid var(--border)}
+.image-preview-wrapper img{width:100%;display:block;filter:grayscale(30%) contrast(1.1);transition:filter 2s;object-fit:contain;max-height:380px}
+.scanner-line{position:absolute;top:0;left:0;width:100%;height:3px;background:var(--film3);box-shadow:0 0 20px 5px rgba(196,148,78,0.6);animation:scan 2s cubic-bezier(0.4,0,0.2,1) infinite alternate;z-index:10}
+@keyframes scan{0%{top:0%}100%{top:100%}}
+.terminal{width:100%;max-width:480px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:20px;margin-top:24px;font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--t2);text-align:left}
+.terminal p{margin:5px 0;opacity:0;animation:typeIn 0.1s forwards}.terminal p.hi{color:var(--film3);font-weight:500}
+@keyframes typeIn{to{opacity:1}}
+
+/* RESULTS */
+.results-area{width:100%;max-width:1100px;display:none;z-index:2;margin-top:16px}
+.results-header{text-align:center;margin-bottom:30px}
+.results-header h2{font-family:'Instrument Serif',serif;font-size:2rem;margin-bottom:8px}
+.results-header p{color:var(--t2);font-size:0.9rem}
+
+.results-grid{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:start}
+.result-image-col{display:flex;flex-direction:column;gap:20px}
+
+/* Before/After comparison */
+.ba-container{position:relative;width:100%;border-radius:var(--r);overflow:hidden;box-shadow:0 16px 50px rgba(0,0,0,0.6);border:1px solid var(--border);cursor:ew-resize;background:#000}
+#processedImage{width:100%;display:block;max-height:460px;object-fit:contain}
+.ba-original{
+  position:absolute;
+  inset:0;
+  overflow:hidden;
+  z-index:4;
+  clip-path:inset(0 50% 0 0);
+  -webkit-clip-path:inset(0 50% 0 0);
+}
+.ba-original img{width:100%;height:100%;object-fit:contain;position:absolute;top:0;left:0}
+.ba-line{position:absolute;top:0;bottom:0;width:2px;background:var(--film);z-index:5;pointer-events:none}
+.ba-handle{position:absolute;top:50%;transform:translate(-50%,-50%);width:32px;height:32px;border-radius:50%;background:var(--film);border:2px solid var(--bg);z-index:6;display:flex;align-items:center;justify-content:center;pointer-events:none;box-shadow:0 2px 10px rgba(0,0,0,0.5)}
+.ba-handle::before{content:'◂ ▸';font-size:0.5rem;color:var(--bg);font-weight:700}
+.ba-label{position:absolute;top:10px;padding:3px 8px;background:rgba(8,7,12,0.8);border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:0.5rem;text-transform:uppercase;letter-spacing:1px;pointer-events:none;z-index:6}
+.ba-label-before{left:10px;color:var(--t3)}.ba-label-after{right:10px;color:var(--film)}
+
+.color-palette{display:flex;height:56px;border-radius:8px;overflow:hidden;border:1px solid var(--border);box-shadow:0 8px 24px rgba(0,0,0,0.3)}
+.color-swatch{flex:1;display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;font-family:'JetBrains Mono',monospace;font-size:0.55rem;color:rgba(255,255,255,0.8);text-shadow:0 1px 3px rgba(0,0,0,0.9)}
+
+/* Analysis panel */
+.analysis-panel{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-top:4px}
+.analysis-title{font-family:'JetBrains Mono',monospace;font-size:0.55rem;color:var(--t3);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px}
+.analysis-bars{display:flex;flex-direction:column;gap:8px}
+.analysis-bar{display:flex;align-items:center;gap:10px}
+.analysis-bar-label{font-size:0.7rem;color:var(--t2);min-width:70px}
+.analysis-bar-track{flex:1;height:4px;background:var(--bg5);border-radius:2px;overflow:hidden}
+.analysis-bar-fill{height:100%;border-radius:2px;transition:width 1s var(--ease)}
+.analysis-bar-val{font-family:'JetBrains Mono',monospace;font-size:0.6rem;color:var(--film);min-width:30px;text-align:right}
+
+.result-info-col{background:var(--bg2);padding:32px;border-radius:var(--r2);border:1px solid var(--border-h);display:flex;flex-direction:column;box-shadow:0 16px 45px rgba(0,0,0,0.4)}
+.match-score{font-family:'JetBrains Mono',monospace;color:var(--film3);font-size:0.78rem;letter-spacing:1.5px;margin-bottom:12px;display:inline-flex;align-items:center;gap:6px;text-transform:uppercase;background:var(--film4);padding:5px 12px;border-radius:50px;align-self:flex-start}
+.match-title{font-family:'Instrument Serif',serif;font-size:2.8rem;line-height:1.1;margin-bottom:6px}
+.match-sub{font-family:'JetBrains Mono',monospace;font-size:0.65rem;color:var(--film);text-transform:uppercase;letter-spacing:1px;margin-bottom:14px}
+.match-desc{color:var(--t2);font-size:0.95rem;margin-bottom:24px;line-height:1.7}
+
+/* Top 3 matches */
+.top-matches{margin-bottom:24px}
+.top-matches-title{font-family:'JetBrains Mono',monospace;font-size:0.58rem;color:var(--t3);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px}
+.match-item{display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;cursor:pointer;transition:all 0.2s;border:1px solid transparent;margin-bottom:4px}
+.match-item:hover{background:var(--surface2)}
+.match-item.active{background:var(--film4);border-color:var(--border-h)}
+.match-rank{font-family:'JetBrains Mono',monospace;font-size:0.6rem;color:var(--film);min-width:20px}
+.match-item-name{font-size:0.85rem;font-weight:500}
+.match-item-score{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:0.65rem;color:var(--film3)}
+
+/* Locked recipe */
+.recipes-locked{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:20px;position:relative;overflow:hidden;margin-bottom:28px}
+.recipes-title{font-family:'JetBrains Mono',monospace;font-size:0.68rem;color:var(--t1);margin-bottom:12px;text-transform:uppercase;letter-spacing:1px;display:flex;justify-content:space-between}
+.recipes-blur{filter:blur(6px);opacity:0.3;user-select:none;pointer-events:none;display:grid;grid-template-columns:1fr 1fr;gap:10px;font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:var(--t2);transition:all 0.5s ease;}
+.lock-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(14,13,21,0.65);z-index:2;border-radius:var(--r);transition:all 0.5s ease;}
+.lock-icon{font-size:2rem;margin-bottom:8px}.lock-text{font-size:0.95rem;font-weight:600}
+
+.result-actions{display:flex;flex-direction:column;gap:12px;margin-top:auto}
+.btn-buy{padding:16px;border-radius:50px;background:linear-gradient(135deg,var(--film),var(--film2));color:var(--bg);font-weight:700;text-align:center;text-transform:uppercase;font-size:0.9rem;transition:all 0.3s;border:none;cursor:pointer;box-shadow:0 4px 18px rgba(196,148,78,0.2)}
+.btn-buy:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(196,148,78,0.4)}
+.btn-secondary{padding:14px;border-radius:50px;background:transparent;color:var(--t1);font-weight:600;text-align:center;font-size:0.85rem;text-transform:uppercase;border:1px solid var(--border-h);transition:all 0.3s;cursor:pointer}
+.btn-secondary:hover{border-color:var(--film);color:var(--film);background:var(--film4)}
+
+/* --- BANER CRM ZAMIAST CENNIKA --- */
+#bundles{padding:80px 32px;background:var(--bg);display:flex;justify-content:center}
+.cta-banner-wrapper{width:100%;max-width:900px}
+.cta-banner{background:var(--bg3);border:1px solid var(--film);border-radius:var(--r2);padding:30px 40px;display:flex;align-items:center;justify-content:space-between;width:100%;box-shadow:0 10px 40px rgba(196,148,78,0.15);gap:30px}
+.cta-banner-text h3{font-family:'Instrument Serif',serif;font-size:2rem;margin-bottom:8px;color:var(--t1);font-weight:400}
+.cta-banner-text p{color:var(--t2);font-size:0.95rem;line-height:1.5}
+.cta-btn{padding:14px 28px;border-radius:50px;background:linear-gradient(135deg,var(--film),var(--film2));color:var(--bg);font-family:'Outfit',sans-serif;font-size:0.9rem;font-weight:700;text-decoration:none;text-transform:uppercase;white-space:nowrap;transition:transform 0.3s,box-shadow 0.3s;border:none;cursor:pointer}
+
+.footer{padding:50px 24px 25px;background:var(--bg3);border-top:1px solid var(--border)}
+.footer-inner{max-width:1050px;margin:0 auto;display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:40px}
+.footer-desc{color:var(--t3);font-size:0.8rem;line-height:1.7;max-width:250px;margin-top:10px}
+.footer-col-title{font-family:'JetBrains Mono',monospace;font-size:0.55rem;letter-spacing:2px;text-transform:uppercase;color:var(--t3);margin-bottom:12px}
+.footer-col a{display:block;color:var(--t2);text-decoration:none;font-size:0.8rem;padding:4px 0;transition:color 0.3s}
+.footer-col a:hover{color:var(--film)}
+.footer-bottom{max-width:1050px;margin:30px auto 0;padding-top:16px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:0.7rem;color:var(--t3);flex-wrap:wrap;gap:6px}
+.footer-legal a{color:var(--t3);text-decoration:none;margin-left:12px}
+
+.cart-drawer{position:fixed;top:0;right:-400px;bottom:0;width:360px;z-index:2500;background:var(--bg3);border-left:1px solid var(--border);box-shadow:-10px 0 50px rgba(0,0,0,0.5);transition:right 0.4s var(--ease);display:flex;flex-direction:column}
+.cart-drawer.open{right:0}
+.cart-drawer-header{padding:18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.cart-drawer-title{font-family:'Instrument Serif',serif;font-size:1.3rem}
+.modal-close{background:var(--surface2);border:1px solid var(--border);width:30px;height:30px;border-radius:50%;color:var(--t2);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.3s}
+.modal-close:hover{border-color:var(--film);color:var(--film)}
+.cart-items{flex:1;overflow-y:auto;padding:18px}.cart-empty{text-align:center;padding:40px 14px;color:var(--t3)}
+.cart-footer{padding:18px;border-top:1px solid var(--border);background:var(--bg4)}
+.cart-total{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;font-family:'Instrument Serif',serif;font-size:1.6rem}
+
+@media(max-width:1000px){
+  .results-grid{grid-template-columns:1fr;gap:24px}
+  .footer-inner{grid-template-columns:1fr 1fr;gap:25px}
+}
+@media(max-width:900px){
+  #bundles{padding:40px 16px}
+  .cta-banner{flex-direction:column;text-align:center;padding:24px 16px}
+}
+@media(max-width:700px){
+  .nav-mobile-toggle{display:block}
+  .matcher-header h1{font-size:2.5rem}
+  .cart-drawer{width:100%;right:-100%}
+}
+/* Unified landing menu + CTA */
+.nav-link-red{color:#ff4757 !important;font-weight:600;text-shadow:0 0 10px rgba(255,71,87,0.3)}
+.nav-link-red:hover{color:#ff6b81 !important;background:rgba(255,71,87,0.1) !important;text-shadow:0 0 15px rgba(255,71,87,0.5)}
+#bundles{padding:80px 24px;background:var(--bg)}
+.cta-banner-wrapper{width:100%;max-width:1000px;margin:0 auto}
+.cta-banner{position:relative;overflow:hidden;background:linear-gradient(135deg,var(--bg3),var(--bg2));border:1px solid var(--film);border-radius:var(--r2);padding:42px 44px;display:flex;align-items:center;justify-content:space-between;gap:32px;box-shadow:0 10px 40px rgba(196,148,78,0.15);text-align:left}
+.cta-banner::before{content:'';position:absolute;left:-10px;top:50%;transform:translateY(-50%);width:40px;height:40px;border-radius:50%;background:rgba(196,148,78,0.2);border:1px solid rgba(196,148,78,0.35)}
+.cta-banner-text{position:relative;z-index:2;max-width:640px}
+.cta-banner-tag{font-family:'JetBrains Mono',monospace;font-size:0.62rem;letter-spacing:2px;text-transform:uppercase;color:var(--film3);margin-bottom:12px;display:inline-block}
+.cta-banner-text h3{font-family:'Instrument Serif',serif;font-size:2.2rem;margin:0 0 12px;color:var(--t1);font-weight:400;line-height:1.12}
+.cta-banner-text p{margin:0;color:var(--t2);font-size:0.95rem;line-height:1.6}
+.cta-banner-text p + p{margin-top:12px}
+.cta-banner-text .cta-banner-highlight{font-size:1.08rem;color:var(--t1);line-height:1.5}
+.cta-btn,.btn-buy{padding:16px 34px;border-radius:50px;background:linear-gradient(135deg,var(--film),var(--film2));color:var(--bg);font-family:'Outfit',sans-serif;font-size:0.92rem;font-weight:700;text-decoration:none;text-transform:uppercase;white-space:nowrap;transition:transform 0.3s,box-shadow 0.3s;border:none;cursor:pointer;position:relative;z-index:2;display:inline-block}
+.cta-btn:hover,.btn-buy:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(196,148,78,0.35)}
+@media(max-width:900px){#bundles{padding:56px 20px}.cta-banner{flex-direction:column;text-align:center;padding:32px 22px}.cta-banner::before{display:none}.cta-banner-text{max-width:100%}}
+</style>
+</head>
+<body>
+
+<nav class="nav" id="mainNav">
+  <div class="nav-inner">
+    <a href="https://mindfullens.pl/" class="nav-logo">
+      <img src="https://mindfullens.pl/logo.png" alt="Mindfullens Logo" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'32\' height=\'32\'><circle cx=\'16\' cy=\'16\' r=\'16\' fill=\'%23c4944e\'/></svg>'">
+      Mindfullens
+    </a>
+    <div class="nav-links" id="navLinks">
+      <a href="https://mindfullens.pl/" class="nav-link">Strona Główna</a>
+      <div class="nav-dropdown" id="toolsDropdown">
+        <button class="nav-dropdown-trigger" onclick="event.stopPropagation();document.getElementById('toolsDropdown').classList.toggle('open')">
+          Narzędzia <span class="nav-dropdown-arrow">▾</span>
+        </button>
+        <div class="mega-menu">
+          <div class="mega-menu-grid">
+            <a href="https://mindfullens.pl/film-lab/" class="mega-item"><div class="mega-item-icon">⚗️</div><div class="mega-item-text"><div class="mega-item-name">Film Lab <span class="mega-item-tag mega-item-tag-free">Free</span></div><div class="mega-item-desc">Nakładaj symulacje klisz w przeglądarce</div></div></a>
+            <a href="https://mindfullens.pl/live/" class="mega-item"><div class="mega-item-icon">📸</div><div class="mega-item-text"><div class="mega-item-name">Live Cam <span class="mega-item-tag mega-item-tag-free">Free</span></div><div class="mega-item-desc">Testuj profile na żywo kamerą w telefonie</div></div></a>
+            <a href="https://mindfullens.pl/matcher/" class="mega-item"><div class="mega-item-icon">🧠</div><div class="mega-item-text"><div class="mega-item-name">AI Matcher <span class="mega-item-tag mega-item-tag-pro">AI</span></div><div class="mega-item-desc">Wrzuć inspirację, AI dopasuje idealny profil</div></div></a>
+            <a href="https://mindfullens.pl/timemachine/" class="mega-item"><div class="mega-item-icon">⏳</div><div class="mega-item-text"><div class="mega-item-name">Time Machine <span class="mega-item-tag mega-item-tag-new">Nowe</span></div><div class="mega-item-desc">Symulacja starzenia kliszy dekady do tyłu</div></div></a>
+            <a href="https://mindfullens.pl/ciemnia/" class="mega-item"><div class="mega-item-icon">🧪</div><div class="mega-item-text"><div class="mega-item-name">Recipe Lab <span class="mega-item-tag mega-item-tag-new">Nowe</span></div><div class="mega-item-desc">Stwórz własną recepturę filmową od zera</div></div></a>
+            <a href="https://mindfullens.pl/blendstudio/" class="mega-item"><div class="mega-item-icon">⚗️</div><div class="mega-item-text"><div class="mega-item-name">Blend Studio <span class="mega-item-tag mega-item-tag-new">Nowe</span></div><div class="mega-item-desc">Miksuj dwie klisze w jedno zdjęcie</div></div></a>
+            <a href="https://mindfullens.pl/contact-sheet/" class="mega-item"><div class="mega-item-icon">🎞️</div><div class="mega-item-text"><div class="mega-item-name">Contact Sheet</div><div class="mega-item-desc">109 profili na jednym arkuszu porównania</div></div></a>
+            <a href="https://mindfullens.pl/color-sync/" class="mega-item"><div class="mega-item-icon">🔄</div><div class="mega-item-text"><div class="mega-item-name">Color Sync <span class="mega-item-tag mega-item-tag-pro">Pro</span></div><div class="mega-item-desc">Zrównaj kolory z 2-3 aparatów kliknięciem</div></div></a>
+          </div>
+          <div class="mega-footer"><span class="mega-footer-text">Zobacz profile i szybkie porównania przed/po</span><a href="https://mindfullens.pl/cennik/" class="mega-footer-btn">Przejdź do pakietów</a></div>
+        </div>
+      </div>
+      <a href="https://mindfullens.pl/camera-settings-app" class="nav-link">Camera App</a>
+      <a href="https://mindfullens.pl/analog-signature/" class="nav-link nav-link-red">Analog Signature</a>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <button class="nav-mobile-toggle" onclick="document.getElementById('navLinks').classList.toggle('active')" aria-label="Menu">☰</button>
+      <button class="nav-cta" onclick="toggleCart()">Koszyk <span class="cart-count" id="cartCount">0</span></button>
+    </div>
+  </div>
+</nav>
+
+<section class="matcher-section">
+<div class="hero-glow-1"></div><div class="hero-glow-2"></div>
+
+<div class="matcher-header" id="matcherHeader">
+<div class="matcher-badge"><span class="dot"></span>AI Style Matcher · 109 Profile</div>
+<h1>Odkryj tajemnicę <em>idealnego koloru</em></h1>
+<p>Wgraj zdjęcie-inspirację. Algorytm przeanalizuje kolorystykę, światło, kontrast i nasycenie, a następnie dopasuje najlepszy profil z kolekcji 109 klisz Mindfullens.</p>
+</div>
+
+<div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+<div class="upload-icon">📸</div>
+<div class="upload-title">Upuść inspirację tutaj</div>
+<div class="upload-desc">RAW / DNG · JPG · PNG · TIFF · WebP</div>
+<button class="upload-btn">Wybierz z dysku</button>
+<input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp,image/tiff,image/avif,image/heic,image/heif,.raw,.dng,.nef,.nrw,.cr2,.cr3,.arw,.srw,.srf,.sr2,.dcr,.raf,.rwl,.rw2,.mef,.orf,.pef,.iiq,.3fr,.erf,.fff,.kdc,.mos,.mrw,.x3f,.heic,.heif" style="display:none">
+</div>
+
+<div class="processing-area" id="processingArea">
+<div class="image-preview-wrapper"><img id="previewImage" src="" alt="Analiza..."><div class="scanner-line"></div></div>
+<div class="terminal" id="terminal"><p>> Uruchamianie silnika analizy kolorów...</p></div>
+</div>
+
+<div class="results-area" id="resultsArea">
+<div class="results-header"><h2>Analiza zakończona</h2><p>Przesuń suwak, aby porównać oryginał z profilem filmowym</p></div>
+<div class="results-grid">
+<div class="result-image-col">
+<div class="ba-container" id="baContainer">
+<img id="processedImage" src="" alt="Processed">
+<div class="ba-original" id="baOriginal"><img id="originalImage" src="" alt="Original"></div>
+<div class="ba-line" id="baLine" style="left:50%"></div>
+<div class="ba-handle" id="baHandle" style="left:50%"></div>
+<div class="ba-label ba-label-before">Oryginał</div>
+<div class="ba-label ba-label-after">Profil</div>
+</div>
+<div class="color-palette" id="colorPalette"></div>
+<div class="analysis-panel">
+<div class="analysis-title">Analiza obrazu</div>
+<div class="analysis-bars" id="analysisBars"></div>
+</div>
+</div>
+<div class="result-info-col">
+<span class="match-score" id="matchScore">★ 96% Match</span>
+<h2 class="match-title" id="matchName">Kodak Portra 400</h2>
+<div class="match-sub" id="matchSub">Organiczne Tony</div>
+<p class="match-desc" id="matchDesc"></p>
+
+<div class="top-matches" id="topMatches">
+<div class="top-matches-title">Top 3 Dopasowania</div>
+</div>
+
+<div class="recipes-locked">
+<div class="recipes-title"><span>Receptura Lightroom</span><span>🔒</span></div>
+<div class="recipes-blur"><div>Tone Curve: Custom S-Curve</div><div>HSL Red Hue: +15</div><div>Split Toning: Warm/Cool</div><div>Grain: 18 / Size 24</div><div>Vibrance: +30</div><div>Clarity: -5</div></div>
+<div class="lock-overlay"><div class="lock-icon">🔒</div><div class="lock-text">Receptura zastrzeżona</div></div>
+</div>
+
+<div class="result-actions">
+<button class="btn-buy" onclick="document.getElementById('bundles').scrollIntoView({behavior:'smooth'})">Zdobądź profil w pakiecie</button>
+<button class="btn-secondary" onclick="resetMatcher()">Przeanalizuj inne zdjęcie</button>
+</div>
+</div>
+</div>
+</div>
+
+<canvas id="hiddenCanvas" style="display:none"></canvas>
+<canvas id="processCanvas" style="display:none"></canvas>
+</section>
+
+<!-- BANER CRM ZAMIAST CENNIKA -->
+<section id="bundles">
+  <div class="cta-banner-wrapper">
+    <div class="cta-banner">
+      <div class="cta-banner-text">
+        <span class="cta-banner-tag">✦ Odblokuj pełną moc</span>
+        <h3>Wybierz swój pakiet</h3>
+        <p class="cta-banner-highlight">Profile Lightroom, receptury Camera App, system Analog Signature i 9 narzędzi AI.</p>
+        <p>Wybierz rozwiązanie idealne dla siebie. Kup pakiet <strong>Complete Studio</strong> i otrzymaj wszystkie nasze produkty w jednym: potężny ekosystem do edycji plików RAW (.xmp), gotowe ustawienia JPEG prosto z aparatu oraz dożywotni dostęp do wszystkich narzędzi webowych.</p>
+      </div>
+      <a href="https://mindfullens.pl/cennik/" class="cta-btn">Zobacz pakiety →</a>
+    </div>
+  </div>
+</section>
+
+<footer class="footer"><div class="footer-inner">
+<div class="footer-brand"><a href="https://mindfullens.pl/" class="nav-logo" onclick="event.preventDefault();"><img src="https://mindfullens.pl/logo.png" alt="Mindfullens" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'32\' height=\'32\'><circle cx=\'16\' cy=\'16\' r=\'16\' fill=\'%23c4944e\'/></svg>'">Mindfullens</a><p class="footer-desc">Profile filmowe i narzędzia AI dla fotografów.</p></div>
+<div class="footer-col"><div class="footer-col-title">Narzędzia</div><a href="#">Presety</a><a href="#">Film Lab</a><a href="#">AI Matcher</a><a href="#">Live Cam</a></div>
+<div class="footer-col"><div class="footer-col-title">Wsparcie</div><a href="#">FAQ</a><a href="#">Kontakt</a></div>
+<div class="footer-col"><div class="footer-col-title">Bezpieczeństwo</div><div style="font-size:0.8rem;color:var(--t2);margin-bottom:5px">✔️ 30-dniowa gwarancja</div><div style="font-size:0.8rem;color:var(--t2)">🔒 Bezpieczne płatności</div></div>
+</div><div class="footer-bottom"><div>© 2026 Mindfullens.</div><div class="footer-legal"><a href="#">Regulamin</a><a href="#">Prywatność</a></div></div></footer>
+
+<div class="cart-drawer" id="cartDrawer"><div class="cart-drawer-header"><div class="cart-drawer-title">Koszyk</div><button class="modal-close" onclick="toggleCart()">✕</button></div><div class="cart-items" id="cartItems"><div class="cart-empty">Koszyk pusty.</div></div><div class="cart-footer"><div class="cart-total"><span style="font-family:'Outfit',sans-serif;font-size:0.85rem;color:var(--t2)">Razem</span><span id="cartTotal">0 PLN</span></div><button class="btn-buy-card btn-buy-primary" style="border-radius:50px;padding:14px; width:100%; font-family:'Outfit'; font-weight:700; text-transform:uppercase; border:none;" onclick="checkout()">Przejdź do kasy →</button></div></div>
+
+<script>
+const MATCHER_BUILD_ID='matcher-ba-fix-2026-04-12-01-28';
+console.log('[Mindfullens Matcher Build]', MATCHER_BUILD_ID);
+
+// --- GLOBAL NAV & DROPDOWN SCRIPT ---
+const nav = document.getElementById('mainNav');
+window.addEventListener('scroll', () => { if(nav) nav.classList.toggle('scrolled', window.scrollY > 50); });
+
+document.addEventListener('click',(e)=>{const dd=document.getElementById('toolsDropdown');if(dd&&!dd.contains(e.target))dd.classList.remove('open')});
+document.addEventListener('keydown',(e)=>{if(e.key==='Escape'){const dd=document.getElementById('toolsDropdown');if(dd)dd.classList.remove('open')}});
+
+// --- 7 TAP DEV MODE SCRIPT ---
+let devMode=false, logoTaps=0, logoTimer=null;
+document.querySelector('.nav-logo').addEventListener('click',(e)=>{
+  e.preventDefault();
+  logoTaps++;
+  clearTimeout(logoTimer);
+  logoTimer=setTimeout(()=>{logoTaps=0},1200);
+  if(logoTaps>=7){activateDevMode();logoTaps=0}
+});
+
+function activateDevMode(){
+  if(devMode)return; devMode=true;
+  document.title='🔓 Mindfullens — AI Style Matcher [DEV]';
+  
+  // Unlock recipes and remove blur
+  const lockOverlay = document.querySelector('.lock-overlay');
+  if(lockOverlay) lockOverlay.style.display = 'none';
+  
+  const recipesBlur = document.querySelector('.recipes-blur');
+  if(recipesBlur) {
+      recipesBlur.style.filter = 'none';
+      recipesBlur.style.opacity = '1';
+      recipesBlur.style.pointerEvents = 'auto';
+      recipesBlur.style.userSelect = 'auto';
+  }
+  
+  const recipesTitle = document.querySelector('.recipes-title span:last-child');
+  if(recipesTitle) recipesTitle.textContent = '🔓';
+  
+  // Hide bottom banner
+  const bundlesEl = document.getElementById('bundles');
+  if(bundlesEl) bundlesEl.style.display = 'none';
+}
+
+
+const FILMS=[{"n":"Kodak Portra 160","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,16],[32,42],[64,82],[128,143],[192,212],[224,214],[255,224]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":-10,"sat":4,"con":-4,"exp":0,"gr":22,"grs":20,"hsl_sat":{"red":0,"orange":1,"yellow":-1,"green":-8,"aqua":-18,"blue":-12,"purple":0,"magenta":0},"gm":null},{"n":"Kodak Portra 400","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,16],[32,40],[64,78],[128,141],[192,200],[224,214],[255,232]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":-8,"sat":-4,"con":-2,"exp":0,"gr":21,"grs":20,"hsl_sat":{"red":-4,"orange":5,"yellow":-10,"green":-8,"aqua":-20,"blue":-9,"purple":0,"magenta":0},"gm":null},{"n":"Kodak Portra 800","s":"Master","c":"cine","f":true,"bw":false,"cr":{"rgb":[[0,6],[32,26],[64,62],[128,138],[192,204],[224,220],[255,235]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":-8,"sat":-4,"con":-28,"exp":0,"gr":47,"grs":28,"hsl_sat":{"red":6,"orange":3,"yellow":-9,"green":-6,"aqua":-19,"blue":-10,"purple":0,"magenta":0},"gm":null},{"n":"Kodak Gold 200","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,16],[32,36],[64,70],[128,142],[192,206],[224,218],[255,232]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":10,"sat":4,"con":5,"exp":0,"gr":27,"grs":20,"hsl_sat":{"red":5,"orange":12,"yellow":-6,"green":-15,"aqua":-18,"blue":-12,"purple":0,"magenta":0},"gm":null},{"n":"Kodak ColorPlus 200","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,6],[32,35],[64,64],[128,132],[192,198],[224,212],[255,232]],"r":[[0,6],[128,132],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":10,"sat":-8,"con":-10,"exp":0,"gr":30,"grs":26,"hsl_sat":{"red":0,"orange":-2,"yellow":-11,"green":-12,"aqua":0,"blue":0,"purple":0,"magenta":0},"gm":null},{"n":"Kodak Ektar 100","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,10],[32,26],[64,58],[128,140],[192,210],[224,228],[255,244]],"r":[[0,0],[128,128],[255,255]],"g":[[0,0],[128,128],[255,255]],"b":[[0,0],[128,128],[255,255]]},"vib":8,"sat":-7,"con":30,"exp":0,"gr":15,"grs":25,"hsl_sat":{"red":0,"orange":-6,"yellow":-8,"green":-10,"aqua":0,"blue":14,"purple":0,"magenta":0},"gm":null},{"n":"Kodak Ultra Max 400","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,16],[32,40],[64,78],[128,141],[192,200],[224,214],[255,232]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":-8,"sat":-4,"con":0,"exp":0,"gr":21,"grs":20,"hsl_sat":{"red":-4,"orange":4,"yellow":-16,"green":-8,"aqua":-26,"blue":-6,"purple":0,"magenta":0},"gm":null},{"n":"Kodak Ektachrome","s":"Master","c":"slide","f":true,"bw":false,"cr":{"rgb":[[0,4],[32,18],[64,60],[128,142],[192,218],[224,237],[255,247]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":10,"sat":4,"con":4,"exp":0,"gr":18,"grs":16,"hsl_sat":{"red":16,"orange":2,"yellow":-4,"green":-8,"aqua":2,"blue":16,"purple":0,"magenta":0},"gm":null},{"n":"CineStill 800T","s":"Master","c":"cine","f":true,"bw":false,"cr":{"rgb":[[0,8],[32,28],[64,60],[128,136],[192,208],[224,224],[255,240]],"r":[[0,0],[255,255]],"g":[[0,0],[255,255]],"b":[[0,0],[255,255]]},"vib":6,"sat":-4,"con":0,"exp":0,"gr":25,"grs":30,"hsl_sat":{"red":-2,"orange":-4,"yellow":-6,"green":-8,"aqua":0,"blue":6,"purple":0,"magenta":0},"gm":null},{"n":"CineStill 50D","s":"Master","c":"cine","f":true,"bw":false,"cr":{"rgb":[[0,6],[32,35],[64,66],[128,146],[192,202],[224,216],[255,236]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":-8,"sat":-4,"con":-1,"exp":0.05,"gr":12,"grs":14,"hsl_sat":{"red":1,"orange":2,"yellow":-1,"green":-4,"aqua":0,"blue":1,"purple":0,"magenta":0},"gm":null},{"n":"Fuji Pro 400H","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,6],[32,30],[64,64],[128,146],[192,200],[224,214],[255,233]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":-10,"sat":4,"con":0,"exp":0,"gr":18,"grs":20,"hsl_sat":{"red":-4,"orange":-5,"yellow":-12,"green":-4,"aqua":7,"blue":5,"purple":0,"magenta":0},"gm":null},{"n":"Fuji Superia X-Tra 400","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,6],[32,24],[64,62],[128,144],[192,218],[224,232],[255,243]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":-10,"sat":4,"con":3,"exp":0,"gr":28,"grs":25,"hsl_sat":{"red":7,"orange":2,"yellow":-4,"green":12,"aqua":9,"blue":14,"purple":0,"magenta":0},"gm":null},{"n":"Fuji Natura 1600","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,8],[32,26],[64,58],[128,130],[192,208],[224,220],[255,238]],"r":[[0,6],[128,130],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":-10,"sat":4,"con":-4,"exp":0.1,"gr":45,"grs":33,"hsl_sat":{"red":4,"orange":-7,"yellow":-9,"green":0,"aqua":7,"blue":9,"purple":0,"magenta":0},"gm":null},{"n":"Fuji Superia 1600","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,8],[32,20],[64,58],[128,140],[192,204],[224,216],[255,233]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":-10,"sat":4,"con":2,"exp":0,"gr":46,"grs":32,"hsl_sat":{"red":4,"orange":-4,"yellow":-6,"green":9,"aqua":9,"blue":11,"purple":0,"magenta":0},"gm":null},{"n":"Fuji Velvia 50","s":"Master","c":"slide","f":true,"bw":false,"cr":{"rgb":[[0,4],[32,12],[64,52],[128,142],[192,234],[224,251],[255,247]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":10,"sat":4,"con":6,"exp":0,"gr":12,"grs":12,"hsl_sat":{"red":4,"orange":2,"yellow":8,"green":13,"aqua":14,"blue":10,"purple":0,"magenta":0},"gm":null},{"n":"Fuji Astia 100F","s":"Master","c":"slide","f":true,"bw":false,"cr":{"rgb":[[0,8],[32,34],[64,72],[128,138],[192,196],[224,210],[255,238]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":-10,"sat":4,"con":-2,"exp":0,"gr":22,"grs":20,"hsl_sat":{"red":-4,"orange":-7,"yellow":-10,"green":-12,"aqua":-6,"blue":-6,"purple":0,"magenta":0},"gm":null},{"n":"Fuji Provia 100F","s":"Master","c":"slide","f":true,"bw":false,"cr":{"rgb":[[0,4],[32,25],[64,58],[128,133],[192,208],[224,228],[255,242]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":10,"sat":4,"con":6,"exp":0,"gr":10,"grs":11,"hsl_sat":{"red":3,"orange":2,"yellow":-2,"green":3,"aqua":5,"blue":12,"purple":0,"magenta":0},"gm":null},{"n":"Fuji Provia RX","s":"Master","c":"slide","f":true,"bw":false,"cr":{"rgb":[[0,4],[32,25],[64,58],[128,133],[192,208],[224,228],[255,242]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":10,"sat":4,"con":3,"exp":0,"gr":10,"grs":11,"hsl_sat":{"red":3,"orange":2,"yellow":0,"green":3,"aqua":2,"blue":7,"purple":0,"magenta":0},"gm":null},{"n":"Fuji Fortia 50","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,4],[32,12],[64,52],[128,142],[192,234],[224,251],[255,247]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":10,"sat":4,"con":6,"exp":0,"gr":12,"grs":12,"hsl_sat":{"red":4,"orange":2,"yellow":8,"green":13,"aqua":14,"blue":10,"purple":0,"magenta":0},"gm":null},{"n":"Kodak Vision3 50D","s":"Master","c":"cine","f":true,"bw":false,"cr":{"rgb":[[0,6],[32,35],[64,66],[128,146],[192,202],[224,216],[255,236]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":-8,"sat":-4,"con":1,"exp":0.05,"gr":12,"grs":14,"hsl_sat":{"red":1,"orange":3,"yellow":-1,"green":-2,"aqua":0,"blue":1,"purple":0,"magenta":0},"gm":null},{"n":"Kodak Vision3 250D","s":"Master","c":"cine","f":true,"bw":false,"cr":{"rgb":[[0,8],[32,33],[64,64],[128,142],[192,200],[224,214],[255,234]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":-8,"sat":-4,"con":-26,"exp":0,"gr":20,"grs":19,"hsl_sat":{"red":-2,"orange":0,"yellow":-5,"green":-4,"aqua":2,"blue":5,"purple":0,"magenta":0},"gm":null},{"n":"Kodak Vision3 200T","s":"Master","c":"cine","f":true,"bw":false,"cr":{"rgb":[[0,8],[32,24],[64,54],[128,140],[192,212],[224,224],[255,242]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":-6,"sat":-4,"con":-10,"exp":0,"gr":28,"grs":30,"hsl_sat":{"red":-3,"orange":-4,"yellow":-6,"green":-16,"aqua":0,"blue":-12,"purple":0,"magenta":0},"gm":null},{"n":"Kodak Vision3 200T Plus","s":"Master","c":"cine","f":true,"bw":false,"cr":{"rgb":[[0,8],[32,30],[64,62],[128,134],[192,204],[224,218],[255,238]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":-10,"sat":4,"con":-4,"exp":0.1,"gr":36,"grs":30,"hsl_sat":{"red":4,"orange":-4,"yellow":-6,"green":-2,"aqua":7,"blue":11,"purple":0,"magenta":0},"gm":null},{"n":"Kodak Vision3 500T","s":"Master","c":"cine","f":true,"bw":false,"cr":{"rgb":[[0,8],[32,27],[64,62],[128,140],[192,196],[224,210],[255,231]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":-8,"sat":-4,"con":-28,"exp":0,"gr":34,"grs":27,"hsl_sat":{"red":-2,"orange":-7,"yellow":-14,"green":-8,"aqua":15,"blue":19,"purple":0,"magenta":0},"gm":null},{"n":"Kodachrome 25","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,6],[32,28],[64,62],[128,136],[192,212],[224,230],[255,246]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":10,"sat":4,"con":4,"exp":0,"gr":20,"grs":16,"hsl_sat":{"red":2,"orange":2,"yellow":1,"green":-8,"aqua":2,"blue":1,"purple":0,"magenta":0},"gm":null},{"n":"Kodachrome 64","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,4],[32,18],[64,60],[128,142],[192,218],[224,237],[255,247]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":10,"sat":4,"con":4,"exp":0,"gr":18,"grs":16,"hsl_sat":{"red":16,"orange":2,"yellow":-4,"green":-8,"aqua":2,"blue":16,"purple":0,"magenta":0},"gm":null},{"n":"Kodak Oktar","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,10],[32,26],[64,58],[128,140],[192,210],[224,228],[255,244]],"r":[[0,0],[128,128],[255,255]],"g":[[0,0],[128,128],[255,255]],"b":[[0,0],[128,128],[255,255]]},"vib":8,"sat":-7,"con":28,"exp":0,"gr":15,"grs":25,"hsl_sat":{"red":-4,"orange":-6,"yellow":-8,"green":-10,"aqua":0,"blue":10,"purple":0,"magenta":0},"gm":null},{"n":"Agfa Precisa","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,4],[32,25],[64,58],[128,133],[192,208],[224,228],[255,242]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":10,"sat":4,"con":3,"exp":0,"gr":10,"grs":11,"hsl_sat":{"red":3,"orange":2,"yellow":0,"green":3,"aqua":2,"blue":7,"purple":0,"magenta":0},"gm":null},{"n":"Redscale Ultra","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,6],[32,35],[64,64],[128,132],[192,198],[224,212],[255,232]],"r":[[0,6],[128,132],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":10,"sat":-8,"con":-8,"exp":0,"gr":30,"grs":26,"hsl_sat":{"red":0,"orange":-2,"yellow":-7,"green":-7,"aqua":0,"blue":0,"purple":0,"magenta":0},"gm":null},{"n":"Harman Phoenix","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,6],[32,35],[64,64],[128,132],[192,198],[224,212],[255,232]],"r":[[0,6],[128,132],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":10,"sat":-8,"con":-8,"exp":0,"gr":30,"grs":26,"hsl_sat":{"red":0,"orange":-2,"yellow":-7,"green":-7,"aqua":0,"blue":0,"purple":0,"magenta":0},"gm":null},{"n":"GAF 500","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,6],[32,35],[64,64],[128,132],[192,198],[224,212],[255,232]],"r":[[0,6],[128,132],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":10,"sat":-8,"con":-8,"exp":0,"gr":30,"grs":26,"hsl_sat":{"red":0,"orange":-2,"yellow":-7,"green":-7,"aqua":0,"blue":0,"purple":0,"magenta":0},"gm":null},{"n":"Eastman Color Negative II 100","s":"Master","c":"cine","f":true,"bw":false,"cr":{"rgb":[[0,16],[32,40],[64,78],[128,141],[192,200],[224,214],[255,232]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":-8,"sat":-4,"con":0,"exp":0,"gr":21,"grs":20,"hsl_sat":{"red":-4,"orange":2,"yellow":-10,"green":-8,"aqua":-18,"blue":-6,"purple":0,"magenta":0},"gm":null},{"n":"Kodak Solara 100","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,16],[32,36],[64,70],[128,142],[192,206],[224,218],[255,232]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":10,"sat":4,"con":2,"exp":0,"gr":27,"grs":20,"hsl_sat":{"red":5,"orange":7,"yellow":-10,"green":-15,"aqua":-18,"blue":-12,"purple":0,"magenta":0},"gm":null},{"n":"Kodak Tri-X 400","s":"Master","c":"bw","f":true,"bw":true,"cr":{"rgb":[[0,0],[255,255]],"r":[[0,0],[255,255]],"g":[[0,0],[255,255]],"b":[[0,0],[255,255]]},"vib":0,"sat":0,"con":8,"exp":0,"gr":80,"grs":45,"hsl_sat":{"red":0,"orange":0,"yellow":0,"green":0,"aqua":0,"blue":0,"purple":0,"magenta":0},"gm":null},{"n":"Kodak Tri-X 1600","s":"Master","c":"bw","f":true,"bw":true,"cr":{"rgb":[[0,0],[255,255]],"r":[[0,0],[255,255]],"g":[[0,0],[255,255]],"b":[[0,0],[255,255]]},"vib":0,"sat":0,"con":8,"exp":0,"gr":80,"grs":45,"hsl_sat":{"red":0,"orange":0,"yellow":0,"green":0,"aqua":0,"blue":0,"purple":0,"magenta":0},"gm":null},{"n":"Ilford XP2 Super","s":"Master","c":"bw","f":true,"bw":true,"cr":{"rgb":[[0,12],[32,32],[64,64],[128,134],[192,198],[224,212],[255,248]],"r":[[0,0],[128,128],[255,255]],"g":[[0,0],[128,128],[255,255]],"b":[[0,0],[128,128],[255,255]]},"vib":0,"sat":0,"con":-6,"exp":0.1,"gr":10,"grs":24,"hsl_sat":{"red":0,"orange":0,"yellow":0,"green":0,"aqua":0,"blue":0,"purple":0,"magenta":0},"gm":null},{"n":"Kodak T-Max 400","s":"Master","c":"bw","f":true,"bw":true,"cr":{"rgb":[[0,0],[255,255]],"r":[[0,0],[255,255]],"g":[[0,0],[255,255]],"b":[[0,0],[255,255]]},"vib":0,"sat":0,"con":3,"exp":0,"gr":24,"grs":17,"hsl_sat":{"red":0,"orange":0,"yellow":0,"green":0,"aqua":0,"blue":0,"purple":0,"magenta":0},"gm":null},{"n":"Kodak T-Max 100","s":"Master","c":"bw","f":true,"bw":true,"cr":{"rgb":[[0,0],[255,255]],"r":[[0,0],[255,255]],"g":[[0,0],[255,255]],"b":[[0,0],[255,255]]},"vib":0,"sat":0,"con":3,"exp":0,"gr":24,"grs":17,"hsl_sat":{"red":0,"orange":0,"yellow":0,"green":0,"aqua":0,"blue":0,"purple":0,"magenta":0},"gm":null},{"n":"Fomapan 100","s":"Master","c":"bw","f":true,"bw":true,"cr":{"rgb":[[0,8],[32,29],[64,62],[128,138],[192,200],[224,214],[255,236]],"r":[[0,6],[128,138],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":0,"sat":0,"con":3,"exp":0.05,"gr":26,"grs":21,"hsl_sat":{"red":0,"orange":0,"yellow":0,"green":0,"aqua":0,"blue":0,"purple":0,"magenta":0},"gm":null},{"n":"Arista EDU 100","s":"Master","c":"bw","f":true,"bw":true,"cr":{"rgb":[[0,8],[32,29],[64,62],[128,138],[192,200],[224,214],[255,236]],"r":[[0,6],[128,138],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":0,"sat":0,"con":3,"exp":0.05,"gr":26,"grs":21,"hsl_sat":{"red":0,"orange":0,"yellow":0,"green":0,"aqua":0,"blue":0,"purple":0,"magenta":0},"gm":null},{"n":"Ilford HP5 400","s":"Master","c":"bw","f":true,"bw":true,"cr":{"rgb":[[0,0],[255,255]],"r":[[0,0],[255,255]],"g":[[0,0],[255,255]],"b":[[0,0],[255,255]]},"vib":0,"sat":0,"con":5,"exp":0,"gr":60,"grs":36,"hsl_sat":{"red":0,"orange":0,"yellow":0,"green":0,"aqua":0,"blue":0,"purple":0,"magenta":0},"gm":null},{"n":"Ilford Delta 3200","s":"Master","c":"bw","f":true,"bw":true,"cr":{"rgb":[[0,0],[255,255]],"r":[[0,0],[255,255]],"g":[[0,0],[255,255]],"b":[[0,0],[255,255]]},"vib":0,"sat":0,"con":2,"exp":0.05,"gr":15,"grs":17,"hsl_sat":{"red":0,"orange":0,"yellow":0,"green":0,"aqua":0,"blue":0,"purple":0,"magenta":0},"gm":null},{"n":"Kosmo Pan","s":"Master","c":"bw","f":true,"bw":true,"cr":{"rgb":[[0,8],[32,29],[64,62],[128,138],[192,200],[224,214],[255,236]],"r":[[0,6],[128,138],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":0,"sat":0,"con":3,"exp":0.05,"gr":26,"grs":21,"hsl_sat":{"red":0,"orange":0,"yellow":0,"green":0,"aqua":0,"blue":0,"purple":0,"magenta":0},"gm":null},{"n":"Kodak Vision3 BW","s":"Master","c":"bw","f":true,"bw":true,"cr":{"rgb":[[0,8],[32,30],[64,60],[128,136],[192,208],[224,222],[255,242]],"r":[[0,0],[128,128],[255,255]],"g":[[0,0],[128,128],[255,255]],"b":[[0,0],[128,128],[255,255]]},"vib":0,"sat":0,"con":-4,"exp":0.1,"gr":21,"grs":30,"hsl_sat":{"red":0,"orange":0,"yellow":0,"green":0,"aqua":0,"blue":0,"purple":0,"magenta":0},"gm":null},{"n":"Fomapan 400","s":"Master","c":"bw","f":true,"bw":true,"cr":{"rgb":[[0,10],[32,20],[64,50],[128,128],[192,208],[224,224],[255,232]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":0,"sat":0,"con":4,"exp":0,"gr":60,"grs":35,"hsl_sat":{"red":0,"orange":0,"yellow":0,"green":0,"aqua":0,"blue":0,"purple":0,"magenta":0},"gm":null},{"n":"Ilford Delta 100","s":"Master","c":"bw","f":true,"bw":true,"cr":{"rgb":[[0,0],[255,255]],"r":[[0,0],[255,255]],"g":[[0,0],[255,255]],"b":[[0,0],[255,255]]},"vib":0,"sat":0,"con":2,"exp":0.05,"gr":15,"grs":17,"hsl_sat":{"red":0,"orange":0,"yellow":0,"green":0,"aqua":0,"blue":0,"purple":0,"magenta":0},"gm":null},{"n":"Sony Standard CL","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,8],[32,31],[64,63],[128,138],[192,203],[224,218],[255,235]],"r":[[0,6],[128,134],[255,248]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,121],[255,233]]},"vib":1,"sat":-1,"con":0,"exp":0.03,"gr":12,"grs":13,"hsl_sat":{"red":0,"orange":2,"yellow":0,"green":-2,"aqua":0,"blue":-1,"purple":0,"magenta":0},"gm":null},{"n":"Vektro100","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,8],[32,30],[64,62],[128,137],[192,204],[224,219],[255,235]],"r":[[0,6],[128,134],[255,248]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,121],[255,233]]},"vib":2,"sat":0,"con":3,"exp":0.03,"gr":12,"grs":13,"hsl_sat":{"red":0,"orange":4,"yellow":1,"green":-2,"aqua":0,"blue":2,"purple":0,"magenta":0},"gm":null},{"n":"Senova Light","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,9],[32,34],[64,66],[128,143],[192,204],[224,218],[255,236]],"r":[[0,6],[128,134],[255,248]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,122],[255,234]]},"vib":-2,"sat":-3,"con":-10,"exp":0.05,"gr":12,"grs":13,"hsl_sat":{"red":0,"orange":1,"yellow":0,"green":-2,"aqua":0,"blue":-2,"purple":0,"magenta":0},"gm":null},{"n":"Evpro+","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,7],[32,28],[64,61],[128,137],[192,204],[224,220],[255,236]],"r":[[0,6],[128,134],[255,248]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":5,"sat":1,"con":8,"exp":0.03,"gr":14,"grs":14,"hsl_sat":{"red":0,"orange":2,"yellow":2,"green":-2,"aqua":1,"blue":4,"purple":0,"magenta":0},"gm":null},{"n":"Kodak Gold V1","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,14],[32,34],[64,68],[128,142],[192,204],[224,218],[255,234]],"r":[[0,8],[128,135],[255,248]],"g":[[0,2],[128,126],[255,243]],"b":[[0,4],[128,121],[255,233]]},"vib":7,"sat":1,"con":-1,"exp":0.08,"gr":18,"grs":17,"hsl_sat":{"red":1,"orange":8,"yellow":-5,"green":-15,"aqua":-8,"blue":-5,"purple":0,"magenta":0},"gm":null},{"n":"Kodak Gold V2","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,14],[32,35],[64,70],[128,143],[192,205],[224,219],[255,234]],"r":[[0,8],[128,136],[255,249]],"g":[[0,2],[128,126],[255,242]],"b":[[0,4],[128,120],[255,232]]},"vib":8,"sat":2,"con":3,"exp":0.1,"gr":19,"grs":18,"hsl_sat":{"red":2,"orange":10,"yellow":-5,"green":-17,"aqua":-8,"blue":-6,"purple":0,"magenta":0},"gm":null},{"n":"Kodachrome V1","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,4],[32,18],[64,60],[128,142],[192,218],[224,237],[255,247]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":8,"sat":2,"con":7,"exp":0.03,"gr":12,"grs":12,"hsl_sat":{"red":12,"orange":2,"yellow":2,"green":-4,"aqua":1,"blue":18,"purple":0,"magenta":0},"gm":null},{"n":"Kodachrome V2","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,3],[32,16],[64,58],[128,144],[192,220],[224,239],[255,248]],"r":[[0,6],[128,136],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,118],[255,230]]},"vib":10,"sat":3,"con":10,"exp":0.04,"gr":10,"grs":12,"hsl_sat":{"red":15,"orange":2,"yellow":6,"green":-5,"aqua":2,"blue":22,"purple":0,"magenta":0},"gm":null},{"n":"Kodachrome V3","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,4],[32,18],[64,60],[128,140],[192,214],[224,234],[255,246]],"r":[[0,6],[128,134],[255,248]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":6,"sat":1,"con":5,"exp":0.03,"gr":12,"grs":12,"hsl_sat":{"red":9,"orange":1,"yellow":1,"green":-3,"aqua":1,"blue":14,"purple":0,"magenta":0},"gm":null},{"n":"Leicachrome","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,4],[32,18],[64,58],[128,140],[192,214],[224,234],[255,246]],"r":[[0,6],[128,134],[255,248]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":6,"sat":1,"con":6,"exp":0.02,"gr":10,"grs":12,"hsl_sat":{"red":6,"orange":1,"yellow":1,"green":-3,"aqua":1,"blue":14,"purple":0,"magenta":0},"gm":null},{"n":"Velvia Pro","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,4],[32,12],[64,52],[128,142],[192,234],[224,251],[255,247]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":10,"sat":4,"con":8,"exp":0.02,"gr":10,"grs":12,"hsl_sat":{"red":0,"orange":2,"yellow":16,"green":24,"aqua":12,"blue":18,"purple":0,"magenta":0},"gm":null},{"n":"Classic Chrome","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,8],[32,30],[64,62],[128,134],[192,202],[224,218],[255,236]],"r":[[0,6],[128,132],[255,248]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,118],[255,230]]},"vib":-6,"sat":-8,"con":-7,"exp":0.04,"gr":14,"grs":16,"hsl_sat":{"red":0,"orange":-8,"yellow":-5,"green":-8,"aqua":-4,"blue":-14,"purple":0,"magenta":0},"gm":null},{"n":"Pro Neg Std","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,8],[32,32],[64,64],[128,141],[192,200],[224,215],[255,234]],"r":[[0,6],[128,133],[255,248]],"g":[[0,0],[128,126],[255,243]],"b":[[0,4],[128,121],[255,233]]},"vib":-3,"sat":-4,"con":-8,"exp":0.04,"gr":12,"grs":13,"hsl_sat":{"red":0,"orange":-2,"yellow":0,"green":-2,"aqua":0,"blue":-2,"purple":0,"magenta":0},"gm":null},{"n":"Sony Classic Negative","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,9],[32,34],[64,67],[128,134],[192,199],[224,221],[255,244]],"r":[[0,5],[128,132],[255,245]],"g":[[0,2],[128,126],[255,242]],"b":[[0,4],[128,123],[255,236]]},"vib":-5,"sat":-5,"con":-8,"exp":0.04,"gr":12,"grs":13,"hsl_sat":{"red":0,"orange":-2,"yellow":0,"green":-4,"aqua":0,"blue":-8,"purple":0,"magenta":0},"gm":null},{"n":"Fuji Nostalgic Neg","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,7],[32,31],[64,64],[128,142],[192,202],[224,216],[255,235]],"r":[[0,6],[128,134],[255,248]],"g":[[0,0],[128,126],[255,243]],"b":[[0,4],[128,121],[255,233]]},"vib":-2,"sat":-3,"con":-5,"exp":0.06,"gr":15,"grs":15,"hsl_sat":{"red":0,"orange":4,"yellow":-2,"green":-7,"aqua":-2,"blue":-2,"purple":0,"magenta":0},"gm":null},{"n":"Fuji Eterna","s":"Master","c":"cine","f":true,"bw":false,"cr":{"rgb":[[0,8],[32,32],[64,64],[128,140],[192,198],[224,214],[255,234]],"r":[[0,6],[128,132],[255,248]],"g":[[0,0],[128,126],[255,243]],"b":[[0,4],[128,121],[255,233]]},"vib":-4,"sat":-4,"con":-10,"exp":0.05,"gr":14,"grs":14,"hsl_sat":{"red":0,"orange":0,"yellow":-2,"green":-10,"aqua":-2,"blue":-5,"purple":0,"magenta":0},"gm":null},{"n":"Sony Eterna","s":"Master","c":"cine","f":true,"bw":false,"cr":{"rgb":[[0,8],[32,32],[64,64],[128,140],[192,198],[224,214],[255,234]],"r":[[0,6],[128,132],[255,248]],"g":[[0,0],[128,126],[255,243]],"b":[[0,4],[128,121],[255,233]]},"vib":-4,"sat":-4,"con":-10,"exp":0.04,"gr":13,"grs":14,"hsl_sat":{"red":0,"orange":0,"yellow":-2,"green":-8,"aqua":0,"blue":-5,"purple":0,"magenta":0},"gm":null},{"n":"Acros X","s":"Master","c":"bw","f":true,"bw":true,"cr":{"rgb":[[0,0],[255,255]],"r":[[0,0],[255,255]],"g":[[0,0],[255,255]],"b":[[0,0],[255,255]]},"vib":0,"sat":0,"con":6,"exp":0,"gr":48,"grs":28,"hsl_sat":{"red":0,"orange":0,"yellow":0,"green":0,"aqua":0,"blue":0,"purple":0,"magenta":0},"gm":null},{"n":"Acros XY","s":"Master","c":"bw","f":true,"bw":true,"cr":{"rgb":[[0,0],[255,255]],"r":[[0,0],[255,255]],"g":[[0,0],[255,255]],"b":[[0,0],[255,255]]},"vib":0,"sat":0,"con":5,"exp":0.01,"gr":46,"grs":28,"hsl_sat":{"red":0,"orange":0,"yellow":0,"green":0,"aqua":0,"blue":0,"purple":0,"magenta":0},"gm":null},{"n":"Acros XR","s":"Master","c":"bw","f":true,"bw":true,"cr":{"rgb":[[0,0],[255,255]],"r":[[0,0],[255,255]],"g":[[0,0],[255,255]],"b":[[0,0],[255,255]]},"vib":0,"sat":0,"con":10,"exp":0.01,"gr":52,"grs":30,"hsl_sat":{"red":0,"orange":0,"yellow":0,"green":0,"aqua":0,"blue":0,"purple":0,"magenta":0},"gm":null},{"n":"Acros XG","s":"Master","c":"bw","f":true,"bw":true,"cr":{"rgb":[[0,0],[255,255]],"r":[[0,0],[255,255]],"g":[[0,0],[255,255]],"b":[[0,0],[255,255]]},"vib":0,"sat":0,"con":3,"exp":0,"gr":44,"grs":27,"hsl_sat":{"red":0,"orange":0,"yellow":0,"green":0,"aqua":0,"blue":0,"purple":0,"magenta":0},"gm":null},{"n":"Sony Nostalgic Neg","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,7],[32,31],[64,64],[128,142],[192,202],[224,216],[255,235]],"r":[[0,6],[128,134],[255,248]],"g":[[0,0],[128,126],[255,243]],"b":[[0,4],[128,121],[255,233]]},"vib":-2,"sat":-3,"con":-5,"exp":0.05,"gr":13,"grs":14,"hsl_sat":{"red":0,"orange":4,"yellow":0,"green":-5,"aqua":0,"blue":-2,"purple":0,"magenta":0},"gm":null},{"n":"Classic Cinema","s":"Master","c":"cine","f":true,"bw":false,"cr":{"rgb":[[0,6],[32,34],[64,66],[128,144],[192,202],[224,217],[255,236]],"r":[[0,6],[128,134],[255,248]],"g":[[0,0],[128,126],[255,243]],"b":[[0,4],[128,121],[255,233]]},"vib":-1,"sat":-2,"con":-3,"exp":0.06,"gr":16,"grs":16,"hsl_sat":{"red":1,"orange":4,"yellow":-2,"green":-4,"aqua":-1,"blue":-2,"purple":0,"magenta":0},"gm":null},{"n":"Oktar","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,8],[32,31],[64,63],[128,138],[192,203],[224,218],[255,235]],"r":[[0,6],[128,134],[255,247]],"g":[[0,1],[128,127],[255,243]],"b":[[0,4],[128,121],[255,233]]},"vib":2,"sat":0,"con":1,"exp":0.03,"gr":12,"grs":13,"hsl_sat":{"red":0,"orange":4,"yellow":1,"green":0,"aqua":0,"blue":1,"purple":0,"magenta":0},"gm":null},{"n":"Zero Mute","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,10],[32,36],[64,68],[128,133],[192,198],[224,221],[255,246]],"r":[[0,5],[128,130],[255,245]],"g":[[0,4],[128,126],[255,243]],"b":[[0,7],[128,123],[255,240]]},"vib":-9,"sat":-12,"con":-15,"exp":0.04,"gr":10,"grs":12,"hsl_sat":{"red":0,"orange":-4,"yellow":-5,"green":-6,"aqua":0,"blue":-14,"purple":0,"magenta":0},"gm":null},{"n":"CineChrome","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,8],[32,30],[64,62],[128,134],[192,202],[224,218],[255,236]],"r":[[0,6],[128,132],[255,248]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,118],[255,230]]},"vib":-5,"sat":-7,"con":-8,"exp":0.04,"gr":14,"grs":16,"hsl_sat":{"red":0,"orange":-3,"yellow":-4,"green":-10,"aqua":-5,"blue":-10,"purple":0,"magenta":0},"gm":null},{"n":"ProColor","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,8],[32,31],[64,63],[128,138],[192,203],[224,218],[255,235]],"r":[[0,6],[128,134],[255,248]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,121],[255,233]]},"vib":2,"sat":-1,"con":1,"exp":0.05,"gr":14,"grs":15,"hsl_sat":{"red":0,"orange":6,"yellow":2,"green":-2,"aqua":-1,"blue":-1,"purple":0,"magenta":0},"gm":null},{"n":"Blue Velvet - CineStill 50D","s":"Master","c":"cine","f":true,"bw":false,"cr":{"rgb":[[0,6],[32,34],[64,66],[128,144],[192,201],[224,216],[255,236]],"r":[[0,6],[128,132],[255,246]],"g":[[0,0],[128,125],[255,242]],"b":[[0,6],[128,123],[255,234]]},"vib":-5,"sat":-4,"con":-5,"exp":0.02,"gr":14,"grs":15,"hsl_sat":{"red":0,"orange":0,"yellow":-2,"green":-2,"aqua":3,"blue":9,"purple":0,"magenta":0},"gm":null},{"n":"CineStill 800","s":"Master","c":"cine","f":true,"bw":false,"cr":{"rgb":[[0,8],[32,27],[64,60],[128,136],[192,206],[224,222],[255,238]],"r":[[0,6],[128,134],[255,248]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,118],[255,230]]},"vib":2,"sat":-3,"con":-3,"exp":0.1,"gr":22,"grs":24,"hsl_sat":{"red":0,"orange":-3,"yellow":-5,"green":-6,"aqua":2,"blue":5,"purple":0,"magenta":0},"gm":null},{"n":"CineStill X","s":"Master","c":"cine","f":true,"bw":false,"cr":{"rgb":[[0,8],[32,31],[64,64],[128,137],[192,202],[224,219],[255,238]],"r":[[0,4],[128,130],[255,241]],"g":[[0,1],[128,125],[255,239]],"b":[[0,6],[128,126],[255,241]]},"vib":-2,"sat":-1,"con":0,"exp":0.05,"gr":12,"grs":13,"hsl_sat":{"red":0,"orange":1,"yellow":-1,"green":0,"aqua":12,"blue":16,"purple":0,"magenta":0},"gm":null},{"n":"Chroma Fade","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,12],[32,36],[64,68],[128,146],[192,206],[224,220],[255,237]],"r":[[0,8],[128,136],[255,248]],"g":[[0,3],[128,128],[255,244]],"b":[[0,7],[128,124],[255,235]]},"vib":-10,"sat":-12,"con":-15,"exp":0.06,"gr":13,"grs":15,"hsl_sat":{"red":0,"orange":-4,"yellow":-5,"green":-12,"aqua":-8,"blue":-16,"purple":0,"magenta":0},"gm":null},{"n":"Neo Max","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,5],[32,24],[64,56],[128,136],[192,207],[224,217],[255,230]],"r":[[0,4],[128,129],[255,240]],"g":[[0,1],[128,124],[255,238]],"b":[[0,5],[128,123],[255,236]]},"vib":-2,"sat":-4,"con":11,"exp":0.03,"gr":12,"grs":13,"hsl_sat":{"red":0,"orange":-2,"yellow":0,"green":-4,"aqua":0,"blue":-7,"purple":0,"magenta":0},"gm":null},{"n":"MidRed Infra","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,7],[32,28],[64,59],[128,136],[192,204],[224,218],[255,234]],"r":[[0,8],[128,138],[255,250]],"g":[[0,1],[128,126],[255,241]],"b":[[0,2],[128,118],[255,228]]},"vib":4,"sat":2,"con":4,"exp":0.04,"gr":12,"grs":13,"hsl_sat":{"red":14,"orange":6,"yellow":2,"green":-8,"aqua":0,"blue":-18,"purple":0,"magenta":0},"gm":null},{"n":"DreamNeg","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,9],[32,34],[64,67],[128,145],[192,205],[224,219],[255,236]],"r":[[0,6],[128,134],[255,248]],"g":[[0,1],[128,127],[255,244]],"b":[[0,5],[128,122],[255,234]]},"vib":-4,"sat":-5,"con":-13,"exp":0.08,"gr":16,"grs":18,"hsl_sat":{"red":0,"orange":1,"yellow":-3,"green":-7,"aqua":-2,"blue":-3,"purple":0,"magenta":0},"gm":null},{"n":"Zetra 100","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,8],[32,31],[64,63],[128,139],[192,204],[224,219],[255,236]],"r":[[0,5],[128,133],[255,246]],"g":[[0,1],[128,126],[255,242]],"b":[[0,4],[128,122],[255,234]]},"vib":2,"sat":0,"con":3,"exp":0.03,"gr":12,"grs":13,"hsl_sat":{"red":0,"orange":4,"yellow":1,"green":0,"aqua":0,"blue":1,"purple":0,"magenta":0},"gm":null},{"n":"Rose Spectra","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,9],[32,33],[64,66],[128,136],[192,201],[224,220],[255,239]],"r":[[0,7],[128,136],[255,250]],"g":[[0,2],[128,126],[255,244]],"b":[[0,4],[128,124],[255,236]]},"vib":3,"sat":1,"con":-2,"exp":0.04,"gr":12,"grs":13,"hsl_sat":{"red":8,"orange":6,"yellow":0,"green":0,"aqua":0,"blue":-1,"purple":0,"magenta":0},"gm":null},{"n":"Asteroid City - Kodak Vision T200 - V1","s":"Master","c":"cine","f":true,"bw":false,"cr":{"rgb":[[0,8],[32,28],[64,62],[128,136],[192,204],[224,220],[255,236]],"r":[[0,6],[128,134],[255,248]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,122],[255,234]]},"vib":-3,"sat":-5,"con":-6,"exp":0.06,"gr":16,"grs":15,"hsl_sat":{"red":0,"orange":-5,"yellow":0,"green":0,"aqua":-2,"blue":9,"purple":0,"magenta":0},"gm":null},{"n":"Asteroid City - Kodak Vision T200 - V2","s":"Master","c":"cine","f":true,"bw":false,"cr":{"rgb":[[0,8],[32,30],[64,62],[128,140],[192,204],[224,220],[255,236]],"r":[[0,6],[128,134],[255,248]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,122],[255,234]]},"vib":-1,"sat":-3,"con":-5,"exp":0.05,"gr":15,"grs":15,"hsl_sat":{"red":0,"orange":-2,"yellow":-1,"green":0,"aqua":-1,"blue":6,"purple":0,"magenta":0},"gm":null},{"n":"Ayon 200","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,8],[32,30],[64,62],[128,138],[192,206],[224,221],[255,236]],"r":[[0,6],[128,134],[255,248]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,121],[255,233]]},"vib":-3,"sat":-6,"con":-8,"exp":0.08,"gr":18,"grs":17,"hsl_sat":{"red":0,"orange":-7,"yellow":-11,"green":4,"aqua":-6,"blue":-8,"purple":0,"magenta":0},"gm":null},{"n":"Phoenix Harman","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,7],[32,28],[64,61],[128,138],[192,205],[224,221],[255,236]],"r":[[0,6],[128,135],[255,248]],"g":[[0,0],[128,125],[255,243]],"b":[[0,4],[128,120],[255,232]]},"vib":6,"sat":2,"con":11,"exp":0.05,"gr":18,"grs":17,"hsl_sat":{"red":0,"orange":9,"yellow":-2,"green":4,"aqua":6,"blue":-2,"purple":0,"magenta":0},"gm":null},{"n":"Phenomena","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,7],[32,30],[64,61],[128,137],[192,205],[224,218],[255,233]],"r":[[0,5],[128,132],[255,246]],"g":[[0,1],[128,127],[255,244]],"b":[[0,3],[128,121],[255,232]]},"vib":2,"sat":0,"con":6,"exp":0.03,"gr":12,"grs":13,"hsl_sat":{"red":0,"orange":4,"yellow":0,"green":-1,"aqua":0,"blue":1,"purple":0,"magenta":0},"gm":null},{"n":"Crimson","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,7],[32,28],[64,61],[128,138],[192,204],[224,220],[255,236]],"r":[[0,7],[128,136],[255,248]],"g":[[0,0],[128,125],[255,243]],"b":[[0,4],[128,120],[255,232]]},"vib":4,"sat":1,"con":4,"exp":0.04,"gr":16,"grs":16,"hsl_sat":{"red":14,"orange":7,"yellow":-1,"green":-3,"aqua":0,"blue":-2,"purple":0,"magenta":0},"gm":null},{"n":"Acidnom","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,7],[32,28],[64,60],[128,136],[192,204],[224,220],[255,236]],"r":[[0,5],[128,132],[255,247]],"g":[[0,0],[128,124],[255,242]],"b":[[0,6],[128,120],[255,232]]},"vib":2,"sat":-1,"con":3,"exp":0.04,"gr":15,"grs":15,"hsl_sat":{"red":0,"orange":-2,"yellow":-5,"green":10,"aqua":6,"blue":2,"purple":0,"magenta":0},"gm":null},{"n":"Estra 500","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,8],[32,31],[64,63],[128,139],[192,202],[224,217],[255,235]],"r":[[0,6],[128,133],[255,248]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,121],[255,233]]},"vib":-1,"sat":-2,"con":-4,"exp":0.05,"gr":16,"grs":16,"hsl_sat":{"red":0,"orange":2,"yellow":-1,"green":-2,"aqua":-1,"blue":-2,"purple":0,"magenta":0},"gm":null},{"n":"X-Tarr","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,7],[32,29],[64,61],[128,137],[192,203],[224,218],[255,235]],"r":[[0,5],[128,131],[255,244]],"g":[[0,2],[128,127],[255,243]],"b":[[0,4],[128,122],[255,234]]},"vib":2,"sat":1,"con":2,"exp":0.04,"gr":12,"grs":13,"hsl_sat":{"red":0,"orange":1,"yellow":-2,"green":6,"aqua":0,"blue":4,"purple":0,"magenta":0},"gm":null},{"n":"Magic Spice","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,8],[32,31],[64,64],[128,141],[192,204],[224,219],[255,236]],"r":[[0,6],[128,135],[255,248]],"g":[[0,0],[128,126],[255,243]],"b":[[0,4],[128,121],[255,233]]},"vib":2,"sat":0,"con":-2,"exp":0.06,"gr":15,"grs":16,"hsl_sat":{"red":0,"orange":11,"yellow":4,"green":-4,"aqua":0,"blue":-3,"purple":0,"magenta":0},"gm":null},{"n":"Amarelo 30D","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,8],[32,32],[64,65],[128,142],[192,204],[224,219],[255,236]],"r":[[0,6],[128,134],[255,248]],"g":[[0,1],[128,127],[255,244]],"b":[[0,4],[128,122],[255,234]]},"vib":1,"sat":-1,"con":-4,"exp":0.06,"gr":13,"grs":14,"hsl_sat":{"red":0,"orange":9,"yellow":6,"green":-5,"aqua":0,"blue":-3,"purple":0,"magenta":0},"gm":null},{"n":"Vespera","s":"Master","c":"cine","f":true,"bw":false,"cr":{"rgb":[[0,6],[32,28],[64,59],[128,136],[192,206],[224,217],[255,231]],"r":[[0,4],[128,130],[255,242]],"g":[[0,1],[128,125],[255,240]],"b":[[0,4],[128,123],[255,235]]},"vib":3,"sat":0,"con":8,"exp":0.03,"gr":12,"grs":13,"hsl_sat":{"red":0,"orange":1,"yellow":-1,"green":-2,"aqua":0,"blue":4,"purple":0,"magenta":0},"gm":null},{"n":"Veniliqum","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,8],[32,31],[64,63],[128,135],[192,201],[224,219],[255,238]],"r":[[0,4],[128,130],[255,243]],"g":[[0,2],[128,125],[255,240]],"b":[[0,5],[128,124],[255,238]]},"vib":-1,"sat":-2,"con":0,"exp":0.04,"gr":12,"grs":13,"hsl_sat":{"red":2,"orange":1,"yellow":0,"green":-2,"aqua":0,"blue":6,"purple":0,"magenta":0},"gm":null},{"n":"Gold Luxe","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,14],[32,34],[64,68],[128,142],[192,206],[224,220],[255,236]],"r":[[0,8],[128,136],[255,248]],"g":[[0,2],[128,126],[255,242]],"b":[[0,4],[128,121],[255,232]]},"vib":8,"sat":1,"con":0,"exp":0.1,"gr":20,"grs":18,"hsl_sat":{"red":2,"orange":10,"yellow":-2,"green":-8,"aqua":-5,"blue":-4,"purple":0,"magenta":0},"gm":null},{"n":"Fuji 400H","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,6],[32,30],[64,64],[128,146],[192,200],[224,214],[255,233]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":-10,"sat":4,"con":0,"exp":0,"gr":18,"grs":20,"hsl_sat":{"red":-4,"orange":-5,"yellow":-12,"green":-4,"aqua":7,"blue":5,"purple":0,"magenta":0},"gm":null},{"n":"Ektar 100","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,10],[32,26],[64,58],[128,140],[192,210],[224,228],[255,244]],"r":[[0,0],[128,128],[255,255]],"g":[[0,0],[128,128],[255,255]],"b":[[0,0],[128,128],[255,255]]},"vib":8,"sat":-7,"con":28,"exp":0,"gr":15,"grs":25,"hsl_sat":{"red":-4,"orange":-6,"yellow":-8,"green":-10,"aqua":0,"blue":10,"purple":0,"magenta":0},"gm":null},{"n":"Kodak Color Plus 200","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,6],[32,35],[64,64],[128,132],[192,198],[224,212],[255,232]],"r":[[0,6],[128,132],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":10,"sat":-8,"con":-8,"exp":0,"gr":30,"grs":26,"hsl_sat":{"red":0,"orange":-2,"yellow":-7,"green":-7,"aqua":0,"blue":0,"purple":0,"magenta":0},"gm":null},{"n":"Ektachrome","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,4],[32,18],[64,60],[128,142],[192,218],[224,237],[255,247]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":10,"sat":4,"con":4,"exp":0,"gr":18,"grs":16,"hsl_sat":{"red":16,"orange":2,"yellow":-4,"green":-8,"aqua":2,"blue":16,"purple":0,"magenta":0},"gm":null},{"n":"Fuji Provia","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,4],[32,25],[64,58],[128,133],[192,208],[224,228],[255,242]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":10,"sat":4,"con":3,"exp":0,"gr":10,"grs":11,"hsl_sat":{"red":3,"orange":2,"yellow":0,"green":3,"aqua":2,"blue":7,"purple":0,"magenta":0},"gm":null},{"n":"Provia RX","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,4],[32,25],[64,58],[128,133],[192,208],[224,228],[255,242]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":10,"sat":4,"con":3,"exp":0,"gr":10,"grs":11,"hsl_sat":{"red":3,"orange":2,"yellow":0,"green":3,"aqua":2,"blue":7,"purple":0,"magenta":0},"gm":null},{"n":"Astia","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,8],[32,34],[64,72],[128,138],[192,196],[224,210],[255,238]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":-10,"sat":4,"con":-2,"exp":0,"gr":22,"grs":20,"hsl_sat":{"red":-4,"orange":-7,"yellow":-10,"green":-12,"aqua":-6,"blue":-6,"purple":0,"magenta":0},"gm":null},{"n":"Fortia 50","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,4],[32,12],[64,52],[128,142],[192,234],[224,251],[255,247]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":10,"sat":4,"con":6,"exp":0,"gr":12,"grs":12,"hsl_sat":{"red":4,"orange":2,"yellow":8,"green":13,"aqua":14,"blue":10,"purple":0,"magenta":0},"gm":null},{"n":"T-Max100","s":"Master","c":"bw","f":true,"bw":true,"cr":{"rgb":[[0,0],[255,255]],"r":[[0,0],[255,255]],"g":[[0,0],[255,255]],"b":[[0,0],[255,255]]},"vib":0,"sat":0,"con":3,"exp":0,"gr":24,"grs":17,"hsl_sat":{"red":0,"orange":0,"yellow":0,"green":0,"aqua":0,"blue":0,"purple":0,"magenta":0},"gm":null},{"n":"Delta 3200","s":"Master","c":"bw","f":true,"bw":true,"cr":{"rgb":[[0,0],[255,255]],"r":[[0,0],[255,255]],"g":[[0,0],[255,255]],"b":[[0,0],[255,255]]},"vib":0,"sat":0,"con":2,"exp":0.05,"gr":15,"grs":17,"hsl_sat":{"red":0,"orange":0,"yellow":0,"green":0,"aqua":0,"blue":0,"purple":0,"magenta":0},"gm":null},{"n":"Ilford HP5","s":"Master","c":"bw","f":true,"bw":true,"cr":{"rgb":[[0,0],[255,255]],"r":[[0,0],[255,255]],"g":[[0,0],[255,255]],"b":[[0,0],[255,255]]},"vib":0,"sat":0,"con":5,"exp":0,"gr":60,"grs":36,"hsl_sat":{"red":0,"orange":0,"yellow":0,"green":0,"aqua":0,"blue":0,"purple":0,"magenta":0},"gm":null},{"n":"RedScale Ultra","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,6],[32,35],[64,64],[128,132],[192,198],[224,212],[255,232]],"r":[[0,6],[128,132],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":10,"sat":-8,"con":-8,"exp":0,"gr":30,"grs":26,"hsl_sat":{"red":0,"orange":-2,"yellow":-7,"green":-7,"aqua":0,"blue":0,"purple":0,"magenta":0},"gm":null},{"n":"Solara 100","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,16],[32,36],[64,70],[128,142],[192,206],[224,218],[255,232]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":10,"sat":4,"con":2,"exp":0,"gr":27,"grs":20,"hsl_sat":{"red":5,"orange":7,"yellow":-10,"green":-15,"aqua":-18,"blue":-12,"purple":0,"magenta":0},"gm":null}];
+
+// ===== CART =====
+let cart=[];
+function toggleCart(){document.getElementById('cartDrawer').classList.toggle('open')}
+function addToCart(n,p){if(!cart.find(i=>i.name===n))cart.push({name:n,price:p});updateCartUI();document.getElementById('cartDrawer').classList.add('open')}
+function updateCartUI(){const c=document.getElementById('cartItems'),t=document.getElementById('cartTotal');document.getElementById('cartCount').textContent=cart.length;if(!cart.length){c.innerHTML='<div class="cart-empty">Koszyk pusty.</div>';t.textContent='0 PLN';return}let tot=0;c.innerHTML=cart.map((item,i)=>{tot+=item.price;return`<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)"><div><div style="font-size:0.9rem;font-weight:500">${item.name}</div><div style="font-family:'JetBrains Mono',monospace;color:var(--film);font-size:0.78rem">${item.price} PLN</div></div><button onclick="cart.splice(${i},1);updateCartUI()" style="background:none;border:none;color:var(--t3);cursor:pointer;font-size:0.7rem;text-transform:uppercase">Usuń</button></div>`}).join('');t.textContent=tot+' PLN'}
+function checkout(){cart.length?window.location.href='https://mindfullens.pl/cennik/':alert('Koszyk pusty')}
+
+// ===== LUT BUILDER =====
+function buildLUT(pts){
+  const lut=new Uint8Array(256);
+  if(!pts||pts.length<2){for(let i=0;i<256;i++)lut[i]=i;return lut}
+  const s=[...pts].sort((a,b)=>a[0]-b[0]);
+  for(let i=0;i<256;i++){
+    if(i<=s[0][0]){lut[i]=Math.max(0,Math.min(255,s[0][1]));continue}
+    if(i>=s[s.length-1][0]){lut[i]=Math.max(0,Math.min(255,s[s.length-1][1]));continue}
+    for(let j=0;j<s.length-1;j++){if(i>=s[j][0]&&i<=s[j+1][0]){const t=(i-s[j][0])/(s[j+1][0]-s[j][0]);const sm=t*t*(3-2*t);lut[i]=Math.max(0,Math.min(255,Math.round(s[j][1]+(s[j+1][1]-s[j][1])*sm)));break}}
+  }
+  return lut;
+}
+// Pre-build LUTs
+const filmLUTs=FILMS.map(f=>({rgb:buildLUT(f.cr?.rgb),r:buildLUT(f.cr?.r),g:buildLUT(f.cr?.g),b:buildLUT(f.cr?.b)}));
+
+// ===== APPLY FILM TO IMAGE =====
+function applyFilm(srcImageData, filmIdx, strength){
+  const f=FILMS[filmIdx], lut=filmLUTs[filmIdx];
+  const d=new Uint8ClampedArray(srcImageData.data);
+  const str=strength||0.6;
+  const chStr=str*0.62, rgbStr=str*0.68;
+  const isBW=f.bw, gm=f.gm||[0,0,0];
+  const satMul=1+(f.sat||0)*0.003*str;
+  const vibAmt=(f.vib||0)*0.003*str;
+  const con=1+((f.con||0)*str/180);
+  const expGain=1+((f.exp||0)*str*0.85);
+  const warmBias=((f.hsl_sat?.red||0)-(f.hsl_sat?.blue||0))*0.045*str;
+  const greenBias=(f.hsl_sat?.green||0)*0.018*str;
+
+  for(let i=0;i<d.length;i+=4){
+    let r=d[i],g=d[i+1],b=d[i+2];
+    r=r*(1-chStr)+lut.r[r]*chStr;
+    g=g*(1-chStr)+lut.g[g]*chStr;
+    b=b*(1-chStr)+lut.b[b]*chStr;
+    let lm=Math.round(0.299*r+0.587*g+0.114*b);
+    if(lm<0)lm=0;if(lm>255)lm=255;
+    let ls=(lut.rgb[lm]-lm)*rgbStr;
+    r+=ls;g+=ls;b+=ls;
+    r*=expGain;g*=expGain;b*=expGain;
+    r+=warmBias;b-=warmBias;g+=greenBias;
+    r=((r/255-0.5)*con+0.5)*255;
+    g=((g/255-0.5)*con+0.5)*255;
+    b=((b/255-0.5)*con+0.5)*255;
+    if(isBW){let rw=0.30+gm[0]*str*0.003,gw=0.59+gm[1]*str*0.003,bw=0.11+gm[2]*str*0.003;let ws=rw+gw+bw;if(ws>0){rw/=ws;gw/=ws;bw/=ws}let gray=r*rw+g*gw+b*bw;r=g=b=gray}
+    if(!isBW){let gr=0.299*r+0.587*g+0.114*b;let sm=satMul;if(vibAmt!==0){const mx=Math.max(r,g,b),mn=Math.min(r,g,b);sm+=vibAmt*(1-((mx>0?(mx-mn)/mx:0)))}r=gr+(r-gr)*sm;g=gr+(g-gr)*sm;b=gr+(b-gr)*sm}
+    // Grain
+    if(f.gr*str>2){const n=(Math.random()-0.5)*f.gr*str*0.25;r+=n;g+=n;b+=n}
+    d[i]=r<0?0:r>255?255:r;d[i+1]=g<0?0:g>255?255:g;d[i+2]=b<0?0:b>255?255:b;
+  }
+  return new ImageData(d, srcImageData.width, srcImageData.height);
+}
+
+// ===== MATCHING ENGINE =====
+function analyzeImage(imageData){
+  const d=imageData.data, len=d.length;
+  let tR=0,tG=0,tB=0,satSum=0,darkPx=0,brightPx=0;
+  const step=Math.max(4,Math.floor(len/100000))*4;
+  let samples=0;
+  const histR=new Uint32Array(256),histG=new Uint32Array(256),histB=new Uint32Array(256);
+  
+  for(let i=0;i<len;i+=step){
+    const r=d[i],g=d[i+1],b=d[i+2];
+    tR+=r;tG+=g;tB+=b;
+    histR[r]++;histG[g]++;histB[b]++;
+    const mx=Math.max(r,g,b),mn=Math.min(r,g,b);
+    if(mx>0)satSum+=(mx-mn)/mx;
+    const l=0.299*r+0.587*g+0.114*b;
+    if(l<50)darkPx++;if(l>210)brightPx++;
+    samples++;
+  }
+  const avgR=tR/samples,avgG=tG/samples,avgB=tB/samples;
+  const brightness=(avgR+avgG+avgB)/3;
+  const warmth=avgR-avgB;
+  const saturation=satSum/samples*100;
+  const contrast=(brightPx+darkPx)/samples*100;
+  const greenShift=avgG-(avgR+avgB)/2;
+  
+  return{avgR,avgG,avgB,brightness,warmth,saturation,contrast,greenShift,histR,histG,histB};
+}
+
+function matchFilms(analysis){
+  const scores=FILMS.map((f,i)=>{
+    let score=50; // base
+    const a=analysis;
+    
+    // BW matching
+    if(f.bw){
+      if(a.saturation<15)score+=40; // low saturation = BW match
+      else if(a.saturation<30)score+=15;
+      else score-=30;
+      if(a.contrast>25)score+=10; // high contrast good for BW
+      return{idx:i,score:Math.max(0,Math.min(100,score)),name:f.n,sub:f.s};
+    }
+    
+    // Color matching
+    const filmWarmth=(f.hsl_sat?.red||0)-(f.hsl_sat?.blue||0);
+    if(a.warmth>15&&filmWarmth>-10)score+=12;
+    if(a.warmth<-5&&filmWarmth<5)score+=12;
+    if(a.warmth>25&&f.n.includes('Gold'))score+=15;
+    if(a.warmth>10&&f.n.includes('Portra'))score+=12;
+    
+    // Saturation matching
+    if(a.saturation>50&&(f.vib>15||f.n.includes('Velvia')||f.n.includes('Ektar')))score+=18;
+    if(a.saturation<30&&(f.vib<5||f.n.includes('Pro 400H')||f.n.includes('Portra 160')))score+=15;
+    
+    // Brightness/exposure matching  
+    if(a.brightness<100&&(f.exp<0||f.n.includes('CineStill')||f.n.includes('Vision3')))score+=15;
+    if(a.brightness>150&&(f.exp>=0||f.n.includes('Portra')||f.n.includes('Gold')))score+=10;
+    
+    // Cinema look for dark moody images
+    if(a.brightness<110&&a.warmth<5&&f.c==='cine')score+=20;
+    
+    // Green-heavy images
+    if(a.greenShift>10&&(f.n.includes('Velvia')||f.n.includes('Provia')||f.n.includes('Ektar')))score+=12;
+    
+    // Low saturation pastel
+    if(a.saturation<35&&a.brightness>120&&(f.n.includes('Pro 400H')||f.n.includes('Portra 160')||f.n.includes('Fujicolor')))score+=15;
+    
+    // Lomography
+    if(a.saturation>45&&a.warmth>20&&f.n.includes('Lomo'))score+=12;
+    
+    // Vintage/expired
+    if(a.brightness>110&&a.saturation<40&&a.warmth>5&&(f.n.includes('Expired')||f.n.includes('Agfa')))score+=10;
+    
+    return{idx:i,score:Math.max(0,Math.min(100,Math.round(score))),name:f.n,sub:f.s};
+  });
+  
+  scores.sort((a,b)=>b.score-a.score);
+  return scores.slice(0,10); // top 10
+}
+
+// ===== DESCRIPTIONS =====
+const descriptions={
+  'neg':'Analiza wykazała charakterystyczne cechy negatywu kolorowego — miękkie przejścia tonalne, naturalne odwzorowanie skóry i subtelne przesunięcia w barwach. Ten profil odtworzy autentyczny look analogowej fotografii.',
+  'slide':'Wykryto nasycone barwy z wyraźnym kontrastem i precyzyjnym odwzorowaniem kolorów — cechy typowe dla filmów slajdowych. Idealny do krajobrazów, architektury i zdjęć z silnym światłem.',
+  'bw':'Rozpoznano pełną skalę szarości z wyrazistym ziarnem i bogatymi tonami. Klasyczna fotografia czarno-biała z charakterem analogowej kliszy.',
+  'cine':'Analiza ujawniła kinowy charakter obrazu — chłodne cienie, ciepłe światła i filmowy kontrast. Ten profil odwzoruje look hollywoozkiej taśmy filmowej.',
+};
+
+// ===== UI LOGIC =====
+const fileInput=document.getElementById('fileInput');
+const uploadArea=document.getElementById('uploadArea');
+const processingArea=document.getElementById('processingArea');
+const resultsArea=document.getElementById('resultsArea');
+const matcherHeader=document.getElementById('matcherHeader');
+const hiddenCanvas=document.getElementById('hiddenCanvas');
+const hCtx=hiddenCanvas.getContext('2d',{willReadFrequently:true});
+const processCanvas=document.getElementById('processCanvas');
+const pCtx=processCanvas.getContext('2d',{willReadFrequently:true});
+
+const FILE_INPUT_ACCEPT='image/jpeg,image/png,image/webp,image/tiff,image/avif,image/heic,image/heif,.raw,.dng,.nef,.nrw,.cr2,.cr3,.arw,.srw,.srf,.sr2,.dcr,.raf,.rwl,.rw2,.mef,.orf,.pef,.iiq,.3fr,.erf,.fff,.kdc,.mos,.mrw,.x3f,.heic,.heif';
+const RAW_EXTENSIONS=new Set(['raw','dng','nef','nrw','cr2','cr3','arw','srw','srf','sr2','dcr','raf','rwl','rw2','mef','orf','pef','iiq','3fr','erf','fff','kdc','mos','mrw','x3f']);
+const BITMAP_EXTENSIONS=new Set(['jpg','jpeg','png','webp','heic','heif','gif','bmp','avif','tif','tiff']);
+
+let originalDataURL=null, originalImageData=null, currentMatchIdx=0;
+let activeObjectUrl=null;
+
+if(fileInput)fileInput.setAttribute('accept',FILE_INPUT_ACCEPT);
+
+function extOf(name=''){const parts=String(name).toLowerCase().split('.');return parts.length>1?(parts.pop()||''):''}
+function sourceKind(file){
+  if(!file)return'none';
+  const ext=extOf(file.name);
+  if(RAW_EXTENSIONS.has(ext))return'raw';
+  if(BITMAP_EXTENSIONS.has(ext)||(file.type||'').startsWith('image/'))return'bitmap';
+  return'unknown';
+}
+function getBasePath(){
+  const p=window.location.pathname||'/';
+  if(p.endsWith('/'))return p;
+  const idx=p.lastIndexOf('/');
+  return idx>=0?p.slice(0,idx+1):'/';
+}
+function bridgeUrls(relPath){
+  const clean=String(relPath||'').replace(/^\/+/,'');
+  const urls=[`${getBasePath()}${clean}`,`/${clean}`]
+    .map(u=>u.replace(/\/{2,}/g,'/'));
+  return [...new Set(urls)];
+}
+function cleanupObjectUrl(){
+  if(activeObjectUrl){URL.revokeObjectURL(activeObjectUrl);activeObjectUrl=null}
+}
+function loadImageFromUrl(url){
+  return new Promise((resolve,reject)=>{
+    const img=new Image();
+    img.onload=()=>resolve(img);
+    img.onerror=()=>reject(new Error('Nie udało się odczytać obrazu po dekodowaniu.'));
+    img.src=url;
+  });
+}
+async function decodeRawFile(file){
+  let lastError='Brak aktywnego dekodera RAW na serwerze.';
+  for(const decodeUrl of bridgeUrls('raw/decode.php')){
+    try{
+      const response=await fetch(decodeUrl,{
+        method:'POST',
+        headers:{
+          'x-file-name':file?.name||'upload.raw',
+          'x-render-intent':'preview',
+          'content-type':file?.type||'application/octet-stream',
+        },
+        body:file,
+      });
+      if(!response.ok){
+        try{
+          const err=await response.json();
+          lastError=err?.error?.message||lastError;
+        }catch(_){lastError=`Dekoder RAW zwrócił błąd HTTP ${response.status}.`}
+        continue;
+      }
+      const blob=await response.blob();
+      return{ok:true,blob,backend:response.headers.get('x-raw-backend')||'server',bridgeUrl:decodeUrl};
+    }catch(_){}
+  }
+  return{ok:false,error:lastError};
+}
+
+// Drag & drop
+['dragover','dragenter'].forEach(ev=>uploadArea.addEventListener(ev,e=>{e.preventDefault();uploadArea.style.borderColor='#c4944e'}));
+['dragleave','drop'].forEach(ev=>uploadArea.addEventListener(ev,e=>{e.preventDefault();uploadArea.style.borderColor=''}));
+uploadArea.addEventListener('drop',e=>{if(e.dataTransfer.files[0])void handleImage(e.dataTransfer.files[0])});
+fileInput.addEventListener('change',e=>{if(e.target.files[0])void handleImage(e.target.files[0])});
+
+async function handleImage(file){
+  try{
+    cleanupObjectUrl();
+    const kind=sourceKind(file);
+    if(kind==='unknown'){alert('Ten format pliku nie jest jeszcze obsługiwany.');return}
+    if(kind==='raw'){
+      const decoded=await decodeRawFile(file);
+      if(!decoded.ok){
+        alert(decoded.error||'RAW/DNG wymaga aktywnego dekodera na serwerze (Imagick lub magick/convert).');
+        return;
+      }
+      activeObjectUrl=URL.createObjectURL(decoded.blob);
+      const img=await loadImageFromUrl(activeObjectUrl);
+      document.getElementById('previewImage').src=activeObjectUrl;
+      processImage(img,activeObjectUrl);
+      return;
+    }
+    const reader=new FileReader();
+    reader.onload=e=>{
+      const img=new Image();
+      img.onload=()=>processImage(img,e.target.result);
+      img.src=e.target.result;
+      document.getElementById('previewImage').src=e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }catch(err){
+    alert('Nie udało się przygotować pliku do analizy. Sprawdź format i spróbuj ponownie.');
+  }
+}
+
+function processImage(img,dataURL){
+  uploadArea.style.display='none';
+  matcherHeader.style.display='none';
+  processingArea.style.display='flex';
+  originalDataURL=dataURL;
+  
+  // Analyze at small size for speed
+  const maxDim=200;
+  let w=img.width,h=img.height;
+  if(w>maxDim||h>maxDim){const r=Math.min(maxDim/w,maxDim/h);w=Math.round(w*r);h=Math.round(h*r)}
+  hiddenCanvas.width=w;hiddenCanvas.height=h;
+  hCtx.drawImage(img,0,0,w,h);
+  const smallData=hCtx.getImageData(0,0,w,h);
+  
+  // Process at medium size for display
+  const dispMax=800;
+  let dw=img.width,dh=img.height;
+  if(dw>dispMax||dh>dispMax){const r=Math.min(dispMax/dw,dispMax/dh);dw=Math.round(dw*r);dh=Math.round(dh*r)}
+  processCanvas.width=dw;processCanvas.height=dh;
+  pCtx.drawImage(img,0,0,dw,dh);
+  originalImageData=pCtx.getImageData(0,0,dw,dh);
+  
+  const analysis=analyzeImage(smallData);
+  const matches=matchFilms(analysis);
+  
+  simulateTerminal(analysis,matches);
+}
+
+function simulateTerminal(analysis,matches){
+  const terminal=document.getElementById('terminal');
+  terminal.innerHTML='<p>> Uruchamianie silnika analizy kolorów...</p>';
+  
+  const steps=[
+    {text:`> Jasność: ${analysis.brightness.toFixed(0)} | Ciepło: ${analysis.warmth>0?'+':''}${analysis.warmth.toFixed(0)} | Nasycenie: ${analysis.saturation.toFixed(0)}%`,delay:600},
+    {text:'> Skanowanie krzywych tonalnych RGB...',delay:1200},
+    {text:'> Obliczanie histogramu i rozkładu barw...',delay:1800},
+    {text:`> Dopasowywanie do bazy ${FILMS.length} profili filmowych...`,delay:2600},
+    {text:`> ★ Najlepsze dopasowanie: ${matches[0].name} (${matches[0].score}%)`,delay:3400,hi:true},
+  ];
+  
+  steps.forEach(step=>{
+    setTimeout(()=>{
+      const p=document.createElement('p');
+      p.textContent=step.text;
+      if(step.hi)p.classList.add('hi');
+      terminal.appendChild(p);
+    },step.delay);
+  });
+  
+  setTimeout(()=>{
+    processingArea.style.display='none';
+    showResults(analysis,matches);
+  },4200);
+}
+
+function showResults(analysis,matches){
+  resultsArea.style.display='block';
+  currentMatchIdx=matches[0].idx;
+  
+  // Generate processed image
+  updateProcessedImage(currentMatchIdx);
+  
+  // Set original for B/A
+  document.getElementById('originalImage').src=originalDataURL;
+  
+  // Color palette
+  const a=analysis;
+  const pal=document.getElementById('colorPalette');
+  const shadowHex=rgbHex(Math.max(0,a.avgR*0.4),Math.max(0,a.avgG*0.4),Math.max(0,a.avgB*0.4));
+  const midHex=rgbHex(a.avgR,a.avgG,a.avgB);
+  const highHex=rgbHex(Math.min(255,a.avgR*1.4),Math.min(255,a.avgG*1.4),Math.min(255,a.avgB*1.4));
+  const accentHex=rgbHex(Math.min(255,a.avgR*1.2),a.avgG*0.85,a.avgB*0.85);
+  pal.innerHTML=`<div class="color-swatch" style="background:${shadowHex}">${shadowHex}</div><div class="color-swatch" style="background:${midHex}">${midHex}</div><div class="color-swatch" style="background:${accentHex}">${accentHex}</div><div class="color-swatch" style="background:${highHex}">${highHex}</div>`;
+  
+  // Analysis bars
+  const bars=document.getElementById('analysisBars');
+  bars.innerHTML=[
+    {label:'Jasność',val:Math.round(a.brightness/2.55),color:'var(--t1)'},
+    {label:'Ciepło',val:Math.round(50+a.warmth),color:'#e8a85d'},
+    {label:'Nasycenie',val:Math.round(a.saturation),color:'var(--film)'},
+    {label:'Kontrast',val:Math.min(100,Math.round(a.contrast*2)),color:'var(--green,#5de88a)'},
+  ].map(b=>`<div class="analysis-bar"><span class="analysis-bar-label">${b.label}</span><div class="analysis-bar-track"><div class="analysis-bar-fill" style="width:${b.val}%;background:${b.color}"></div></div><span class="analysis-bar-val">${b.val}%</span></div>`).join('');
+  
+  // Match info
+  const best=matches[0];
+  const film=FILMS[best.idx];
+  document.getElementById('matchScore').textContent=`★ ${best.score}% Match`;
+  document.getElementById('matchName').textContent=best.name;
+  document.getElementById('matchSub').textContent=film.s;
+  document.getElementById('matchDesc').textContent=descriptions[film.c]||descriptions['neg'];
+  
+  // Top 3
+  const topDiv=document.getElementById('topMatches');
+  topDiv.innerHTML='<div class="top-matches-title">Top 3 Dopasowania</div>'+matches.slice(0,3).map((m,i)=>`<div class="match-item ${i===0?'active':''}" onclick="switchMatch(${m.idx},this)"><span class="match-rank">#${i+1}</span><span class="match-item-name">${m.name}</span><span class="match-item-score">${m.score}%</span></div>`).join('');
+  
+  // Init B/A slider
+  initBA();
+}
+
+function updateProcessedImage(filmIdx){
+  if(!originalImageData)return;
+  const processed=applyFilm(originalImageData,filmIdx,1);
+  pCtx.putImageData(processed,0,0);
+  document.getElementById('processedImage').src=processCanvas.toDataURL('image/jpeg',0.92);
+}
+
+function switchMatch(filmIdx,el){
+  currentMatchIdx=filmIdx;
+  const f=FILMS[filmIdx];
+  document.getElementById('matchName').textContent=f.n;
+  document.getElementById('matchSub').textContent=f.s;
+  document.getElementById('matchDesc').textContent=descriptions[f.c]||descriptions['neg'];
+  document.querySelectorAll('.match-item').forEach(e=>e.classList.remove('active'));
+  if(el)el.classList.add('active');
+  updateProcessedImage(filmIdx);
+}
+
+// ===== BEFORE/AFTER SLIDER =====
+function initBA(){
+  const container=document.getElementById('baContainer');
+  const orig=document.getElementById('baOriginal');
+  const line=document.getElementById('baLine');
+  const handle=document.getElementById('baHandle');
+  if(!container||!orig||!line||!handle)return;
+
+  function updatePos(x){
+    const rect=container.getBoundingClientRect();
+    let pct=Math.max(0,Math.min(100,((x-rect.left)/rect.width)*100));
+    const right=Math.max(0,100-pct);
+    orig.style.clipPath=`inset(0 ${right}% 0 0)`;
+    orig.style.webkitClipPath=`inset(0 ${right}% 0 0)`;
+    line.style.left=pct+'%';
+    handle.style.left=pct+'%';
+  }
+
+  if(container._baBound){
+    updatePos(container.getBoundingClientRect().left+container.getBoundingClientRect().width*0.5);
+    return;
+  }
+  container._baBound=true;
+
+  let dragging=false;
+  
+  container.addEventListener('mousedown',e=>{dragging=true;updatePos(e.clientX)});
+  document.addEventListener('mousemove',e=>{if(dragging)updatePos(e.clientX)});
+  document.addEventListener('mouseup',()=>{dragging=false});
+  container.addEventListener('touchstart',e=>{dragging=true;updatePos(e.touches[0].clientX)},{passive:true});
+  document.addEventListener('touchmove',e=>{if(dragging)updatePos(e.touches[0].clientX)},{passive:true});
+  document.addEventListener('touchend',()=>{dragging=false});
+  
+  updatePos(container.getBoundingClientRect().left+container.getBoundingClientRect().width*0.5);
+}
+
+function rgbHex(r,g,b){r=Math.min(255,Math.max(0,Math.round(r)));g=Math.min(255,Math.max(0,Math.round(g)));b=Math.min(255,Math.max(0,Math.round(b)));return'#'+(1<<24|r<<16|g<<8|b).toString(16).slice(1).toUpperCase()}
+
+function resetMatcher(){
+  resultsArea.style.display='none';
+  matcherHeader.style.display='block';
+  uploadArea.style.display='flex';
+  fileInput.value='';
+  cleanupObjectUrl();
+  originalDataURL=null;originalImageData=null;
+}
+</script>
+</body>
+</html>

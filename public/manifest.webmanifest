@@ -1,0 +1,119 @@
+{
+  "id": "https://mindfullens.pl/",
+  "name": "Mindfullens Film Lab",
+  "short_name": "Film Lab",
+  "description": "Symulacja klisz i profili w przeglądarce (Vite, React).",
+  "lang": "pl",
+  "dir": "ltr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  },
+  "prefer_related_applications": false,
+  "categories": ["multimedia", "photo"],
+  "background_color": "#111111",
+  "theme_color": "#111111",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Film Lab",
+      "short_name": "Lab",
+      "description": "Symulacja klisz i profili",
+      "url": "./film-lab",
+      "icons": [
+        {
+          "src": "/favicon.svg",
+          "type": "image/svg+xml",
+          "sizes": "any"
+        }
+      ]
+    },
+    {
+      "name": "Live Cam",
+      "short_name": "Live",
+      "description": "Kamera z profilami w czasie rzeczywistym",
+      "url": "./live",
+      "icons": [
+        {
+          "src": "/favicon.svg",
+          "type": "image/svg+xml",
+          "sizes": "any"
+        }
+      ]
+    },
+    {
+      "name": "Matcher",
+      "short_name": "Match",
+      "description": "Dopasowanie stylu do wzorca",
+      "url": "./matcher",
+      "icons": [
+        {
+          "src": "/favicon.svg",
+          "type": "image/svg+xml",
+          "sizes": "any"
+        }
+      ]
+    },
+    {
+      "name": "Time Machine",
+      "short_name": "Time",
+      "description": "Przegląd dekad i emulsji filmowych",
+      "url": "./timemachine",
+      "icons": [
+        {
+          "src": "/favicon.svg",
+          "type": "image/svg+xml",
+          "sizes": "any"
+        }
+      ]
+    },
+    {
+      "name": "Ciemnia",
+      "short_name": "Ciemnia",
+      "description": "Przestrzeń pracy w duchu ciemni",
+      "url": "./ciemnia",
+      "icons": [
+        {
+          "src": "/favicon.svg",
+          "type": "image/svg+xml",
+          "sizes": "any"
+        }
+      ]
+    },
+    {
+      "name": "Analog Signature",
+      "short_name": "Sign",
+      "description": "Estetyka sygnatury i kompozycji",
+      "url": "./analog-signature",
+      "icons": [
+        {
+          "src": "/favicon.svg",
+          "type": "image/svg+xml",
+          "sizes": "any"
+        }
+      ]
+    },
+    {
+      "name": "Strona wejścia",
+      "short_name": "Start",
+      "description": "Ten sam widok co strona główna, ścieżka /landing",
+      "url": "./landing",
+      "icons": [
+        {
+          "src": "/favicon.svg",
+          "type": "image/svg+xml",
+          "sizes": "any"
+        }
+      ]
+    }
+  ]
+}

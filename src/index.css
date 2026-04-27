@@ -1,0 +1,83 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Pierwszy focus klawiatury: skok do aplikacji (SPA w #root). */
+.ml-skip-link:not(:focus):not(:focus-visible) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+/* :focus — starsze silniki; :focus-visible — typowy fokus klawiszem bez „pustego” pierścienia po kliku myszą. */
+.ml-skip-link:focus-visible,
+.ml-skip-link:focus {
+  position: fixed;
+  z-index: 2147483647;
+  left: max(12px, env(safe-area-inset-left, 0px));
+  top: max(12px, env(safe-area-inset-top, 0px));
+  width: auto;
+  height: auto;
+  margin: 0;
+  clip: auto;
+  overflow: visible;
+  white-space: normal;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: #0a0a0a;
+  color: rgba(255, 255, 255, 0.92);
+  font: 500 0.9rem ui-sans-serif, system-ui, sans-serif;
+  text-decoration: none;
+  outline: 2px solid rgba(255, 255, 255, 0.85);
+  outline-offset: 2px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Uzupełnienie meta name="color-scheme" — natywne suwaki / scrollbary w trybie ciemnym. */
+html {
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  -webkit-tap-highlight-color: transparent; /* iOS Safari: własny kolor fokusu, nie domyślne szare */
+}
+
+html,
+body {
+  cursor: auto !important;
+}
+
+*,
+*::before,
+*::after {
+  cursor: auto !important;
+}
+
+a,
+button,
+[role='button'],
+input[type='button'],
+input[type='submit'],
+input[type='reset'],
+input[type='range'],
+summary,
+select,
+label,
+.interactive-el {
+  cursor: pointer !important;
+}

@@ -1,0 +1,68 @@
+# Ręczny build i publikacja na GitHub Pages (project page: /repo/...).
+# Wymaga: Settings → General → Pages → Source: GitHub Actions (Deploy from Actions).
+# Pierwsze uruchomienie: Actions → „GitHub Pages (manual)“ → Run workflow.
+# Pole „Vite public base” — puste = automatycznie /nazwa-tego-repozytorium/ (dla innego URL wpisz np. /fork-name/).
+name: GitHub Pages (manual)
+on:
+  workflow_dispatch:
+    inputs:
+      vite_base:
+        description: 'Vite public base, np. /moj-fork/ (puste = /nazwa-repo/ z GitHuba)'
+        required: false
+        default: ''
+        type: string
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Build
+        run: |
+          if [ -n "${VITE_BASE_INPUT}" ]; then
+            export VITE_BASE="${VITE_BASE_INPUT}"
+          else
+            export VITE_BASE="/${{ github.event.repository.name }}/"
+          fi
+          echo "VITE_BASE=$VITE_BASE"
+          npm run build
+        env:
+          VITE_BASE_INPUT: ${{ inputs.vite_base }}
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deploy
+        uses: actions/deploy-pages@v4

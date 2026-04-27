@@ -1,0 +1,5 @@
+# Mindfullens Film Lab (Vite SPA)
+User-agent: *
+Allow: /
+
+Sitemap: https://mindfullens.pl/sitemap.xml

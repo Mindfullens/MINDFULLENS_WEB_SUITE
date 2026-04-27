@@ -1,0 +1,1191 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Mindfullens — Film Time Machine Experience</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Outfit:wght@200;300;400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&family=Special+Elite&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* Zunifikowana paleta - Cinematic & Darkroom */
+  --bg-dark: #050608;
+  --bg-panel: #0d1015;
+  --bg-elevated: #161920;
+  --bg-glass: rgba(22, 25, 32, 0.4);
+  
+  --border-subtle: rgba(255, 255, 255, 0.05);
+  --border-light: rgba(255, 255, 255, 0.1);
+  --border-accent: rgba(217, 171, 95, 0.3);
+  
+  --text-main: #f4efe6;
+  --text-muted: #a19d94;
+  --text-dark: #12100e;
+  
+  --accent-gold: #c4944e;
+  --accent-gold-light: #e8b868;
+  --accent-blue: #8fc0ff;
+  
+  --radius-sm: 8px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-xl: 32px;
+  
+  --shadow-glow: 0 0 80px rgba(196, 148, 78, 0.15);
+  --shadow-panel: 0 20px 40px rgba(0, 0, 0, 0.5);
+  
+  --ease: cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Outfit', sans-serif;
+  color: var(--text-main);
+  background-color: var(--bg-dark);
+  background-image: 
+    radial-gradient(circle at 15% 0%, rgba(196, 148, 78, 0.08) 0%, transparent 40%),
+    radial-gradient(circle at 85% 100%, rgba(143, 192, 255, 0.05) 0%, transparent 40%);
+  background-attachment: fixed;
+  overflow-x: hidden;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+body::before {
+  content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 9999;
+  opacity: 0.04; mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 1200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+}
+
+a { color: inherit; text-decoration: none; }
+button, input, select { font: inherit; outline: none; }
+img { max-width: 100%; height: auto; display: block; }
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-thumb { background: var(--border-accent); border-radius: 10px; }
+::-webkit-scrollbar-track { background: var(--bg-dark); }
+
+/* =========================================================
+   TYPOGRAFIA & KOMPONENTY
+   ========================================================= */
+h1, h2, h3, .serif-heading { font-family: 'Instrument Serif', serif; font-weight: 400; line-height: 1.1; }
+.mono-label { font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--accent-gold); }
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent-gold-light), var(--accent-gold));
+  color: var(--text-dark); padding: 14px 28px; border-radius: 50px; border: none;
+  font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em;
+  cursor: pointer; transition: transform 0.3s var(--ease), box-shadow 0.3s var(--ease);
+  box-shadow: 0 10px 20px rgba(196, 148, 78, 0.2);
+}
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 15px 30px rgba(196, 148, 78, 0.3); }
+
+.btn-ghost {
+  background: transparent; color: var(--text-main); border: 1px solid var(--border-accent);
+  padding: 12px 24px; border-radius: 50px; font-size: 0.85rem;
+  cursor: pointer; transition: all 0.3s var(--ease);
+}
+.btn-ghost:hover { background: rgba(196, 148, 78, 0.1); border-color: var(--accent-gold); }
+
+.chip {
+  padding: 6px 12px; border-radius: 50px; border: 1px solid var(--border-light);
+  background: var(--bg-elevated); font-size: 0.75rem; color: var(--text-muted);
+}
+
+/* =========================================================
+   NAWIGACJA
+   ========================================================= */
+.nav { position: fixed; top: 0; left: 0; right: 0; z-index: 1000; padding: 16px 0; transition: padding 0.4s var(--ease), background 0.4s; background: rgba(5, 6, 8, 0.8); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border-subtle); }
+.nav.scrolled { padding: 12px 0; background: rgba(5, 6, 8, 0.95); }
+.nav-inner { max-width: 1400px; margin: 0 auto; padding: 0 32px; display: flex; justify-content: space-between; align-items: center; }
+.nav-logo { font-family: 'Instrument Serif', serif; font-size: 1.5rem; display: flex; align-items: center; gap: 12px; letter-spacing: 0.02em; }
+.nav-logo img { height: 32px; width: auto; border-radius: 50%; border: 1px solid var(--accent-gold); }
+.nav-links { display: flex; gap: 8px; align-items: center; }
+.nav-link { padding: 8px 16px; border-radius: 50px; font-size: 0.85rem; color: var(--text-muted); transition: color 0.3s, background 0.3s; }
+.nav-link:hover { color: var(--text-main); background: var(--bg-elevated); }
+
+.nav-cta { padding: 8px 20px; border-radius: 50px; border: 1px solid var(--border-accent); background: transparent; color: var(--text-main); font-size: 0.8rem; font-weight: 500; cursor: pointer; display: flex; align-items: center; transition: all 0.3s; }
+.nav-cta:hover { background: var(--accent-gold); color: var(--text-dark); }
+.cart-count { background: var(--accent-gold); color: var(--text-dark); width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 700; margin-left: 8px; transition: all 0.3s; }
+.nav-cta:hover .cart-count { background: var(--bg-dark); color: var(--accent-gold); }
+
+.nav-mobile-toggle { display: none; background: none; border: none; color: var(--text-main); font-size: 1.5rem; cursor: pointer; padding: 6px; }
+
+/* Mega Menu */
+.nav-dropdown { position: relative; }
+.nav-dropdown-trigger { padding: 8px 16px; border-radius: 50px; font-size: 0.85rem; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 6px; background: none; border: none; transition: all 0.3s; }
+.nav-dropdown-trigger:hover, .nav-dropdown.open .nav-dropdown-trigger { color: var(--text-main); background: var(--bg-elevated); }
+.nav-dropdown-arrow { font-size: 0.6rem; transition: transform 0.3s; }
+.nav-dropdown.open .nav-dropdown-arrow { transform: rotate(180deg); }
+.mega-menu { position: absolute; top: calc(100% + 16px); left: 50%; transform: translateX(-50%); width: 640px; background: var(--bg-panel); border: 1px solid var(--border-light); border-radius: var(--radius-lg); padding: 24px; display: none; box-shadow: var(--shadow-panel); z-index: 100; }
+.nav-dropdown.open .mega-menu { display: block; animation: menuFadeIn 0.3s var(--ease); }
+@keyframes menuFadeIn { from { opacity: 0; transform: translate(-50%, -10px); } to { opacity: 1; transform: translate(-50%, 0); } }
+
+.mega-menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.mega-item { display: flex; align-items: flex-start; gap: 12px; padding: 12px; border-radius: var(--radius-md); transition: background 0.2s; border: 1px solid transparent; }
+.mega-item:hover { background: var(--bg-elevated); border-color: var(--border-light); }
+.mega-item-icon { font-size: 1.4rem; width: 40px; height: 40px; display: grid; place-items: center; background: rgba(255,255,255,0.03); border-radius: 10px; border: 1px solid var(--border-subtle); flex-shrink: 0; }
+.mega-item-name { font-size: 0.9rem; font-weight: 500; margin-bottom: 2px; display: flex; align-items: center; gap: 6px; }
+.mega-item-tag { font-family: 'JetBrains Mono', monospace; font-size: 0.5rem; padding: 3px 6px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
+.mega-item-tag-free { background: rgba(93,232,138,0.15); color: #5de88a; }
+.mega-item-tag-new { background: rgba(196,148,78,0.15); color: var(--accent-gold); }
+.mega-item-tag-pro { background: rgba(93,138,232,0.15); color: #5d8ae8; }
+.mega-item-desc { font-size: 0.75rem; color: var(--text-muted); line-height: 1.4; }
+
+.mega-footer { margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-light); display: flex; justify-content: space-between; align-items: center; }
+.mega-footer span { font-size: 0.85rem; color: var(--text-muted); }
+
+/* =========================================================
+   HERO & UPLOAD (Storytelling Intro)
+   ========================================================= */
+.container { max-width: 1400px; margin: 0 auto; padding: 0 32px; }
+.shell { padding: 140px 0 80px; }
+
+.hero { text-align: center; max-width: 900px; margin: 0 auto 60px; position: relative; }
+.hero-glow { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 60%; height: 60%; background: radial-gradient(circle, rgba(196, 148, 78, 0.15), transparent 70%); filter: blur(60px); pointer-events: none; z-index: -1; }
+.hero .mono-label { display: inline-block; margin-bottom: 24px; padding: 8px 16px; border: 1px solid var(--border-accent); border-radius: 50px; background: rgba(196, 148, 78, 0.05); }
+.hero h1 { font-size: clamp(3rem, 6vw, 5.5rem); margin-bottom: 24px; }
+.hero h1 em { font-style: italic; background: linear-gradient(to right, var(--accent-gold-light), #fff, var(--accent-gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.hero p { font-size: 1.1rem; color: var(--text-muted); max-width: 650px; margin: 0 auto; }
+
+.upload-section { max-width: 800px; margin: 0 auto; }
+.upload-card { background: var(--bg-glass); backdrop-filter: blur(10px); border: 1px solid var(--border-light); border-radius: var(--radius-xl); padding: 4px; box-shadow: var(--shadow-panel); transition: transform 0.4s var(--ease); }
+.upload-area { min-height: 320px; border-radius: calc(var(--radius-xl) - 4px); border: 1px dashed var(--border-accent); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 40px; cursor: pointer; transition: all 0.3s var(--ease); background: rgba(0,0,0,0.2); }
+.upload-area:hover { background: rgba(196, 148, 78, 0.05); border-color: var(--accent-gold); }
+.upload-icon { width: 80px; height: 80px; border-radius: 50%; background: radial-gradient(circle at top left, rgba(255,255,255,0.1), transparent); border: 1px solid var(--border-accent); display: grid; place-items: center; font-size: 2rem; margin-bottom: 24px; color: var(--accent-gold-light); box-shadow: inset 0 0 20px rgba(196, 148, 78, 0.2); }
+.upload-area h2 { font-size: 2rem; margin-bottom: 12px; }
+.upload-area p { color: var(--text-muted); max-width: 400px; margin-bottom: 24px; }
+.upload-meta { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: 24px; }
+
+/* =========================================================
+   WORKSPACE (Ciemnia / Lightbox)
+   ========================================================= */
+.workspace { display: none; animation: fadeIn 0.8s var(--ease); }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+.workspace-header { display: grid; grid-template-columns: 1fr auto; gap: 32px; align-items: end; margin-bottom: 40px; }
+.workspace-title h2 { font-size: 3rem; margin-top: 8px; }
+
+/* Oś czasu (Timeline) */
+.timeline-wrap { width: 100%; overflow-x: auto; padding-bottom: 20px; margin-bottom: 40px; }
+.timeline { display: flex; gap: 16px; min-width: max-content; }
+.era-btn { background: var(--bg-panel); border: 1px solid var(--border-light); border-radius: var(--radius-md); padding: 20px; width: 160px; text-align: left; cursor: pointer; transition: all 0.3s var(--ease); position: relative; overflow: hidden; }
+.era-btn::before { content: ""; position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: var(--accent-gold); opacity: 0; transition: opacity 0.3s; }
+.era-btn:hover { background: var(--bg-elevated); transform: translateY(-4px); border-color: var(--border-accent); }
+.era-btn.active { background: rgba(196, 148, 78, 0.08); border-color: var(--accent-gold); }
+.era-btn.active::before { opacity: 1; }
+.era-year { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--accent-gold-light); margin-bottom: 8px; }
+.era-name { font-size: 1.1rem; font-weight: 500; margin-bottom: 4px; color: var(--text-main); line-height: 1.2; }
+.era-film { font-size: 0.8rem; color: var(--text-muted); }
+
+/* Główny układ Ciemni */
+.darkroom-grid { display: grid; grid-template-columns: 320px 1fr 340px; gap: 24px; align-items: start; }
+
+/* Panele boczne */
+.panel { background: var(--bg-panel); border: 1px solid var(--border-light); border-radius: var(--radius-lg); padding: 24px; box-shadow: var(--shadow-panel); }
+.panel-divider { height: 1px; background: var(--border-light); margin: 24px 0; }
+.panel-title { font-size: 1.5rem; margin: 8px 0 16px; font-family: 'Instrument Serif', serif; }
+
+/* Przyciski narzędziowe (Presets/Moods) */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.tool-btn { background: var(--bg-dark); border: 1px solid var(--border-light); border-radius: var(--radius-sm); padding: 12px; text-align: left; cursor: pointer; transition: all 0.2s; }
+.tool-btn:hover { border-color: var(--border-accent); background: rgba(255,255,255,0.02); }
+.tool-btn.active { border-color: var(--accent-gold); background: rgba(196, 148, 78, 0.1); }
+.tool-btn strong { display: block; font-size: 0.9rem; color: var(--text-main); margin-bottom: 2px; }
+.tool-btn span { font-size: 0.75rem; color: var(--text-muted); }
+
+/* Suwaki (Sliders) */
+.slider-group { margin-bottom: 16px; }
+.slider-head { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.8rem; }
+.slider-head strong { color: var(--text-muted); font-weight: 400; }
+.slider-head span { font-family: 'JetBrains Mono', monospace; color: var(--accent-gold-light); }
+.slider { width: 100%; appearance: none; height: 4px; background: var(--border-light); border-radius: 4px; outline: none; }
+.slider::-webkit-slider-thumb { appearance: none; width: 16px; height: 16px; border-radius: 50%; background: var(--accent-gold-light); border: 2px solid var(--bg-panel); cursor: pointer; transition: transform 0.1s; }
+.slider::-webkit-slider-thumb:hover { transform: scale(1.2); }
+
+/* Przełączniki (Toggles) */
+.toggles { display: flex; flex-wrap: wrap; gap: 8px; }
+.toggle-btn { background: var(--bg-dark); border: 1px solid var(--border-light); padding: 6px 12px; border-radius: 50px; font-size: 0.75rem; color: var(--text-muted); cursor: pointer; transition: all 0.2s; }
+.toggle-btn.active { background: rgba(196, 148, 78, 0.15); border-color: var(--accent-gold); color: var(--accent-gold-light); }
+
+/* Scena główna (Lightbox) */
+.stage-panel { padding: 16px; background: var(--bg-elevated); border: 1px solid var(--border-light); border-radius: var(--radius-lg); position: relative; }
+.stage-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding: 0 8px; }
+.stage-actions-left { display: flex; gap: 8px; }
+.stage-actions-right { display: flex; gap: 8px; }
+
+.lightbox { background: #000; border-radius: var(--radius-md); padding: 40px; min-height: 600px; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; box-shadow: inset 0 0 40px rgba(0,0,0,0.8); }
+.frame-shell { position: relative; background: #111; box-shadow: 0 30px 60px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.05); transition: all 0.4s var(--ease); }
+.frame-shell.polaroid { background: #f4efe6; padding: 20px 20px 80px; border-radius: 4px; box-shadow: 0 20px 50px rgba(0,0,0,0.6); }
+
+.image-stack { position: relative; line-height: 0; }
+canvas, .compare-overlay canvas { max-width: 100%; height: auto; display: block; }
+.compare-overlay { position: absolute; inset: 0; overflow: hidden; border-right: 2px solid var(--accent-gold); pointer-events: none; }
+.compare-badge { position: absolute; top: 16px; left: 16px; background: rgba(0,0,0,0.7); color: #fff; padding: 6px 10px; font-family: 'JetBrains Mono'; font-size: 0.7rem; text-transform: uppercase; border-radius: 4px; display: none; }
+.compare-badge.show { display: block; }
+
+.perf-strip { position: absolute; top: 0; bottom: 0; width: 36px; display: none; flex-direction: column; justify-content: space-evenly; align-items: center; padding: 10px 0; z-index: 5; }
+.perf-strip.show { display: flex; }
+.perf-left { left: 0; background: linear-gradient(to right, rgba(0,0,0,0.9), transparent); }
+.perf-right { right: 0; background: linear-gradient(to left, rgba(0,0,0,0.9), transparent); }
+.perf-hole { width: 12px; height: 8px; border-radius: 2px; background: rgba(20,20,20,0.9); border: 1px solid rgba(255,255,255,0.05); }
+
+.date-stamp { position: absolute; right: 20px; bottom: 20px; z-index: 6; display: none; color: rgba(255, 150, 50, 0.8); font-family: 'Special Elite', cursive; font-size: 1.2rem; text-shadow: 0 0 8px rgba(255, 100, 0, 0.4); letter-spacing: 0.1em; }
+.date-stamp.show { display: block; }
+.frame-note { position: absolute; left: 24px; bottom: 24px; color: #888; font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0; transition: opacity 0.3s; }
+.frame-shell.polaroid .frame-note { opacity: 1; color: #666; }
+
+.export-bar { margin-top: 16px; display: flex; justify-content: flex-end; gap: 12px; }
+
+/* Panel wiedzy (Knowledge) */
+.knowledge-block { margin-bottom: 24px; }
+.knowledge-block h4 { font-family: 'Outfit'; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent-gold-light); margin-bottom: 8px; }
+.knowledge-block p, .knowledge-block li { font-size: 0.9rem; color: var(--text-muted); line-height: 1.5; }
+.knowledge-block ul { padding-left: 16px; margin-top: 8px; }
+.knowledge-block li { margin-bottom: 6px; }
+
+.swatches { display: flex; gap: 8px; margin-top: 12px; }
+.swatch { flex: 1; height: 32px; border-radius: var(--radius-sm); border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 0.6rem; text-transform: uppercase; font-weight: bold; }
+
+.ritual-box { background: rgba(196, 148, 78, 0.05); border: 1px solid var(--border-accent); border-radius: var(--radius-md); padding: 20px; position: relative; overflow: hidden; }
+.ritual-box::before { content: '✨'; position: absolute; top: -10px; right: -10px; font-size: 4rem; opacity: 0.05; }
+.ritual-box h4 { color: var(--text-main); margin-bottom: 8px; }
+.ritual-box p { font-size: 0.95rem; font-style: italic; color: var(--accent-gold-light); }
+
+/* =========================================================
+   SEKCJA SPRZEDAŻOWA (CTA Banner)
+   ========================================================= */
+#bundles { padding: 100px 0; background: var(--bg-dark); }
+.cta-banner { background: linear-gradient(180deg, var(--bg-elevated), var(--bg-panel)); border: 1px solid var(--border-accent); border-radius: var(--radius-xl); padding: 48px; display: flex; align-items: center; justify-content: space-between; gap: 40px; box-shadow: var(--shadow-glow); }
+.cta-text h3 { font-size: 2.5rem; margin-bottom: 12px; font-family: 'Instrument Serif', serif; }
+.cta-text p { color: var(--text-muted); font-size: 1.1rem; max-width: 500px; }
+
+/* =========================================================
+   STOPKA & KOSZYK
+   ========================================================= */
+.footer { padding: 60px 0 30px; background: var(--bg-panel); border-top: 1px solid var(--border-light); }
+.footer-inner { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 40px; margin-bottom: 40px; }
+.footer-desc { color: var(--text-muted); font-size: 0.9rem; margin-top: 16px; max-width: 280px; }
+.footer-col h5 { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--text-main); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 20px; }
+.footer-col a, .footer-col div { display: block; color: var(--text-muted); text-decoration: none; font-size: 0.9rem; margin-bottom: 12px; transition: color 0.2s; }
+.footer-col a:hover { color: var(--accent-gold-light); }
+.footer-bottom { padding-top: 24px; border-top: 1px solid var(--border-light); display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-muted); }
+.footer-bottom a { text-decoration: none; transition: color 0.2s; }
+.footer-bottom a:hover { color: var(--accent-gold-light); }
+
+.cart-drawer { position: fixed; top: 0; right: -400px; bottom: 0; width: 400px; z-index: 2500; background: var(--bg-elevated); border-left: 1px solid var(--border-light); box-shadow: -20px 0 60px rgba(0,0,0,0.8); transition: right 0.4s var(--ease); display: flex; flex-direction: column; }
+.cart-drawer.open { right: 0; }
+.cart-header { padding: 24px; border-bottom: 1px solid var(--border-light); display: flex; justify-content: space-between; align-items: center; }
+.cart-title { font-size: 1.8rem; font-family: 'Instrument Serif', serif; }
+.cart-close { background: var(--bg-dark); border: 1px solid var(--border-light); width: 36px; height: 36px; border-radius: 50%; color: var(--text-main); cursor: pointer; display: grid; place-items: center; transition: all 0.3s; }
+.cart-close:hover { background: var(--bg-panel); border-color: var(--accent-gold); }
+.cart-items { flex: 1; overflow-y: auto; padding: 24px; }
+.cart-empty { text-align: center; color: var(--text-muted); margin-top: 40px; }
+.cart-footer { padding: 24px; background: var(--bg-panel); border-top: 1px solid var(--border-light); }
+.cart-total-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; font-size: 1.5rem; font-family: 'Instrument Serif', serif; }
+
+/* =========================================================
+   MEDIA QUERIES (z poprawionym menu mobilnym)
+   ========================================================= */
+@media (max-width: 1200px) {
+  .darkroom-grid { grid-template-columns: 1fr; }
+  .stage-panel { order: -1; }
+  .footer-inner { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 900px) {
+  /* Poprawione i przywrócone Menu Mobilne */
+  .nav-links { position: absolute; top: 100%; left: 0; width: 100%; background: var(--bg-panel); border-bottom: 1px solid var(--border-light); padding: 16px 0; flex-direction: column; display: none; }
+  .nav-links.active { display: flex; }
+  .mega-menu { position: static; transform: none; width: 100%; border-radius: 0; border: none; box-shadow: none; padding: 16px; }
+  .nav-dropdown.open .mega-menu { animation: none; }
+  .mega-menu-grid { grid-template-columns: 1fr; }
+  .mega-footer { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .nav-mobile-toggle { display: block; }
+  
+  .cta-banner { flex-direction: column; text-align: center; padding: 32px; }
+  .cart-drawer { width: 100%; right: -100%; }
+}
+@media (max-width: 600px) {
+  .shell { padding-top: 100px; }
+  .hero h1 { font-size: 2.5rem; }
+  .lightbox { padding: 16px; min-height: 400px; }
+  .era-btn { width: 140px; padding: 16px; }
+  .stage-actions { flex-direction: column; gap: 12px; align-items: stretch; }
+  .export-bar { flex-direction: column; }
+  .footer-inner { grid-template-columns: 1fr; gap: 30px; }
+}
+/* Unified landing menu + CTA */
+.nav-link-red{color:#ff4757 !important;font-weight:600;text-shadow:0 0 10px rgba(255,71,87,0.3)}
+.nav-link-red:hover{color:#ff6b81 !important;background:rgba(255,71,87,0.1) !important;text-shadow:0 0 15px rgba(255,71,87,0.5)}
+#bundles{padding:80px 24px;background:var(--bg)}
+.cta-banner-wrapper{width:100%;max-width:1000px;margin:0 auto}
+.cta-banner{position:relative;overflow:hidden;background:linear-gradient(135deg,var(--bg3),var(--bg2));border:1px solid var(--film);border-radius:var(--r2);padding:42px 44px;display:flex;align-items:center;justify-content:space-between;gap:32px;box-shadow:0 10px 40px rgba(196,148,78,0.15);text-align:left}
+.cta-banner::before{content:'';position:absolute;left:-10px;top:50%;transform:translateY(-50%);width:40px;height:40px;border-radius:50%;background:rgba(196,148,78,0.2);border:1px solid rgba(196,148,78,0.35)}
+.cta-banner-text{position:relative;z-index:2;max-width:640px}
+.cta-banner-tag{font-family:'JetBrains Mono',monospace;font-size:0.62rem;letter-spacing:2px;text-transform:uppercase;color:var(--film3);margin-bottom:12px;display:inline-block}
+.cta-banner-text h3{font-family:'Instrument Serif',serif;font-size:2.2rem;margin:0 0 12px;color:var(--t1);font-weight:400;line-height:1.12}
+.cta-banner-text p{margin:0;color:var(--t2);font-size:0.95rem;line-height:1.6}
+.cta-banner-text p + p{margin-top:12px}
+.cta-banner-text .cta-banner-highlight{font-size:1.08rem;color:var(--t1);line-height:1.5}
+.cta-btn,.btn-buy{padding:16px 34px;border-radius:50px;background:linear-gradient(135deg,var(--film),var(--film2));color:var(--bg);font-family:'Outfit',sans-serif;font-size:0.92rem;font-weight:700;text-decoration:none;text-transform:uppercase;white-space:nowrap;transition:transform 0.3s,box-shadow 0.3s;border:none;cursor:pointer;position:relative;z-index:2;display:inline-block}
+.cta-btn:hover,.btn-buy:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(196,148,78,0.35)}
+@media(max-width:900px){#bundles{padding:56px 20px}.cta-banner{flex-direction:column;text-align:center;padding:32px 22px}.cta-banner::before{display:none}.cta-banner-text{max-width:100%}}
+</style>
+</head>
+<body>
+
+  <nav class="nav" id="mainNav">
+  <div class="nav-inner">
+    <a href="https://mindfullens.pl/" class="nav-logo">
+      <img src="https://mindfullens.pl/logo.png" alt="Mindfullens Logo" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'32\' height=\'32\'><circle cx=\'16\' cy=\'16\' r=\'16\' fill=\'%23c4944e\'/></svg>'">
+      Mindfullens
+    </a>
+    <div class="nav-links" id="navLinks">
+      <a href="https://mindfullens.pl/" class="nav-link">Strona Główna</a>
+      <div class="nav-dropdown" id="toolsDropdown">
+        <button class="nav-dropdown-trigger" onclick="event.stopPropagation();document.getElementById('toolsDropdown').classList.toggle('open')">
+          Narzędzia <span class="nav-dropdown-arrow">▾</span>
+        </button>
+        <div class="mega-menu">
+          <div class="mega-menu-grid">
+            <a href="https://mindfullens.pl/film-lab/" class="mega-item"><div class="mega-item-icon">⚗️</div><div class="mega-item-text"><div class="mega-item-name">Film Lab <span class="mega-item-tag mega-item-tag-free">Free</span></div><div class="mega-item-desc">Nakładaj symulacje klisz w przeglądarce</div></div></a>
+            <a href="https://mindfullens.pl/live/" class="mega-item"><div class="mega-item-icon">📸</div><div class="mega-item-text"><div class="mega-item-name">Live Cam <span class="mega-item-tag mega-item-tag-free">Free</span></div><div class="mega-item-desc">Testuj profile na żywo kamerą w telefonie</div></div></a>
+            <a href="https://mindfullens.pl/matcher/" class="mega-item"><div class="mega-item-icon">🧠</div><div class="mega-item-text"><div class="mega-item-name">AI Matcher <span class="mega-item-tag mega-item-tag-pro">AI</span></div><div class="mega-item-desc">Wrzuć inspirację, AI dopasuje idealny profil</div></div></a>
+            <a href="https://mindfullens.pl/timemachine/" class="mega-item"><div class="mega-item-icon">⏳</div><div class="mega-item-text"><div class="mega-item-name">Time Machine <span class="mega-item-tag mega-item-tag-new">Nowe</span></div><div class="mega-item-desc">Symulacja starzenia kliszy dekady do tyłu</div></div></a>
+            <a href="https://mindfullens.pl/ciemnia/" class="mega-item"><div class="mega-item-icon">🧪</div><div class="mega-item-text"><div class="mega-item-name">Recipe Lab <span class="mega-item-tag mega-item-tag-new">Nowe</span></div><div class="mega-item-desc">Stwórz własną recepturę filmową od zera</div></div></a>
+            <a href="https://mindfullens.pl/blendstudio/" class="mega-item"><div class="mega-item-icon">⚗️</div><div class="mega-item-text"><div class="mega-item-name">Blend Studio <span class="mega-item-tag mega-item-tag-new">Nowe</span></div><div class="mega-item-desc">Miksuj dwie klisze w jedno zdjęcie</div></div></a>
+            <a href="https://mindfullens.pl/contact-sheet/" class="mega-item"><div class="mega-item-icon">🎞️</div><div class="mega-item-text"><div class="mega-item-name">Contact Sheet</div><div class="mega-item-desc">109 profili na jednym arkuszu porównania</div></div></a>
+            <a href="https://mindfullens.pl/color-sync/" class="mega-item"><div class="mega-item-icon">🔄</div><div class="mega-item-text"><div class="mega-item-name">Color Sync <span class="mega-item-tag mega-item-tag-pro">Pro</span></div><div class="mega-item-desc">Zrównaj kolory z 2-3 aparatów kliknięciem</div></div></a>
+          </div>
+          <div class="mega-footer"><span class="mega-footer-text">Zobacz profile i szybkie porównania przed/po</span><a href="https://mindfullens.pl/cennik/" class="mega-footer-btn">Przejdź do pakietów</a></div>
+        </div>
+      </div>
+      <a href="https://mindfullens.pl/camera-settings-app" class="nav-link">Camera App</a>
+      <a href="https://mindfullens.pl/analog-signature/" class="nav-link nav-link-red">Analog Signature</a>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <button class="nav-mobile-toggle" onclick="document.getElementById('navLinks').classList.toggle('active')" aria-label="Menu">☰</button>
+      <button class="nav-cta" onclick="toggleCart()">Koszyk <span class="cart-count" id="cartCount">0</span></button>
+    </div>
+  </div>
+</nav>
+
+  <main>
+    <section class="shell container">
+      
+      <div class="hero">
+        <div class="hero-glow"></div>
+        <div class="mono-label">Archiwum Barw · Emocja · Historia</div>
+        <h1>Fotografia jako <em>Wehikuł Czasu</em></h1>
+        <p>Przekształć swoje cyfrowe kadry w fizyczne wspomnienia. Zobacz, jak Twoje zdjęcie wyglądałoby na autochromie z początku wieku, rodzinnym slajdzie z lat 70. lub nowoczesnej taśmie kinowej.</p>
+      </div>
+
+      <div class="upload-section">
+        <div class="upload-card">
+          <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+            <div class="upload-icon">⟁</div>
+            <h2>Wgraj zdjęcie, aby rozpocząć</h2>
+            <p>Przeciągnij plik tutaj. Nasz silnik przeanalizuje obraz i przygotuje go do symulacji historycznych procesów chemicznych.</p>
+            <div class="upload-meta">
+              <span class="chip">Zalecane High-Res</span>
+              <span class="chip">JPG / PNG / WebP</span>
+              <span class="chip">Przetwarzanie lokalne w przeglądarce</span>
+            </div>
+            <button class="btn-primary" style="margin-top:32px;" type="button">Wybierz Plik</button>
+            <input id="fileInput" type="file" accept="image/jpeg,image/png,image/webp,image/tiff,image/avif,image/heic,image/heif,.raw,.dng,.nef,.nrw,.cr2,.cr3,.arw,.srw,.srf,.sr2,.dcr,.raf,.rwl,.rw2,.mef,.orf,.pef,.iiq,.3fr,.erf,.fff,.kdc,.mos,.mrw,.x3f,.heic,.heif" style="display:none">
+          </div>
+        </div>
+      </div>
+
+      <div class="workspace" id="workspace">
+        
+        <div class="workspace-header">
+          <div class="workspace-title">
+            <div class="mono-label" id="storyTitle">Era: Wybierz</div>
+            <h2 id="stageTitle">Analiza obrazu...</h2>
+          </div>
+          <button class="btn-ghost" id="journeyBtn">Odtwórz Historię (Auto-Play)</button>
+        </div>
+
+        <div class="timeline-wrap">
+          <div class="timeline" id="timeline">
+            </div>
+        </div>
+
+        <div class="darkroom-grid">
+          
+          <aside class="panel">
+            <h3 class="panel-title">Chemia & Papier</h3>
+            
+            <div class="mono-label" style="margin-bottom:8px">Baza materiału</div>
+            <div class="grid-2" id="presetGrid" style="margin-bottom:24px"></div>
+            
+            <div class="mono-label" style="margin-bottom:8px">Emocja odbitki</div>
+            <div class="grid-2" id="moodGrid" style="margin-bottom:24px"></div>
+
+            <div class="panel-divider"></div>
+            
+            <h3 class="panel-title">Proces fizyczny</h3>
+            
+            <div class="slider-group"><div class="slider-head"><strong>Upływ czasu</strong><span id="fadeVal">0%</span></div><input class="slider" id="fadeSlider" type="range" min="0" max="100" value="0"></div>
+            <div class="slider-group"><div class="slider-head"><strong>Degradacja barw</strong><span id="shiftVal">0%</span></div><input class="slider" id="shiftSlider" type="range" min="0" max="100" value="0"></div>
+            <div class="slider-group"><div class="slider-head"><strong>Ziarno srebra</strong><span id="grainVal">20%</span></div><input class="slider" id="grainSlider" type="range" min="0" max="100" value="20"></div>
+            <div class="slider-group"><div class="slider-head"><strong>Kurz & Rysy</strong><span id="dustVal">0%</span></div><input class="slider" id="dustSlider" type="range" min="0" max="100" value="0"></div>
+            <div class="slider-group"><div class="slider-head"><strong>Przecieki światła</strong><span id="leakVal">0%</span></div><input class="slider" id="leakSlider" type="range" min="0" max="100" value="0"></div>
+            <div class="slider-group"><div class="slider-head"><strong>Winieta obiektywu</strong><span id="vigVal">12%</span></div><input class="slider" id="vigSlider" type="range" min="0" max="100" value="12"></div>
+
+            <div class="panel-divider"></div>
+            
+            <div class="mono-label" style="margin-bottom:12px">Artefakty krawędzi</div>
+            <div class="toggles">
+              <button class="toggle-btn active" data-toggle="perf">Perforacja 35mm</button>
+              <button class="toggle-btn active" data-toggle="date">Datownik Labu</button>
+              <button class="toggle-btn" data-toggle="scan">Linie Skanera</button>
+              <button class="toggle-btn" data-toggle="halation">Halacja (Glow)</button>
+              <button class="toggle-btn" data-toggle="polaroid">Ramka Instant</button>
+            </div>
+          </aside>
+
+          <section class="stage-panel">
+            <div class="stage-actions">
+              <div class="stage-actions-left">
+                <button class="toggle-btn active" data-view="final">Wynik</button>
+                <button class="toggle-btn" data-view="compare">Przed / Po</button>
+              </div>
+              <div class="stage-actions-right">
+                <input class="slider" id="compareSlider" type="range" min="0" max="100" value="50" style="display:none; width: 150px;">
+              </div>
+            </div>
+
+            <div class="lightbox">
+              <div class="frame-shell" id="frameShell">
+                <div class="image-stack">
+                  <canvas id="mainCanvas"></canvas>
+                  <div class="compare-overlay" id="compareOverlay">
+                    <canvas id="origCanvas"></canvas>
+                  </div>
+                  <div class="compare-badge" id="compareBadge">Oryginał</div>
+                  <div class="perf-strip perf-left" id="perfLeft"></div>
+                  <div class="perf-strip perf-right" id="perfRight"></div>
+                  <div class="date-stamp" id="dateStamp"></div>
+                </div>
+                <div class="frame-note" id="frameNote"></div>
+              </div>
+            </div>
+
+            <div class="export-bar">
+              <button class="btn-ghost" id="resetBtn">Zmień zdjęcie</button>
+              <button class="btn-primary" id="downloadBtn">Pobierz Odbitkę</button>
+            </div>
+          </section>
+
+          <aside class="panel">
+            <h3 class="panel-title" style="margin-bottom: 24px;">Historia Kadru</h3>
+            
+            <div class="knowledge-block">
+              <p id="storyText" style="font-size: 1.05rem; color: var(--text-main); font-style: italic;"></p>
+            </div>
+            
+            <div class="panel-divider"></div>
+
+            <div class="knowledge-block">
+              <h4>Technika Epoki</h4>
+              <p id="techniqueText"></p>
+            </div>
+
+            <div class="knowledge-block">
+              <h4>Kolorystyka</h4>
+              <p id="paletteText"></p>
+              <div class="swatches" id="swatchRow"></div>
+            </div>
+
+            <div class="knowledge-block">
+              <h4>Jak to odtworzyć (Wiedza Pro)</h4>
+              <ul id="todayList"></ul>
+            </div>
+
+            <div class="ritual-box">
+              <h4 class="mono-label">Rytuał Fotografa</h4>
+              <p id="ritualText"></p>
+              <button class="toggle-btn" id="ritualBtn" style="margin-top:12px; font-size: 0.65rem;">Losuj inny</button>
+            </div>
+            
+            <button class="btn-ghost" id="storyDownloadBtn" style="width: 100%; margin-top: 24px; font-size: 0.75rem;">Zapisz Notatki (TXT)</button>
+          </aside>
+
+        </div>
+      </div>
+    </section>
+
+    <section id="bundles">
+  <div class="cta-banner-wrapper">
+    <div class="cta-banner">
+      <div class="cta-banner-text">
+        <span class="cta-banner-tag">✦ Odblokuj pełną moc</span>
+        <h3>Wybierz swój pakiet</h3>
+        <p class="cta-banner-highlight">Profile Lightroom, receptury Camera App, system Analog Signature i 9 narzędzi AI.</p>
+        <p>Wybierz rozwiązanie idealne dla siebie. Kup pakiet <strong>Complete Studio</strong> i otrzymaj wszystkie nasze produkty w jednym: potężny ekosystem do edycji plików RAW (.xmp), gotowe ustawienia JPEG prosto z aparatu oraz dożywotni dostęp do wszystkich narzędzi webowych.</p>
+      </div>
+      <a href="https://mindfullens.pl/cennik/" class="cta-btn">Zobacz pakiety →</a>
+    </div>
+  </div>
+</section>
+  </main>
+
+  <footer class="footer container">
+    <div class="footer-inner">
+      <div>
+        <a href="https://mindfullens.pl/" class="nav-logo" style="margin-bottom: 16px;">
+          <img src="https://mindfullens.pl/logo.png" alt="Mindfullens Logo" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'32\' height=\'32\'><circle cx=\'16\' cy=\'16\' r=\'16\' fill=\'%23c4944e\'/></svg>'">
+          Mindfullens
+        </a>
+        <p class="footer-desc">Ręcznie tworzone profile filmowe i narzędzia AI dla fotografów.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Narzędzia</h5>
+        <a href="https://mindfullens.pl/">Kolekcja Presetów</a>
+        <a href="https://mindfullens.pl/film-lab/">Film Lab</a>
+        <a href="https://mindfullens.pl/matcher/">AI Matcher</a>
+      </div>
+      <div class="footer-col">
+        <h5>Wsparcie</h5>
+        <a href="#">FAQ</a>
+        <a href="#">Instalacja</a>
+        <a href="#">Kontakt</a>
+      </div>
+      <div class="footer-col">
+        <h5>Bezpieczeństwo</h5>
+        <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:5px">✔️ 30-dniowa gwarancja</div>
+        <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:5px">🔒 Bezpieczne płatności</div>
+        <div style="font-size:0.8rem;color:var(--text-muted)">⚡ Natychmiastowa dostawa</div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div>© 2026 Mindfullens. Time Machine Experience.</div>
+      <div style="display: flex; gap: 16px;">
+        <a href="#">Regulamin</a>
+        <a href="#">Prywatność</a>
+      </div>
+    </div>
+  </footer>
+
+  <div class="cart-drawer" id="cartDrawer">
+    <div class="cart-header">
+      <div class="cart-title">Twój Koszyk</div>
+      <button class="cart-close" onclick="toggleCart()">✕</button>
+    </div>
+    <div class="cart-items" id="cartItems">
+      <div class="cart-empty">Koszyk jest obecnie pusty.</div>
+    </div>
+    <div class="cart-footer">
+      <div class="cart-total-row">
+        <span>Razem</span>
+        <span id="cartTotal" style="color: var(--accent-gold);">0 PLN</span>
+      </div>
+      <button class="btn-primary" style="width: 100%; padding: 16px; font-size: 1rem;" onclick="checkout()">Przejdź do kasy bezpiecznie 🔒</button>
+    </div>
+  </div>
+
+<script>
+// =========================================================
+// GŁÓWNA LOGIKA TIME MACHINE
+// =========================================================
+const FILMS = [
+  {
+    id:"autochrome", name:"Autochrome Lumiere", subtitle:"1907 · ziarnista mozaika", category:"plate",
+    curves:{rgb:[[0,16],[64,72],[128,132],[212,210],[255,246]],r:[[0,8],[70,80],[140,148],[255,248]],g:[[0,4],[80,78],[150,150],[255,248]],b:[[0,0],[90,72],[150,138],[255,232]]},
+    vibrance:-8,saturation:-12,contrast:-6,grain:28, warmth:18,cool:0,fade:12,halation:0
+  },
+  {
+    id:"kodachrome", name:"Kodachrome 64", subtitle:"1935 · nasycony slajd", category:"slide",
+    curves:{rgb:[[0,8],[42,32],[84,72],[128,128],[192,195],[255,238]],r:[[0,0],[38,32],[82,78],[128,135],[185,198],[255,255]],g:[[0,0],[42,34],[90,82],[128,125],[180,182],[255,248]],b:[[0,5],[45,42],[90,88],[128,132],[175,182],[255,248]]},
+    vibrance:18,saturation:4,contrast:16,grain:10, warmth:10,cool:0,fade:0,halation:0
+  },
+  {
+    id:"ektachrome", name:"Ektachrome", subtitle:"1970 · projektor domowy", category:"slide",
+    curves:{rgb:[[0,6],[40,38],[96,92],[150,150],[210,208],[255,244]],r:[[0,0],[62,58],[128,126],[255,250]],g:[[0,0],[48,44],[122,126],[180,182],[255,248]],b:[[0,0],[54,50],[122,126],[195,198],[255,252]]},
+    vibrance:2,saturation:-4,contrast:8,grain:16, warmth:16,cool:-2,fade:6,halation:0
+  },
+  {
+    id:"gold200", name:"Kodak Gold 200", subtitle:"1980 · rodzinny minilab", category:"negative",
+    curves:{rgb:[[0,20],[29,31],[49,49],[255,255]],r:[[0,0],[21,3],[56,13],[118,123],[176,215],[255,255]],g:[[0,0],[55,20],[120,127],[179,213],[255,255]],b:[[0,0],[48,12],[175,208],[255,255]]},
+    vibrance:30,saturation:-4,contrast:0,grain:18, warmth:20,cool:-4,fade:3,halation:0
+  },
+  {
+    id:"superia", name:"Fuji Superia 400", subtitle:"1990 · zieleń i flash", category:"negative",
+    curves:{rgb:[[0,16],[30,32],[80,78],[135,135],[190,192],[255,243]],r:[[0,0],[38,18],[115,120],[175,198],[255,255]],g:[[0,0],[35,16],[82,58],[115,120],[175,200],[255,255]],b:[[0,0],[30,16],[80,66],[115,120],[172,198],[255,255]]},
+    vibrance:12,saturation:-8,contrast:5,grain:20, warmth:2,cool:8,fade:0,halation:0
+  },
+  {
+    id:"portra400", name:"Kodak Portra 400", subtitle:"2000 · pastelowa skóra", category:"negative",
+    curves:{rgb:[[0,18],[48,52],[128,128],[200,198],[255,236]],r:[[0,0],[45,38],[110,115],[175,188],[255,255]],g:[[0,0],[48,42],[115,118],[180,190],[255,255]],b:[[0,0],[50,44],[118,118],[178,185],[255,250]]},
+    vibrance:8,saturation:-6,contrast:5,grain:12, warmth:6,cool:0,fade:0,halation:0
+  },
+  {
+    id:"vision500t", name:"Kodak Vision3 500T", subtitle:"2010 · noc kinowa", category:"cine",
+    curves:{rgb:[[0,10],[38,24],[72,56],[128,130],[172,180],[218,220],[255,240]],r:[[0,0],[18,8],[78,70],[128,136],[192,202],[255,255]],g:[[0,0],[34,14],[67,53],[95,91],[124,128],[152,162],[196,205],[255,255]],b:[[0,0],[36,23],[65,52],[90,84],[115,115],[145,152],[192,200],[255,255]]},
+    vibrance:10,saturation:-10,contrast:-8,grain:18, warmth:-6,cool:18,fade:0,halation:22
+  },
+  {
+    id:"cinestill800t", name:"CineStill 800T", subtitle:"2010+ · halacja świateł", category:"cine",
+    curves:{rgb:[[0,12],[35,25],[70,58],[125,130],[170,180],[220,222],[255,240]],r:[[0,0],[20,10],[80,72],[130,138],[195,205],[255,255]],g:[[0,0],[35,15],[68,55],[98,92],[128,130],[155,165],[198,208],[255,255]],b:[[0,0],[38,25],[68,55],[92,85],[118,118],[148,155],[195,202],[255,255]]},
+    vibrance:15,saturation:-8,contrast:-10,grain:22, warmth:0,cool:16,fade:0,halation:28
+  },
+  {
+    id:"hp5", name:"Ilford HP5 Plus", subtitle:"BW · miękki reportaż", category:"bw", bw:true,
+    curves:{rgb:[[0,4],[55,58],[128,130],[200,200],[255,246]],r:[[0,0],[255,255]],g:[[0,0],[255,255]],b:[[0,0],[255,255]]},
+    vibrance:0,saturation:-100,contrast:10,grain:22, warmth:0,cool:0,fade:4,halation:0
+  }
+];
+
+const ERAS = [
+  { year:"1907", label:"Początki Koloru", filmIds:["autochrome","hp5"], defaultFilm:"autochrome",
+    narrative:"Pierwsze praktyczne barwne fotografie nie były jeszcze gładkie ani perfekcyjne. Obraz był miękki, lekko przygaszony, niemal śniący.",
+    technique:"Szklane płytki autochromowe. Długie czasy naświetlania wymuszały statyczniejsze kadry i ceremonialność fotografowania.",
+    palette:"Przytłumione zielenie, bursztynowe światła, mleczne błękity. Kolor był bardziej delikatną obecnością.",
+    shooting:["Fotografowano wolniej, przy dobrym świetle.","Każdy kadr miał wagę wydarzenia.","Miękkość była częścią języka obrazu."],
+    recreate:["Szukaj bocznego światła i spokojnych scen.","Pozwól kolorom oddychać."],
+    swatches:["#cf9f58","#8c9962","#a9bfd6","#7b6553"],
+    rituals:["Przez minutę patrz tylko na światło w tle.","Wyobraź sobie, że masz tylko jedną płytkę i jedno podejście."],
+    defaults:{fade:18,shift:34,grain:34,dust:18,leak:0,vig:20}, dateStamp:"", frameNote:"glass plate"
+  },
+  { year:"1935", label:"Kodachrome", filmIds:["kodachrome","hp5"], defaultFilm:"kodachrome",
+    narrative:"Kolor bardziej zdecydowany: bogatszy, głębszy, reportażowy. Estetyka wczesnych magazynów podróżniczych i archiwów rodzinnych.",
+    technique:"Proces odwracalny dawał slajd o pięknym nasyceniu. Kolor był bogaty, a ziarno przy niskim ISO pozostawało drobne.",
+    palette:"Ciepłe czerwienie i złota, głębokie błękity, klarowne półcienie.",
+    shooting:["Ważna była ekspozycja, bo slajd nie wybaczał błędów.","Kolor miał być intensywny, ale prawdopodobny."],
+    recreate:["Wybieraj mocne światło i czytelne barwy podstawowe.","Dbaj o czyste światła."],
+    swatches:["#d9ab5f","#b6553f","#44668c","#f0ddb2"],
+    rituals:["Znajdź w kadrze trzy kolory, które zagrają jak orkiestra.","Kadruj jak do magazynu podróżniczego."],
+    defaults:{fade:6,shift:16,grain:14,dust:10,leak:0,vig:18}, dateStamp:"", frameNote:"slide projection"
+  },
+  { year:"1960", label:"Złota Era Reportażu", filmIds:["kodachrome","ektachrome","hp5"], defaultFilm:"kodachrome",
+    narrative:"Lata 60. to moment, gdy kolor odważniej wchodzi do reportażu. Więcej życia ulicy, podróży, ale nadal czuć wagę kadru.",
+    technique:"Materiał ma głębokie cienie, silniejszy kontrast i szacunek dla naturalnego światła.",
+    palette:"Bursztynowe światła, oliwkowe zielenie, granaty, głębokie czerwienie.",
+    shooting:["Chętnie fotografowano przy mocnych kontrastach.","Zdjęcia miały siłę dokumentu i poetykę epoki."],
+    recreate:["Szukaj kontrastów światła i cienia.","Pozwól czerwieniom wybrzmieć."],
+    swatches:["#d6a35d","#5e6c46","#2f4670","#9d433e"],
+    rituals:["Poczekaj, aż światło ułoży się w plamy.","Pomyśl o zdjęciu jak o dokumencie z duszą."],
+    defaults:{fade:10,shift:24,grain:18,dust:14,leak:2,vig:20}, dateStamp:"AUG 67", frameNote:"color reportage"
+  },
+  { year:"1970", label:"Nostalgia Slajdów", filmIds:["ektachrome","gold200","hp5"], defaultFilm:"ektachrome",
+    narrative:"Pachną projektorem, salonem i białą ścianą. Obraz bywa lekko zażółcony przez czas i przechowywanie.",
+    technique:"Slajdy zyskują domowy charakter. Starzenie materiału wprowadza piękne przebarwienia.",
+    palette:"Miodowe żółcie, pomarańcze, oliwki, spłowiałe cienie.",
+    shooting:["Kadry z podróży miały charakter celebracyjny.","Fotografowano szerzej, zostawiając przestrzeń dla otoczenia."],
+    recreate:["Pozwól obrazowi lekko zżółknąć.","Dodaj miękkość i wyblaknięcie."],
+    swatches:["#dc9f52","#d7b679","#9f8d54","#f2e0bf"],
+    rituals:["Wyobraź sobie klik mechanizmu slajdu.","Patrz na zdjęcie, jakby miało być pokazane bliskim."],
+    defaults:{fade:22,shift:44,grain:18,dust:24,leak:8,vig:18}, dateStamp:"MAR 74", frameNote:"family slide"
+  },
+  { year:"1980", label:"Minilab i Błysk", filmIds:["gold200","superia","hp5"], defaultFilm:"gold200",
+    narrative:"Era prostych kompaktów i bezpośredniego błysku. Zdjęcia ciepłe, bezpośrednie, estetyka spontanicznych imprez.",
+    technique:"Szybkie laby. Odbitki trochę kontrastowe, ciepłe, często z płaskim błyskiem.",
+    palette:"Złote światła, karmelowe skóry, soczyste barwy codzienności.",
+    shooting:["Fotografowano szybko, bez kalkulacji.","Flash dodawał autentyczności i natychmiastowości."],
+    recreate:["Nie bój się cieplejszych świateł.","Wybieraj kadry blisko ludzi."],
+    swatches:["#d79a4a","#ba7443","#f0d3a0","#786444"],
+    rituals:["Stań o krok bliżej, niż zazwyczaj.","Nie poprawiaj chwili. Pozwól jej być."],
+    defaults:{fade:8,shift:18,grain:24,dust:10,leak:8,vig:14}, dateStamp:"12 06 '85", frameNote:"minilab print"
+  },
+  { year:"1990", label:"Zieleń i Codzienność", filmIds:["superia","gold200","hp5"], defaultFilm:"superia",
+    narrative:"Rozpoznawalna energia: zieleń w cieniach, ostre ziarno i kadry z wakacji. Obraz młodzieżowej spontaniczności.",
+    technique:"Aparaty point-and-shoot. Cienie wpadają w zielenie i cyjan.",
+    palette:"Turkusowe cienie, biele o niebieskim oddechu.",
+    shooting:["Proste i bezpośrednie kadry.","Niedoskonałość nadaje autentyczność."],
+    recreate:["Fotografuj zwykłe chwile.","Zostaw trochę chłodu w cieniach."],
+    swatches:["#8fb7c6","#73907c","#f1c595","#d9e8ef"],
+    rituals:["Pomyśl o prostym geście, cennym po latach.","Kadruj szybko, łap uśmiech."],
+    defaults:{fade:4,shift:10,grain:22,dust:6,leak:5,vig:12}, dateStamp:"12 08 '97", frameNote:"weekend snap"
+  },
+  { year:"2000", label:"Pastel i Portret", filmIds:["portra400","gold200","hp5"], defaultFilm:"portra400",
+    narrative:"Miękki, dopracowany kolor. Negatywy budują subtelne przejścia skóry i pastelowy spokój (klasyczna estetyka ślubna).",
+    technique:"Profesjonalne materiały z dużą tolerancją i pięknym odwzorowaniem skóry.",
+    palette:"Pastele, kremowe światła, miękkie róże, subtelny oddech błękitu.",
+    shooting:["Światło miękkie to sprzymierzeniec.","Barwy są eleganckie, a portret zyskuje wagę."],
+    recreate:["Wybieraj światło okienne i przejścia tonalne.","Szukaj delikatności."],
+    swatches:["#e7c9b2","#d8b7a7","#c6c9d8","#f5ece3"],
+    rituals:["Wybierz moment, gdy twarz mięknie.","Pomyśl o odbitce do przechowania na lata."],
+    defaults:{fade:0,shift:4,grain:12,dust:2,leak:2,vig:10}, dateStamp:"03.15.2004", frameNote:"pro negative"
+  },
+  { year:"2010+", label:"Kinowy Renesans", filmIds:["vision500t","cinestill800t","portra400","hp5"], defaultFilm:"cinestill800t",
+    narrative:"Analog wraca jako wybór estetyczny. Pojawiają się filmy kinowe, halacje, świadomy lo-fi i skanowanie cyfrowe.",
+    technique:"Filmy kinowe ze zdjętą maską. Obraz łączy chemię z nowoczesną ekspozycją w postprodukcji.",
+    palette:"Nocne błękity, neonowe pomarańcze, czerwone halacje.",
+    shooting:["Niedoskonałość jako znak stylu.","Światło sztuczne staje się atutem."],
+    recreate:["Szukaj świateł punktowych po zmroku.","Pozwól na halację świateł."],
+    swatches:["#ff9966","#7f9cc8","#273146","#e6ded2"],
+    rituals:["Wybierz jedno źródło światła jako serce.","Pozwól nocy pozostać nocą."],
+    defaults:{fade:0,shift:0,grain:20,dust:0,leak:18,vig:8}, dateStamp:"", frameNote:"cine scan"
+  }
+];
+
+const MOODS = [
+  {id:"archive",name:"Z Archiwum",desc:"Wiarygodne, czyste odwzorowanie epoki.",fade:0,shift:0,sat:0,contrast:0,warm:0,cool:0,glow:0},
+  {id:"tender",name:"Czułość",desc:"Miększe światła i spłowiałe cienie.",fade:8,shift:8,sat:-6,contrast:-10,warm:6,cool:0,glow:0},
+  {id:"euphoria",name:"Euforia",desc:"Wyższy kontrast i świetlistość kolorów.",fade:4,shift:6,sat:10,contrast:2,warm:8,cool:2,glow:8},
+  {id:"melancholy",name:"Melancholia",desc:"Chłodniejsze, z nutą dystansu.",fade:8,shift:4,sat:-12,contrast:-8,warm:-4,cool:8,glow:0}
+];
+
+const state = {
+  eraIndex: 4, filmId: null, moodId: "archive", view: "final", image: null, origData: null, compare: 50, journeyTimer: null, ritualIndex: 0,
+  toggles: { perf: true, date: true, scan: false, halation: false, polaroid: false }
+};
+
+const mainCanvas = document.getElementById("mainCanvas");
+const mainCtx = mainCanvas.getContext("2d",{willReadFrequently:true});
+const origCanvas = document.getElementById("origCanvas");
+const origCtx = origCanvas.getContext("2d");
+
+function clamp(v,min,max){return Math.max(min,Math.min(max,v))}
+
+function buildLUT(points){
+  const lut = new Uint8Array(256);
+  if(!points || points.length < 2){
+    for(let i=0;i<256;i++) lut[i]=i;
+    return lut;
+  }
+  const sorted = [...points].sort((a,b)=>a[0]-b[0]);
+  for(let i=0;i<256;i++){
+    if(i <= sorted[0][0]){lut[i]=sorted[0][1];continue}
+    if(i >= sorted[sorted.length-1][0]){lut[i]=sorted[sorted.length-1][1];continue}
+    for(let j=0;j<sorted.length-1;j++){
+      const a=sorted[j], b=sorted[j+1];
+      if(i>=a[0] && i<=b[0]){
+        const t=(i-a[0])/(b[0]-a[0]);
+        const s=t*t*(3-2*t);
+        lut[i]=Math.round(a[1]+(b[1]-a[1])*s);
+        break;
+      }
+    }
+  }
+  return lut;
+}
+
+const LUTS = Object.fromEntries(FILMS.map(f=>[
+  f.id,
+  { rgb:buildLUT(f.curves.rgb), r:buildLUT(f.curves.r), g:buildLUT(f.curves.g), b:buildLUT(f.curves.b) }
+]));
+
+function getCurrentEra(){return ERAS[state.eraIndex]}
+function getCurrentFilm(){
+  const era = getCurrentEra();
+  const id = state.filmId || era.defaultFilm;
+  return FILMS.find(f=>f.id===id) || FILMS[0];
+}
+function getCurrentMood(){return MOODS.find(m=>m.id===state.moodId) || MOODS[0]}
+
+function buildTimeline(){
+  const timeline = document.getElementById("timeline");
+  timeline.innerHTML = ERAS.map((era,index)=>`
+    <button class="era-btn ${index===state.eraIndex?"active":""}" data-era="${index}">
+      <div class="era-year">${era.year}</div>
+      <div class="era-name">${era.label}</div>
+    </button>
+  `).join("");
+  timeline.querySelectorAll("[data-era]").forEach(btn=>{
+    btn.addEventListener("click",()=>{
+      state.eraIndex = Number(btn.dataset.era);
+      state.filmId = getCurrentEra().defaultFilm;
+      applyEraDefaults();
+      renderMeta();
+      render();
+      btn.scrollIntoView({behavior: "smooth", inline: "center", block: "nearest"});
+    });
+  });
+}
+
+function buildPerfs(){
+  ["perfLeft","perfRight"].forEach(id=>{
+    document.getElementById(id).innerHTML = Array.from({length:18},()=>'<div class="perf-hole"></div>').join("");
+  });
+}
+
+function buildMoodGrid(){
+  document.getElementById("moodGrid").innerHTML = MOODS.map(mood=>`
+    <button class="tool-btn ${mood.id===state.moodId?"active":""}" data-mood="${mood.id}">
+      <strong>${mood.name}</strong>
+      <span>${mood.desc}</span>
+    </button>
+  `).join("");
+  document.querySelectorAll("[data-mood]").forEach(btn=>{
+    btn.addEventListener("click",()=>{
+      state.moodId = btn.dataset.mood;
+      buildMoodGrid();
+      render();
+    });
+  });
+}
+
+function buildPresetGrid(){
+  const era = getCurrentEra();
+  document.getElementById("presetGrid").innerHTML = era.filmIds.map(id=>{
+    const film = FILMS.find(f=>f.id===id);
+    return `
+      <button class="tool-btn ${(state.filmId || era.defaultFilm)===id?"active":""}" data-film="${id}">
+        <strong>${film.name}</strong>
+        <span>${film.subtitle}</span>
+      </button>
+    `;
+  }).join("");
+  document.querySelectorAll("[data-film]").forEach(btn=>{
+    btn.addEventListener("click",()=>{
+      state.filmId = btn.dataset.film;
+      buildPresetGrid();
+      renderMeta();
+      render();
+    });
+  });
+}
+
+function setSlider(id,val,labelId){
+  document.getElementById(id).value = val;
+  document.getElementById(labelId).textContent = `${val}%`;
+}
+
+function applyEraDefaults(){
+  const defaults = getCurrentEra().defaults;
+  setSlider("fadeSlider", defaults.fade, "fadeVal");
+  setSlider("shiftSlider", defaults.shift, "shiftVal");
+  setSlider("grainSlider", defaults.grain, "grainVal");
+  setSlider("dustSlider", defaults.dust, "dustVal");
+  setSlider("leakSlider", defaults.leak, "leakVal");
+  setSlider("vigSlider", defaults.vig, "vigVal");
+  buildTimeline();
+  buildPresetGrid();
+  refreshRitual(true);
+}
+
+function refreshRitual(reset){
+  const era = getCurrentEra();
+  if(reset) state.ritualIndex = 0;
+  const ritual = era.rituals[state.ritualIndex % era.rituals.length];
+  document.getElementById("ritualText").textContent = ritual;
+}
+
+function renderMeta(){
+  const era = getCurrentEra();
+  const film = getCurrentFilm();
+  document.getElementById("storyTitle").textContent = `Era: ${era.year} — ${era.label}`;
+  document.getElementById("stageTitle").textContent = `${film.name}`;
+  document.getElementById("storyText").textContent = era.narrative;
+  document.getElementById("techniqueText").textContent = era.technique;
+  document.getElementById("paletteText").textContent = era.palette;
+  document.getElementById("todayList").innerHTML = era.recreate.map(item=>`<li>${item}</li>`).join("");
+  document.getElementById("swatchRow").innerHTML = era.swatches.map((color,index)=>`<div class="swatch" style="background:${color};color:${index>1?'#fff':'#000'}"></div>`).join("");
+  document.getElementById("dateStamp").textContent = era.dateStamp;
+  document.getElementById("frameNote").textContent = era.frameNote;
+}
+
+function bindControls(){
+  [["fadeSlider","fadeVal"],["shiftSlider","shiftVal"],["grainSlider","grainVal"],["dustSlider","dustVal"],["leakSlider","leakVal"],["vigSlider","vigVal"]]
+    .forEach(([slider,label])=>{
+      const el = document.getElementById(slider);
+      el.addEventListener("input",()=>{
+        document.getElementById(label).textContent = `${el.value}%`;
+        render();
+      });
+    });
+
+  document.querySelectorAll("[data-toggle]").forEach(btn=>{
+    btn.addEventListener("click",()=>{
+      const key = btn.dataset.toggle;
+      state.toggles[key] = !state.toggles[key];
+      btn.classList.toggle("active", state.toggles[key]);
+      render();
+    });
+  });
+
+  document.querySelectorAll("[data-view]").forEach(btn=>{
+    btn.addEventListener("click",()=>{
+      state.view = btn.dataset.view;
+      document.querySelectorAll("[data-view]").forEach(other=>other.classList.toggle("active", other===btn));
+      updateCompareMode();
+    });
+  });
+
+  document.getElementById("compareSlider").addEventListener("input",e=>{
+    state.compare = Number(e.target.value);
+    updateCompareMode();
+  });
+
+  document.getElementById("journeyBtn").addEventListener("click",toggleJourney);
+  document.getElementById("ritualBtn").addEventListener("click",()=>{ state.ritualIndex += 1; refreshRitual(false); });
+  document.getElementById("downloadBtn").addEventListener("click",downloadResult);
+  document.getElementById("resetBtn").addEventListener("click",resetAll);
+  document.getElementById("storyDownloadBtn").addEventListener("click",downloadStoryCard);
+}
+
+function updateCompareMode(){
+  const overlay = document.getElementById("compareOverlay");
+  const slider = document.getElementById("compareSlider");
+  const badge = document.getElementById("compareBadge");
+  if(state.view === "compare"){
+    overlay.style.display = "block";
+    slider.style.display = "block";
+    badge.classList.add("show");
+    overlay.style.width = `${state.compare}%`;
+  }else{
+    overlay.style.display = "none";
+    slider.style.display = "none";
+    badge.classList.remove("show");
+  }
+}
+
+function loadImage(file){
+  const reader = new FileReader();
+  reader.onload = event=>{
+    const img = new Image();
+    img.onload = ()=>{
+      const maxDim = 1400; 
+      let {width,height} = img;
+      if(width > maxDim || height > maxDim){
+        const ratio = Math.min(maxDim / width, maxDim / height);
+        width = Math.round(width * ratio);
+        height = Math.round(height * ratio);
+      }
+      mainCanvas.width = width;
+      mainCanvas.height = height;
+      origCanvas.width = width;
+      origCanvas.height = height;
+      mainCtx.drawImage(img,0,0,width,height);
+      origCtx.drawImage(img,0,0,width,height);
+      state.image = img;
+      state.origData = mainCtx.getImageData(0,0,width,height);
+      
+      document.querySelector(".upload-section").style.display = "none";
+      document.getElementById("workspace").style.display = "block";
+      
+      applyEraDefaults();
+      renderMeta();
+      render();
+      window.scrollTo({top: document.getElementById("workspace").offsetTop - 100, behavior:"smooth"});
+    };
+    img.src = event.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function getValue(id){return Number(document.getElementById(id).value)}
+function applyCurveMix(value, lut, amount){ return value * (1 - amount) + lut[value] * amount; }
+
+function applyFilmRender(targetCtx, baseData){
+  const film = getCurrentFilm(); const mood = getCurrentMood(); const lut = LUTS[film.id];
+  const w = baseData.width; const h = baseData.height;
+  const data = new ImageData(new Uint8ClampedArray(baseData.data), w, h);
+  const p = data.data;
+  const fade = getValue("fadeSlider"); const shift = getValue("shiftSlider");
+  const grain = getValue("grainSlider"); const dust = getValue("dustSlider");
+  const leak = getValue("leakSlider"); const vig = getValue("vigSlider");
+
+  const filmStrength = 0.56; const rgbStrength = 0.48;
+  const fadeMix = clamp((fade + film.fade + mood.fade) / 100 * 0.48, 0, 0.66);
+  const shiftMix = (shift + mood.shift) / 100;
+  const contrast = (film.contrast + mood.contrast) / 100;
+  const saturation = (film.saturation + mood.sat) / 100;
+  const vibrance = (film.vibrance + mood.sat) / 100;
+  const warmth = (film.warmth + mood.warm) / 100;
+  const cool = (film.cool + mood.cool) / 100;
+  const filmGrain = clamp(grain + film.grain, 0, 100);
+
+  for(let i=0;i<p.length;i+=4){
+    let r=p[i], g=p[i+1], b=p[i+2];
+
+    r = applyCurveMix(r, lut.r, filmStrength); g = applyCurveMix(g, lut.g, filmStrength); b = applyCurveMix(b, lut.b, filmStrength);
+    const l = clamp(Math.round(0.299*r + 0.587*g + 0.114*b),0,255);
+    const globalLift = (lut.rgb[l] - l) * rgbStrength;
+    r += globalLift; g += globalLift; b += globalLift;
+
+    const gray = 0.299*r + 0.587*g + 0.114*b;
+    const satBoost = film.bw ? -1 : saturation;
+    const vibTarget = gray + (r > gray ? (r - gray) * (1 + vibrance) : (r - gray));
+    r = gray + (vibTarget - gray) * (1 + satBoost); g = gray + (g - gray) * (1 + satBoost); b = gray + (b - gray) * (1 + satBoost);
+
+    r += 18 * warmth + 10 * shiftMix - 8 * cool; g += 6 * warmth + 5 * shiftMix - 2 * cool; b -= 10 * warmth + 7 * shiftMix; b += 15 * cool;
+    r = ((r/255 - 0.5) * (1 + contrast) + 0.5) * 255; g = ((g/255 - 0.5) * (1 + contrast) + 0.5) * 255; b = ((b/255 - 0.5) * (1 + contrast) + 0.5) * 255;
+
+    if(fadeMix > 0){ r = r * (1 - fadeMix) + 205 * fadeMix; g = g * (1 - fadeMix) + 198 * fadeMix; b = b * (1 - fadeMix) + 188 * fadeMix; }
+    if(film.bw){ const mono = 0.28*r + 0.59*g + 0.13*b; r = mono * 1.01; g = mono; b = mono * 0.97; }
+
+    p[i] = clamp(r,0,255); p[i+1] = clamp(g,0,255); p[i+2] = clamp(b,0,255);
+  }
+
+  targetCtx.putImageData(data,0,0);
+
+  if(filmGrain > 0){
+    const grainData = targetCtx.getImageData(0,0,w,h); const gp = grainData.data;
+    const intensity = filmGrain * 0.7; const step = Math.max(1, Math.round(filmGrain / 34));
+    for(let y=0;y<h;y+=step){
+      for(let x=0;x<w;x+=step){
+        const noise = (Math.random() - 0.5) * intensity;
+        for(let sy=0;sy<step && y+sy<h;sy++){
+          for(let sx=0;sx<step && x+sx<w;sx++){
+            const idx = ((y+sy) * w + (x+sx)) * 4;
+            gp[idx] = clamp(gp[idx] + noise,0,255); gp[idx+1] = clamp(gp[idx+1] + noise,0,255); gp[idx+2] = clamp(gp[idx+2] + noise,0,255);
+          }
+        }
+      }
+    }
+    targetCtx.putImageData(grainData,0,0);
+  }
+
+  if(vig > 0){
+    const cx = w/2, cy = h/2, maxR = Math.sqrt(cx*cx + cy*cy);
+    const grad = targetCtx.createRadialGradient(cx,cy,maxR*0.25,cx,cy,maxR*0.95);
+    grad.addColorStop(0,"rgba(0,0,0,0)"); grad.addColorStop(1,`rgba(0,0,0,${vig/100*0.8})`);
+    targetCtx.fillStyle = grad; targetCtx.fillRect(0,0,w,h);
+  }
+
+  if(leak > 0){
+    targetCtx.save(); targetCtx.globalCompositeOperation = "screen";
+    const leakAlpha = clamp((leak / 100) * 0.42, 0, 0.45);
+    const left = targetCtx.createRadialGradient(0,h*0.25,0,0,h*0.25,w*0.6);
+    left.addColorStop(0,`rgba(255,130,58,${leakAlpha})`); left.addColorStop(.55,`rgba(255,78,38,${leakAlpha * .45})`); left.addColorStop(1,"rgba(255,78,38,0)");
+    targetCtx.fillStyle = left; targetCtx.fillRect(0,0,w,h); targetCtx.restore();
+  }
+
+  const halationAmount = state.toggles.halation ? clamp((film.halation + mood.glow) / 100, 0, 0.48) : 0;
+  if(halationAmount > 0){
+    const hd = targetCtx.getImageData(0,0,w,h); const hp = hd.data;
+    for(let i=0;i<hp.length;i+=4){
+      const brightness = (hp[i] + hp[i+1] + hp[i+2]) / 3;
+      if(brightness > 205){
+        hp[i] = clamp(hp[i] + halationAmount * 34,0,255); hp[i+1] = clamp(hp[i+1] + halationAmount * 10,0,255); hp[i+2] = clamp(hp[i+2] - halationAmount * 8,0,255);
+      }
+    }
+    targetCtx.putImageData(hd,0,0);
+  }
+
+  if(dust > 0){
+    targetCtx.save();
+    const count = Math.floor(dust * 1.4);
+    for(let i=0;i<count;i++){
+      targetCtx.globalAlpha = Math.random() * 0.12 + 0.02; targetCtx.fillStyle = Math.random() > 0.65 ? "#fff" : "#1a1a1a";
+      targetCtx.beginPath(); targetCtx.arc(Math.random()*w, Math.random()*h, Math.random()*2.2+.4, 0, Math.PI*2); targetCtx.fill();
+    }
+    const scratches = Math.floor(dust / 8);
+    for(let i=0;i<scratches;i++){
+      targetCtx.globalAlpha = Math.random() * 0.06 + 0.02; targetCtx.strokeStyle = "rgba(255,255,255,.12)"; targetCtx.lineWidth = Math.random() * 0.8 + 0.25;
+      const x = Math.random() * w; targetCtx.beginPath(); targetCtx.moveTo(x, Math.random() * 20); targetCtx.lineTo(x + (Math.random() - 0.5) * 26, h - Math.random() * 20); targetCtx.stroke();
+    }
+    targetCtx.restore();
+  }
+
+  if(state.toggles.scan){
+    targetCtx.save();
+    for(let y=0;y<h;y+=3){ targetCtx.globalAlpha = 0.025; targetCtx.fillStyle = y % 6 === 0 ? "#fff" : "#000"; targetCtx.fillRect(0,y,w,1); }
+    targetCtx.restore();
+  }
+}
+
+function render(){
+  if(!state.origData) return;
+  mainCtx.putImageData(state.origData,0,0);
+  applyFilmRender(mainCtx, state.origData);
+
+  document.getElementById("perfLeft").classList.toggle("show", state.toggles.perf);
+  document.getElementById("perfRight").classList.toggle("show", state.toggles.perf);
+  document.getElementById("dateStamp").classList.toggle("show", state.toggles.date && !!getCurrentEra().dateStamp);
+  document.getElementById("frameShell").classList.toggle("polaroid", state.toggles.polaroid);
+
+  updateCompareMode();
+}
+
+function toggleJourney(){
+  const btn = document.getElementById("journeyBtn");
+  if(state.journeyTimer){
+    clearInterval(state.journeyTimer); state.journeyTimer = null;
+    btn.textContent = "Odtwórz Historię (Auto-Play)";
+    return;
+  }
+  btn.textContent = "Zatrzymaj Podróż";
+  state.journeyTimer = setInterval(()=>{
+    state.eraIndex = (state.eraIndex + 1) % ERAS.length;
+    state.filmId = getCurrentEra().defaultFilm;
+    applyEraDefaults(); renderMeta(); render();
+  }, 2500);
+}
+
+function downloadResult(){
+  if(!state.origData) return;
+  mainCanvas.toBlob(blob=>{
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+    a.download = `mindfullens_${getCurrentEra().year}_${getCurrentFilm().name.replace(/\s+/g,'-').toLowerCase()}.jpg`;
+    a.click(); setTimeout(()=>URL.revokeObjectURL(a.href), 1200);
+  }, "image/jpeg", 0.95);
+}
+
+function downloadStoryCard(){
+  const era = getCurrentEra(); const film = getCurrentFilm();
+  const content = [
+    `MINDFULLENS — Film Time Machine`, ``, `Epoka: ${era.year} — ${era.label}`, `Materia: ${film.name}`, ``,
+    `WIZJA: ${era.narrative}`, `PROCES: ${era.technique}`, ``, `Dla Ciebie:`, ...era.recreate.map(item=>`- ${item}`),
+  ].join("\n");
+  const blob = new Blob([content], {type:"text/plain;charset=utf-8"}); const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = `notatki_${era.year}.txt`; a.click();
+}
+
+function resetAll(){
+  if(state.journeyTimer) toggleJourney();
+  document.getElementById("workspace").style.display = "none";
+  document.querySelector(".upload-section").style.display = "block";
+  document.getElementById("fileInput").value = "";
+  state.image = null; state.origData = null;
+  window.scrollTo({top: 0, behavior:"smooth"});
+}
+
+document.getElementById("fileInput").addEventListener("change", e=>{ const file = e.target.files && e.target.files[0]; if(file) loadImage(file); });
+
+const uploadArea = document.getElementById("uploadArea");
+["dragenter","dragover"].forEach(type=>uploadArea.addEventListener(type, e=>{ e.preventDefault(); uploadArea.style.borderColor = "var(--accent-gold)"; uploadArea.style.background = "rgba(196, 148, 78, 0.1)"; }));
+["dragleave","drop"].forEach(type=>uploadArea.addEventListener(type, e=>{ e.preventDefault(); uploadArea.style.borderColor = ""; uploadArea.style.background = ""; }));
+uploadArea.addEventListener("drop", e=>{ const file = e.dataTransfer.files && e.dataTransfer.files[0]; if(file) loadImage(file); });
+
+buildTimeline(); buildPerfs(); buildMoodGrid();
+state.filmId = getCurrentEra().defaultFilm;
+applyEraDefaults(); renderMeta(); bindControls(); updateCompareMode();
+
+// =========================================================
+// LOGIKA NAWIGACJI I KOSZYKA
+// =========================================================
+const nav = document.getElementById('mainNav');
+window.addEventListener('scroll', () => { if(nav) nav.classList.toggle('scrolled', window.scrollY > 50); });
+
+let cart = [];
+function toggleCart() { document.getElementById('cartDrawer').classList.toggle('open'); }
+function addToCart(name, price) {
+  if(!cart.find(item => item.name === name)) { cart.push({ name, price }); updateCartUI(); }
+  document.getElementById('cartDrawer').classList.add('open');
+}
+function removeFromCart(index) { cart.splice(index, 1); updateCartUI(); }
+function updateCartUI() {
+  const container = document.getElementById('cartItems'), totalEl = document.getElementById('cartTotal');
+  document.getElementById('cartCount').textContent = cart.length;
+  if (!cart.length) { container.innerHTML = '<div class="cart-empty">Koszyk jest obecnie pusty.</div>'; totalEl.textContent = '0 PLN'; return; }
+  let total = 0;
+  container.innerHTML = cart.map((item, i) => { 
+    total += item.price; 
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:16px 0;border-bottom:1px solid var(--border-light)">
+      <div><div style="font-family:'Outfit';font-size:1.1rem;color:var(--text-main);font-weight:500;">${item.name}</div><div style="font-family:'JetBrains Mono';color:var(--accent-gold);font-size:0.85rem;margin-top:4px">${item.price} PLN</div></div>
+      <button style="background:none;border:none;color:var(--text-muted);font-size:0.75rem;text-transform:uppercase;cursor:pointer;" onclick="removeFromCart(${i})">Usuń</button>
+    </div>`; 
+  }).join('');
+  totalEl.textContent = `${total} PLN`;
+}
+function checkout() { if(cart.length>0) window.location.href='https://mindfullens.pl/cennik/'; else alert('Koszyk jest pusty'); }
+
+// Zamykanie Dropdown po kliknięciu poza lub Escape
+document.addEventListener('click', (e) => { 
+  const dd = document.getElementById('toolsDropdown'); 
+  if (dd && !dd.contains(e.target)) dd.classList.remove('open'); 
+});
+document.addEventListener('keydown', (e) => { 
+  if(e.key === 'Escape'){ const dd = document.getElementById('toolsDropdown'); if (dd) dd.classList.remove('open'); }
+});
+</script>
+</body>
+</html>

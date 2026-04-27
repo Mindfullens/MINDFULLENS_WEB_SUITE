@@ -1,0 +1,10 @@
+# Netlify + Cloudflare Pages (kopiowane do dist/); Vercel: vercel.json
+/*
+  Content-Language: pl
+  Permissions-Policy: browsing-topics=(), interest-cohort=()
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Strict-Transport-Security: max-age=31536000
+  X-Frame-Options: SAMEORIGIN
+  X-DNS-Prefetch-Control: off
+  X-Permitted-Cross-Domain-Policies: none

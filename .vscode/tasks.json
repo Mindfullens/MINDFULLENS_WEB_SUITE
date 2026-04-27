@@ -1,0 +1,205 @@
+{
+  "version": "2.0.0",
+  "inputs": [
+    {
+      "id": "ghPagesRepo",
+      "type": "promptString",
+      "description": "Slug repozytorium w URL GitHub Pages (user.github.io/SLUG/) — taki sam jak nazwa repo na GitHubie",
+      "default": ""
+    }
+  ],
+  "tasks": [
+    {
+      "label": "Film Lab: dev (Vite 4174)",
+      "type": "shell",
+      "command": "npm run dev",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Film Lab: dev + open /film-lab",
+      "type": "shell",
+      "command": "npm run dev:open",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Film Lab: dev + Vite watch poll + open /film-lab",
+      "type": "shell",
+      "command": "npm run dev:open:poll",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Film Lab: dev + batch perf + open /film-lab",
+      "type": "shell",
+      "command": "npm run dev:perf",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Film Lab: dev + proxy match preview + open /film-lab",
+      "type": "shell",
+      "command": "npm run dev:match-proxy",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Film Lab: dev + WebGPU proxy + match preview + open /film-lab",
+      "type": "shell",
+      "command": "npm run dev:match-proxy:webgpu",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Film Lab: dev + WebGPU proxy + main preview A/B + open /film-lab",
+      "type": "shell",
+      "command": "npm run dev:webgpu:main-ab",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Film Lab: dev + WebGPU main A/B + watch poll + open /film-lab",
+      "type": "shell",
+      "command": "npm run dev:webgpu:main-ab:poll",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Film Lab: build (Vite, dist/, base /)",
+      "type": "shell",
+      "command": "npm run build",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "group": "build"
+    },
+    {
+      "label": "Film Lab: build for GitHub Pages (project page, GH_PAGES_REPO z promptu)",
+      "type": "shell",
+      "command": "npm run build:gh-pages",
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": { "GH_PAGES_REPO": "${input:ghPagesRepo}" }
+      },
+      "problemMatcher": [],
+      "group": "build"
+    },
+    {
+      "label": "Film Lab: preview for GitHub Pages (VITE_BASE jak przy build:gh-pages, wymaga dist/)",
+      "type": "shell",
+      "command": "npm run preview:gh-pages",
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": { "GH_PAGES_REPO": "${input:ghPagesRepo}" }
+      },
+      "problemMatcher": [],
+      "group": "build"
+    },
+    {
+      "label": "Film Lab: GHP build + preview (jeden prompt slug → build, potem preview)",
+      "type": "shell",
+      "command": "npm run build:gh-pages && npm run preview:gh-pages",
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": { "GH_PAGES_REPO": "${input:ghPagesRepo}" }
+      },
+      "problemMatcher": [],
+      "group": "build"
+    },
+    {
+      "label": "Film Lab: build + preview (batch perf, diagnostic)",
+      "type": "shell",
+      "command": "npm run build:preview:perf",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "group": "build"
+    },
+    {
+      "label": "Film Lab: build + preview (WebGPU proxy + main A/B, baseline)",
+      "type": "shell",
+      "command": "npm run build:preview:webgpu:main-ab",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "group": "build"
+    },
+    {
+      "label": "Film Lab: eslint",
+      "type": "shell",
+      "command": "npm run lint",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "group": "test"
+    },
+    {
+      "label": "Film Lab: eslint --fix",
+      "type": "shell",
+      "command": "npm run lint:fix",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "group": "test"
+    },
+    {
+      "label": "Film Lab: preflight (lint + test, no build)",
+      "type": "shell",
+      "command": "npm run preflight",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "group": "test"
+    },
+    {
+      "label": "Film Lab: ci / check (lint + test + vite build + npm audit)",
+      "type": "shell",
+      "command": "npm run ci",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "group": "test"
+    },
+    {
+      "label": "Film Lab: clean (dist, cache ESLint/Vite, coverage, .turbo, .cache)",
+      "type": "shell",
+      "command": "npm run clean",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Film Lab: npm test (regression + scripts)",
+      "type": "shell",
+      "command": "npm test",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "group": "test"
+    },
+    {
+      "label": "Film Lab: test static deploy (Vercel/Netlify/GHP, _redirects, _headers vs vercel, HTML meta)",
+      "type": "shell",
+      "command": "npm run test:static-deploy-assets",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "group": "test"
+    },
+    {
+      "label": "Film Lab: test .env.example vs vite-env.d.ts",
+      "type": "shell",
+      "command": "npm run test:env-example-parity",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "group": "test"
+    },
+    {
+      "label": "Film Lab: test Vite ≥6 (npm ls vite)",
+      "type": "shell",
+      "command": "npm run test:vite-toolchain",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "group": "test"
+    },
+    {
+      "label": "Film Lab: test dist outputs (wymaga dist/ po buildzie: index+404, public bajtowo, dist/assets .js/.css, HTML)",
+      "type": "shell",
+      "command": "npm run test:dist-outputs",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "group": "test"
+    }
+  ]
+}

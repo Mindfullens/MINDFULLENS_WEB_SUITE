@@ -1,0 +1,929 @@
+{
+  "schema": "mindfullens.render-debug.v3",
+  "generatedAt": "2026-04-27T05:21:56.993Z",
+  "app": {
+    "route": "http://localhost:4174/film-lab",
+    "locationOrigin": "http://localhost:4174",
+    "mode": "development",
+    "viteBaseUrl": "/",
+    "serviceBuildLabel": "wersja serwisowa · sv-2026.04.25-243 · dev · 27.04.2026, 07:13:29",
+    "serviceBuildTag": "sv-2026.04.25-243",
+    "viewportBuildMarker": "VP-20260425-243-film-lab-wgpu-rb0-parity-diag",
+    "runtimeStatusBadge": "RAW OK | CPU fallback | Profil: 06_Pastel Portrait – Film Soft | fc-gate:HOLD med=395.7ms n=29 | E2E WARN 843.2ms/16",
+    "previewPathLabel": "cpu"
+  },
+  "environment": {
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+    "language": "pl-PL",
+    "platform": "MacIntel",
+    "hardwareConcurrency": 14,
+    "deviceMemoryGb": 32,
+    "screen": {
+      "width": 1920,
+      "height": 1080,
+      "availWidth": 1920,
+      "availHeight": 1050
+    },
+    "timeZone": "Europe/Malta",
+    "timeZoneOffsetMinutes": -120,
+    "pageVisibilityState": "visible",
+    "pageHidden": false,
+    "onLine": true,
+    "isSecureContext": true,
+    "crossOriginIsolated": false,
+    "webdriver": false,
+    "jsHeap": {
+      "usedJSHeapSize": 188357214,
+      "totalJSHeapSize": 257698606,
+      "jsHeapSizeLimit": 4294967296
+    },
+    "prefersColorScheme": "light",
+    "prefersReducedMotion": false,
+    "maxTouchPoints": 0,
+    "colorGamut": "p3",
+    "pointerCoarse": false,
+    "hoverNone": false,
+    "userAgentData": {
+      "brands": [
+        {
+          "brand": "Google Chrome",
+          "version": "147"
+        },
+        {
+          "brand": "Not.A/Brand",
+          "version": "8"
+        },
+        {
+          "brand": "Chromium",
+          "version": "147"
+        }
+      ],
+      "mobile": false,
+      "platform": "macOS"
+    },
+    "networkConnection": {
+      "effectiveType": "4g",
+      "downlinkMbps": 10,
+      "rttMs": 100,
+      "saveData": false
+    },
+    "navigationType": "navigate",
+    "webgpu": {
+      "api": {
+        "exposed": true,
+        "detail": "navigator-gpu"
+      },
+      "adapter": {
+        "status": "ok"
+      },
+      "adapterInfo": {
+        "vendor": "apple",
+        "architecture": "metal-3",
+        "device": "",
+        "description": ""
+      },
+      "device": {
+        "status": "ok",
+        "limits": {
+          "maxTextureDimension2D": 8192,
+          "maxTextureDimension3D": 2048,
+          "maxStorageBufferBindingSize": 134217728,
+          "maxBufferSize": 268435456
+        }
+      }
+    },
+    "webgpuWorker": {
+      "status": "ready",
+      "webGpuApi": {
+        "exposed": true,
+        "detail": "navigator-gpu"
+      },
+      "webGpuAdapter": {
+        "status": "ok"
+      },
+      "webGpuAdapterInfo": {
+        "vendor": "apple",
+        "architecture": "metal-3",
+        "device": "",
+        "description": ""
+      },
+      "webGpuDevice": {
+        "status": "ok",
+        "limits": {
+          "maxTextureDimension2D": 8192,
+          "maxTextureDimension3D": 2048,
+          "maxStorageBufferBindingSize": 134217728,
+          "maxBufferSize": 268435456
+        }
+      }
+    },
+    "sharedArrayBuffer": {
+      "sabConstructible": false,
+      "crossOriginIsolated": null,
+      "detail": "no-SharedArrayBuffer",
+      "policyState": "blocked-no-sab",
+      "policyReason": "SharedArrayBuffer unavailable on host",
+      "smokeBytes": 4,
+      "smokeOk": false
+    },
+    "viewport": {
+      "width": 1920,
+      "height": 958,
+      "devicePixelRatio": 2
+    }
+  },
+  "flags": {
+    "showRenderDebugPanel": false,
+    "env": {
+      "debugPanel": false,
+      "workerDrag": false,
+      "proxyGpu": false,
+      "webgpuProxy": false,
+      "mainPreviewWebGpuAb": false,
+      "proxyForceCpuRequested": false,
+      "batchPerf": false,
+      "devWatchPoll": false,
+      "fastWebgl2": false,
+      "fastFbo16fOptOut": false,
+      "proxyMatchPreview": false,
+      "cpuPreviewMatchNominal": false,
+      "proxyOutputTiles": false,
+      "proxyCpuYieldEvery": null,
+      "e2eHostSchedRaf": false,
+      "enablePreviewLuts": true,
+      "enablePreviewLutsViteRaw": null,
+      "disableCopyProtection": false,
+      "dev": true,
+      "prod": false,
+      "ssr": false
+    },
+    "effective": {
+      "workerDragEnabled": true,
+      "proxyGpuEnabled": false,
+      "webgpuProxyBuild": false,
+      "proxyForceCpuFallback": true
+    },
+    "runtime": {
+      "workerDragEnabled": true,
+      "proxyGpuEnabled": false,
+      "webgpuProxyBuild": false,
+      "proxyForceCpuFallback": true,
+      "proxyLastFrameGpuImpl": "n/a",
+      "proxyWorkerWebGpuCanvasFormat": null,
+      "proxyWorkerWebGpuDeviceLimits": null,
+      "proxyWorkerWebGlMaxTex2d": null,
+      "proxyWorkerWebGlMaxTex3d": null,
+      "proxyWorkerWebGlRgba16f": null,
+      "proxyWorkerWebGlFbo16fBlit": null,
+      "proxyWorkerWebGl3dLutRgba16f": null,
+      "proxyWorkerGpuTexW": null,
+      "proxyWorkerGpuTexH": null,
+      "proxyWorkerFullSourceW": null,
+      "proxyWorkerFullSourceH": null,
+      "proxyWorkerGpuInputTexDownscaled": false,
+      "proxyWorkerProxyOutputFitted": false,
+      "proxyWorkerProxyOutputRequestedW": null,
+      "proxyWorkerProxyOutputRequestedH": null,
+      "proxyWorkerProxyOutputTargetW": null,
+      "proxyWorkerProxyOutputTargetH": null,
+      "proxyWorkerOutputFitStatusLabel": "nie",
+      "proxyWorkerOutputTileCountNominal": null,
+      "proxyWorkerOutputTileCountTarget": null,
+      "proxyWorkerCpuFullNominalParity": false,
+      "proxyWorkerNominalW": 806,
+      "proxyWorkerNominalH": 537,
+      "proxyWorkerProxyMaxEffective": 806,
+      "proxyInputBufferW": 1040,
+      "proxyInputBufferH": 693,
+      "previewE2eIntentToPresentMs": 898.3,
+      "previewE2ePath": "cpu-full",
+      "previewE2eMedianMs": 843.2,
+      "previewE2eKpiTargetMs": 16,
+      "previewE2eKpiState": "warn",
+      "previewE2ePerPathStats": {
+        "cpu-preview": {
+          "medianMs": 350.4,
+          "count": 31,
+          "kpiState": "warn"
+        },
+        "cpu-full": {
+          "medianMs": 843.2,
+          "count": 29,
+          "kpiState": "warn"
+        }
+      },
+      "previewE2eAbSummary": null,
+      "previewE2eDragToPresentMs": null,
+      "previewE2ePointerToPresentMs": null,
+      "previewE2eHostSchedToRafMs": null,
+      "previewE2eFrameCostMs": 434.5,
+      "previewE2eFrameCostMedianMs": 395.7,
+      "previewE2eFrameCostKpiTargetMs": 16,
+      "previewE2eFrameCostKpiState": "warn",
+      "previewE2eFrameCostPerPathStats": {
+        "cpu-preview": {
+          "medianMs": 349.8,
+          "count": 31,
+          "kpiState": "warn"
+        },
+        "cpu-full": {
+          "medianMs": 395.7,
+          "count": 29,
+          "kpiState": "warn"
+        }
+      },
+      "previewE2eFrameCostGateDecision": "HOLD",
+      "previewE2eFrameCostGateReady": false,
+      "previewE2eFrameCostGateSummary": "HOLD med=395.7ms n=29",
+      "previewE2eFrameCostGateThresholds": {
+        "targetMs": 16,
+        "minSamples": 10
+      },
+      "previewE2eFrameCostGateThresholdsHint": "READY gdy mediana kosztu klatki <=16ms i n>=10; inaczej HOLD",
+      "workbenchInteractionKind": "idle",
+      "workbenchIsAdjusting": false,
+      "engineInteractionKind": "idle",
+      "engineIsAdjusting": false,
+      "parityInteractionKind": true,
+      "parityIsAdjusting": true,
+      "parityWorkbenchEngine": true,
+      "e2ePanning": false,
+      "e2ePointerAux": false,
+      "e2ePointerKeyboard": false,
+      "fastPreviewMainThreadSourceTexFormat": "rgba8",
+      "fastPreviewGlContext": null,
+      "fastPreviewFloatPipeline": "off",
+      "fastPreviewLutAtlasTexFormat": "rgba8",
+      "fastPreviewGradingPrecision": "mediump",
+      "proxyMatchPreviewBuffer": false,
+      "proxyWorkerOutputTileStatusLabel": "brak max 2D",
+      "proxyWorkerGpuInputDownscaleMs": null,
+      "proxyWorkerWebGpuSourceTexFormat": null,
+      "proxyWorkerWebGpuLut3dTexFormat": null,
+      "proxyWorkerWebGpuReadbackRgba8": null,
+      "proxyWorkerWebGpuReadbackChroma": null,
+      "proxyWorkerGpuRenderMs": null,
+      "proxyWorkerCpuRenderMs": null,
+      "mainThreadWebGpuPreviewAbEnabled": false,
+      "mainThreadWebGpuPreviewAbDecision": "off_probe_only",
+      "mainThreadWebGpuPreviewAbPath": "none",
+      "mainThreadWebGpuPreviewAbRenderMs": null,
+      "mainThreadWebGpuPreviewAbSourceTexFormat": null,
+      "mainThreadWebGpuPreviewAbFramesTotal": 0,
+      "mainThreadWebGpuPreviewAbFramesWebGpuMain": 0,
+      "mainThreadWebGpuPreviewAbFramesWebGlFallback": 0,
+      "mainThreadWebGpuPreviewAbWebGpuRatio": null,
+      "mainThreadWebGpuPreviewAbHealthState": "n/a",
+      "mainThreadWebGpuPreviewAbFallbackRate": null,
+      "mainThreadWebGpuPreviewAbHealthFrames": 0,
+      "mainThreadWebGpuPreviewAbThresholds": {
+        "healthWarmupFrames": 10,
+        "healthWarnFallbackRate": 0.2,
+        "gateReadyMinFrames": 60
+      },
+      "mainThreadWebGpuPreviewAbThresholdsHint": "Thresholds: WARMUP <10, OK <=20% fallback, WARN >20% fallback | READY gdy health=OK i n>=60; w pozostałych przypadkach HOLD",
+      "mainThreadWebGpuPreviewAbRolloutSummary": null,
+      "mainThreadWebGpuPreviewAbHealth": {
+        "state": "n/a",
+        "fallbackRate": 0,
+        "totalFrames": 0
+      },
+      "mainThreadWebGpuPreviewAbHealthSummary": null,
+      "mainThreadWebGpuPreviewAbRolloutReady": false,
+      "mainThreadWebGpuPreviewAbRolloutGateSummary": null,
+      "proxyWebGpuDeviceLost": false,
+      "proxyWebGpuDeviceLostAt": null,
+      "proxyWebGpuDeviceLostMessage": null,
+      "proxyWebGpuReinitFailedAt": null,
+      "proxyWebGpuReinitFailedMessage": null,
+      "mainThreadWebGpuPreviewStatus": "error_Failed to execute 'requestDevice' on 'GPUAdapter': adapter is \"consumed\": it has already been used to create a device at",
+      "mainThreadWebGpuMaxTextureDimension2d": null,
+      "mainThreadWebGpuMaxTextureDimension3d": null,
+      "mainThreadWebGpuLut3dTexFormat": null,
+      "webGpuLut3dMainWorkerFormatMatch": null,
+      "mainThreadWebGpuCanvasClearPass": null,
+      "mainThreadWebGpuSolidDrawPass": null,
+      "mainThreadWebGpuTextureDrawPass": null,
+      "mainThreadWebGpuProxyShaderDrawPass": null,
+      "mainThreadWebGpuHostSourceProxyPass": null,
+      "mainThreadWebGpuHostSourceReadbackRgba8": null,
+      "mainThreadWebGpuHostSourceReadbackChroma": null,
+      "webGpuReadbackMainWorkerRgba3Match": null,
+      "cpuParityNominalW": null,
+      "cpuParityNominalH": null,
+      "cpuParityProxyMax": null,
+      "cpuParityBufferW": null,
+      "cpuParityBufferH": null,
+      "cpuParityMatchNominal": null,
+      "cpuParityDownscaled": null,
+      "sharedArrayBufferHost": {
+        "sabConstructible": false,
+        "crossOriginIsolated": null,
+        "detail": "no-SharedArrayBuffer",
+        "policyState": "blocked-no-sab",
+        "policyReason": "SharedArrayBuffer unavailable on host",
+        "smokeBytes": 4,
+        "smokeOk": false
+      },
+      "proxyWorkerStatus": "fallback-cpu",
+      "rawBackendMode": "auto",
+      "rawBackendPreference": null,
+      "rawLinearStageMode": "auto",
+      "rawLinearStageOverride": null
+    }
+  },
+  "source": {
+    "fileName": "Mindfullens13.CR2",
+    "fileType": "image/x-canon-cr2",
+    "fileSize": 24480569,
+    "fileLastModified": 1776098222790,
+    "imageMeta": {
+      "width": 4272,
+      "height": 2848,
+      "sourceWidth": 4272,
+      "sourceHeight": 2848,
+      "previewWidth": 1040,
+      "previewHeight": 693
+    },
+    "exifMeta": null
+  },
+  "pipeline": {
+    "label": "RAW Pipeline",
+    "info": {
+      "sourceKind": "raw",
+      "pipelineKind": "raw",
+      "status": "ready",
+      "message": "RAW zdekodowany lokalnie przez macOS ImageIO / sips. Statystyki dekodu: L=58.82, NB=100.00%. Color pipeline: srgb-linear-srgb-v1 (display-srgb -> scene-linear -> display-srgb).",
+      "capabilities": {
+        "mimeType": "image/png",
+        "backend": "macOS ImageIO / sips",
+        "bridge": "vite-node-bridge",
+        "bridgeUrl": "/__raw/decode",
+        "fileName": "Mindfullens12.NEF",
+        "backendPreference": "auto",
+        "sourceWidth": 4272,
+        "sourceHeight": 2848,
+        "decodeStats": {
+          "sampledWidth": 96,
+          "sampledHeight": 96,
+          "meanLuma": 58.823,
+          "nonBlackRatio": 1,
+          "opaqueRatio": 1,
+          "zeroAlphaRatio": 0
+        },
+        "colorPipeline": {
+          "stage": "srgb-linear-srgb-v1",
+          "inputEncoding": "display-srgb",
+          "workingEncoding": "scene-linear",
+          "outputEncoding": "display-srgb",
+          "linearStageEnabled": true
+        },
+        "backendAbTest": {
+          "executed": true,
+          "winner": "primary",
+          "reason": "geometry-stability",
+          "primary": {
+            "backend": "macOS ImageIO / sips",
+            "score": 91.454,
+            "stats": {
+              "sampledWidth": 96,
+              "sampledHeight": 96,
+              "meanLuma": 58.823,
+              "nonBlackRatio": 1,
+              "opaqueRatio": 1,
+              "zeroAlphaRatio": 0
+            }
+          },
+          "alternate": {
+            "backend": "macOS QuickLook / qlmanage",
+            "score": 90.049,
+            "stats": {
+              "sampledWidth": 96,
+              "sampledHeight": 96,
+              "meanLuma": 51.8,
+              "nonBlackRatio": 0.995551,
+              "opaqueRatio": 1,
+              "zeroAlphaRatio": 0
+            }
+          },
+          "alternateError": null,
+          "diffHeatmap": {
+            "width": 80,
+            "height": 80,
+            "meanDelta": 7.469,
+            "maxDelta": 13.86,
+            "p95Delta": 9.715,
+            "dataUrl": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFAAAABQCAYAAACOEfKtAAAQAElEQVR4AUy8B7gj6VkmelRBqVRVCkc6OXfOYXpy8GSPE47YBowNBoMJJlzgArvXLGbx7iUsLMlrg43T4pw9tifn2D09nbtPnz45K1eVVCqp0n3fGs99dp6pR1LpD194v/f7/q90Wvjbt/z+Zz9990e++ql7f/0/Pn3vR77C17966x/+63dOvP3hv37rH/wb7/3bXR/++l++408/9a93/crXvnviZx755g3v+gm///JtP//dz931S9/g/U++40/+1z888Ntf+B9v+r3P8frcXb/8da71Px/42Of5/Rfv+MB33v273/jtP3n/J//2yX13vHRlZPf8I4fueZbr3/Xxxz5w2yeeft/Yv6zc9v+89xN/9x+3vP/7nMd9Lo3svfbUnttf/vb173joGze++8dfvfm9D37l5vf94CeH73/65ZkT57573c88yvcf+ui//993/PmT7z/+/556e/zL3X33/unDH6Jer8tIubnvg0ff9OQfv/+//c3Ov796L8cf/qszb/n9D/ztJ//5jb/x5bMTh65wL673+Ts++O2/e9Pv/juvr9/0nh/xMy/q9p/f9xf/46Mf/pePv/f3vvo7giMne00la/Thv0Svm3BF2Yv1hbGGmjMK7ZqO232S70nprp1MuZ1EXc031/MjWw18HwhCyO85nq8VrVh3Zdnj+5gfiLl2Q8/ZDV32XfnHRx946sfXPfDkmakjF09PHru4lh/d6ooJV/Y9EevGk46T/PVH/tfPvfvFbz5QMsv9hVYtl7Wb6kOH73/mytie+WYma1pptWUn03YoxELIJC8XJ9Yz3Vbqhyfe8viPjz3w1KmZ6y5gncSN1148MtJYH8AaWcid8vvEoA65KZ+h6OaNcy8e2bd5adpMau1Mp6W004rdlpXOiztuPHN1eNeinUh3RmtrQ1OVxVHqYMfTjhR44mBzqz/frmdV21J8WfTVtqUIVFbrmCpfPVHyGkrOTLt2cksfrFFB3ufGQhjEaplCE4JL+1cv7o7uq8W6kdRb7YRiQ5hWzmroUD6f6zQ0KruZHSprtpkx05q1Y/PaxMce/IcPTW0tjmWdptpKZDpwxLaVyNjZVjObt+tqv1nNVdRiA2sUoMBgPZM3VMdS4r1enLIIcAqEz8ieK68WxjaMtG4tFqfW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"
+          }
+        },
+        "rawProbeSnapshot": {
+          "decoderInstalled": true,
+          "workerReady": true,
+          "backend": "macOS RAW Bridge (QuickLook + sips)",
+          "supportedFormats": [
+            "dng",
+            "nef",
+            "nrw",
+            "cr2",
+            "cr3",
+            "arw",
+            "raf",
+            "rw2",
+            "orf",
+            "pef",
+            "iiq"
+          ],
+          "colorPipeline": {
+            "stage": "srgb-linear-srgb-v1",
+            "inputEncoding": "display-srgb",
+            "workingEncoding": "scene-linear",
+            "outputEncoding": "display-srgb",
+            "linearStageEnabled": true
+          },
+          "bridge": "vite-node-bridge",
+          "bridgeUrl": "/__raw/probe",
+          "rawDecodeAdapter": "http-bridge"
+        }
+      },
+      "fileName": "Mindfullens12.NEF"
+    },
+    "rawBackendComparison": {
+      "executed": true,
+      "reason": "geometry-stability",
+      "winner": "primary",
+      "selectedBackend": "macOS ImageIO / sips",
+      "scoreDelta": -1.404999999999987,
+      "primary": {
+        "backend": "macOS ImageIO / sips",
+        "score": 91.454,
+        "stats": {
+          "sampledWidth": 96,
+          "sampledHeight": 96,
+          "meanLuma": 58.823,
+          "nonBlackRatio": 1,
+          "opaqueRatio": 1,
+          "zeroAlphaRatio": 0
+        }
+      },
+      "alternate": {
+        "backend": "macOS QuickLook / qlmanage",
+        "score": 90.049,
+        "stats": {
+          "sampledWidth": 96,
+          "sampledHeight": 96,
+          "meanLuma": 51.8,
+          "nonBlackRatio": 0.995551,
+          "opaqueRatio": 1,
+          "zeroAlphaRatio": 0
+        }
+      },
+      "alternateError": null,
+      "diffHeatmap": {
+        "width": 80,
+        "height": 80,
+        "meanDelta": 7.469,
+        "p95Delta": 9.715,
+        "maxDelta": 13.86,
+        "hasDataUrl": true
+      }
+    },
+    "rawColorimetry": {
+      "schema": "mindfullens.raw-colorimetry.v1",
+      "colorPipeline": {
+        "stage": "srgb-linear-srgb-v1",
+        "inputEncoding": "display-srgb",
+        "workingEncoding": "scene-linear",
+        "outputEncoding": "display-srgb",
+        "linearStageEnabled": true
+      },
+      "librawDevelopSettings": null,
+      "librawMetadataSummary": null,
+      "decodeAdapterId": null,
+      "rawDecodeAdapterPhase": null,
+      "env": {
+        "librawCameraProfile": null,
+        "librawUseCameraMatrix": null
+      }
+    }
+  },
+  "render": {
+    "isProcessing": false,
+    "showInlineProcessing": false,
+    "isAdjusting": false,
+    "interactionKind": "idle",
+    "previewPathLabel": "cpu",
+    "alert": null,
+    "fallback": {
+      "code": "feature-flag-off",
+      "explanation": "GPU proxy wyłączony flagą środowiskową.",
+      "mainPreviewAbCode": null,
+      "mainPreviewAbExplanation": null,
+      "mainPreviewAbDecision": "off_probe_only",
+      "mainPreviewAbPath": "none"
+    },
+    "debug": {
+      "workerDragEnabled": true,
+      "proxyGpuEnabled": false,
+      "proxyForceCpuFallback": true,
+      "proxyWorkerStatus": "fallback-cpu",
+      "proxyWorkerReason": "feature-flag-off",
+      "webgpuProxyBuild": false,
+      "proxyWorkerWebGpuCanvasFormat": null,
+      "proxyWorkerWebGpuDeviceLimits": null,
+      "proxyWorkerWebGpuSourceTexFormat": null,
+      "proxyWorkerWebGpuLut3dTexFormat": null,
+      "proxyWorkerWebGpuReadbackRgba8": null,
+      "proxyWorkerWebGpuReadbackChroma": null,
+      "proxyLastFrameBackend": "n/a",
+      "proxyLastFrameGpuImpl": "n/a",
+      "proxyWebGpuDeviceLost": false,
+      "proxyWebGpuDeviceLostAt": null,
+      "proxyWebGpuDeviceLostMessage": null,
+      "proxyWebGpuReinitFailedAt": null,
+      "proxyWebGpuReinitFailedMessage": null,
+      "proxySourceReady": true,
+      "isAdjusting": false,
+      "interactionKind": "idle",
+      "e2ePanning": false,
+      "profileRenderMode": "lut-active",
+      "lastRenderPath": "cpu-full",
+      "fastRenderMs": null,
+      "cpuPreviewMs": 443.4,
+      "cpuFullMs": 434.5,
+      "workerRenderMs": null,
+      "proxyWorkerGpuRenderMs": null,
+      "proxyWorkerCpuRenderMs": null,
+      "proxyWorkerWebGlMaxTex2d": null,
+      "proxyWorkerWebGlMaxTex3d": null,
+      "proxyWorkerWebGlRgba16f": null,
+      "proxyWorkerWebGlFbo16fBlit": null,
+      "proxyWorkerWebGl3dLutRgba16f": null,
+      "proxyWorkerGpuTexW": null,
+      "proxyWorkerGpuTexH": null,
+      "proxyWorkerFullSourceW": null,
+      "proxyWorkerFullSourceH": null,
+      "proxyWorkerGpuInputDownscaleMs": null,
+      "proxyWorkerProxyOutputFitted": false,
+      "proxyWorkerProxyOutputRequestedW": null,
+      "proxyWorkerProxyOutputRequestedH": null,
+      "proxyWorkerProxyOutputTargetW": null,
+      "proxyWorkerProxyOutputTargetH": null,
+      "proxyWorkerOutputTileCountNominal": null,
+      "proxyWorkerOutputTileCountTarget": null,
+      "proxyWorkerCpuFullNominalParity": false,
+      "proxyWorkerNominalW": 806,
+      "proxyWorkerNominalH": 537,
+      "proxyWorkerProxyMaxEffective": 806,
+      "proxyInputBufferW": 1040,
+      "proxyInputBufferH": 693,
+      "fullResRequested": false,
+      "fullResReady": false,
+      "lastFrameHighlightClipRatio": 0,
+      "lastFrameShadowClipRatio": 0,
+      "lastFramePixelCount": 720720,
+      "lastFrameBlackGuardTriggered": false,
+      "webGpuApi": {
+        "exposed": true,
+        "detail": "navigator-gpu"
+      },
+      "webGpuAdapter": {
+        "status": "ok"
+      },
+      "webGpuAdapterInfo": {
+        "vendor": "apple",
+        "architecture": "metal-3",
+        "device": "",
+        "description": ""
+      },
+      "webGpuDevice": {
+        "status": "ok",
+        "limits": {
+          "maxTextureDimension2D": 8192,
+          "maxTextureDimension3D": 2048,
+          "maxStorageBufferBindingSize": 134217728,
+          "maxBufferSize": 268435456
+        }
+      },
+      "webGpuWorker": {
+        "status": "ready",
+        "webGpuApi": {
+          "exposed": true,
+          "detail": "navigator-gpu"
+        },
+        "webGpuAdapter": {
+          "status": "ok"
+        },
+        "webGpuAdapterInfo": {
+          "vendor": "apple",
+          "architecture": "metal-3",
+          "device": "",
+          "description": ""
+        },
+        "webGpuDevice": {
+          "status": "ok",
+          "limits": {
+            "maxTextureDimension2D": 8192,
+            "maxTextureDimension3D": 2048,
+            "maxStorageBufferBindingSize": 134217728,
+            "maxBufferSize": 268435456
+          }
+        }
+      },
+      "mainThreadWebGpuPreviewAbEnabled": false,
+      "mainThreadWebGpuPreviewAbDecision": "off_probe_only",
+      "mainThreadWebGpuPreviewAbPath": "none",
+      "mainThreadWebGpuPreviewAbRenderMs": null,
+      "mainThreadWebGpuPreviewAbSourceTexFormat": null,
+      "mainThreadWebGpuPreviewAbFramesTotal": 0,
+      "mainThreadWebGpuPreviewAbFramesWebGpuMain": 0,
+      "mainThreadWebGpuPreviewAbFramesWebGlFallback": 0,
+      "mainThreadWebGpuPreviewAbWebGpuRatio": null,
+      "mainThreadWebGpuPreviewAbHealthState": "n/a",
+      "mainThreadWebGpuPreviewAbFallbackRate": null,
+      "mainThreadWebGpuPreviewAbHealthFrames": 0,
+      "mainThreadWebGpuPreviewStatus": "error_Failed to execute 'requestDevice' on 'GPUAdapter': adapter is \"consumed\": it has already been used to create a device at",
+      "mainThreadWebGpuMaxTextureDimension2d": null,
+      "mainThreadWebGpuMaxTextureDimension3d": null,
+      "mainThreadWebGpuLut3dTexFormat": null,
+      "mainThreadWebGpuCanvasClearPass": null,
+      "mainThreadWebGpuSolidDrawPass": null,
+      "mainThreadWebGpuTextureDrawPass": null,
+      "mainThreadWebGpuProxyShaderDrawPass": null,
+      "mainThreadWebGpuHostSourceProxyPass": null,
+      "mainThreadWebGpuHostSourceReadbackRgba8": null,
+      "mainThreadWebGpuHostSourceReadbackChroma": null,
+      "sharedArrayBufferHost": {
+        "sabConstructible": false,
+        "crossOriginIsolated": null,
+        "detail": "no-SharedArrayBuffer",
+        "policyState": "blocked-no-sab",
+        "policyReason": "SharedArrayBuffer unavailable on host",
+        "smokeBytes": 4,
+        "smokeOk": false
+      },
+      "previewE2eIntentToPresentMs": 898.3,
+      "previewE2ePath": "cpu-full",
+      "previewE2eMedianMs": 843.2,
+      "previewE2eKpiTargetMs": 16,
+      "previewE2eKpiState": "warn",
+      "previewE2ePerPathStats": {
+        "cpu-preview": {
+          "medianMs": 350.4,
+          "count": 31,
+          "kpiState": "warn"
+        },
+        "cpu-full": {
+          "medianMs": 843.2,
+          "count": 29,
+          "kpiState": "warn"
+        }
+      },
+      "previewE2eDragToPresentMs": null,
+      "previewE2ePointerToPresentMs": null,
+      "previewE2eHostSchedToRafMs": null,
+      "previewE2eFrameCostMs": 434.5,
+      "previewE2eFrameCostMedianMs": 395.7,
+      "previewE2eFrameCostKpiTargetMs": 16,
+      "previewE2eFrameCostKpiState": "warn",
+      "previewE2eFrameCostPerPathStats": {
+        "cpu-preview": {
+          "medianMs": 349.8,
+          "count": 31,
+          "kpiState": "warn"
+        },
+        "cpu-full": {
+          "medianMs": 395.7,
+          "count": 29,
+          "kpiState": "warn"
+        }
+      },
+      "previewE2eFrameCostGateDecision": "HOLD",
+      "previewE2eFrameCostGateReady": false,
+      "previewE2eFrameCostGateSummary": "HOLD med=395.7ms n=29",
+      "fastPreviewMainThreadSourceTexFormat": "rgba8",
+      "fastPreviewGlContext": null,
+      "fastPreviewFloatPipeline": "off",
+      "fastPreviewLutAtlasTexFormat": "rgba8",
+      "fastPreviewGradingPrecision": "mediump",
+      "cpuParityNominalW": null,
+      "cpuParityNominalH": null,
+      "cpuParityProxyMax": null,
+      "cpuParityBufferW": null,
+      "cpuParityBufferH": null,
+      "cpuParityMatchNominal": null,
+      "cpuParityDownscaled": null
+    },
+    "qualitySignals": {
+      "highlightClipRatio": 0,
+      "shadowClipRatio": 0,
+      "blackOutputGuardTriggered": false,
+      "suspectedBlackFrame": false
+    },
+    "qualityQa": {
+      "tone": "good",
+      "label": "GOOD",
+      "statusText": "Brak anomalii w sygnałach RAW.",
+      "riskScore": 0,
+      "issues": [],
+      "metrics": {
+        "highlightClipRatio": 0,
+        "shadowClipRatio": 0,
+        "blackOutputGuardTriggered": false,
+        "suspectedBlackFrame": false,
+        "sampledPixelCount": 720720,
+        "meanLuma": 58.823,
+        "nonBlackRatio": 1,
+        "opaqueRatio": 1,
+        "abMeanDelta": 7.469
+      }
+    }
+  },
+  "profile": {
+    "activeFilmIndex": 12,
+    "activeFilm": {
+      "name": "06_Pastel Portrait – Film Soft",
+      "sub": "fuji_400h_cc",
+      "cat": "people",
+      "sourceId": "fuji_400h_cc",
+      "canonicalSourceId": "fuji_400h_cc",
+      "internalSourceId": "fuji_400h_cc",
+      "isInputProfile": false
+    }
+  },
+  "adjustments": {
+    "strength": 100,
+    "exposure": 0,
+    "contrast": 0,
+    "highlights": 0,
+    "shadows": 0,
+    "whites": 0,
+    "blacks": 0,
+    "level": 0,
+    "cropZoom": 100,
+    "cropX": 0,
+    "cropY": 0,
+    "cropAspect": "free",
+    "cropOverlayMode": "none",
+    "cropOverlayOrientation": 0,
+    "autoStraightenConfidence": 0,
+    "cropRectX": 0,
+    "cropRectY": 0,
+    "cropRectW": 1,
+    "cropRectH": 1,
+    "fade": 0,
+    "clarity": 0,
+    "dehaze": 0,
+    "temp": 0,
+    "tint": 0,
+    "showClipping": false,
+    "saturation": 0,
+    "vibrance": 0,
+    "curveLumaMix": 72,
+    "userGrain": 28,
+    "userGrainSize": 40,
+    "userVignette": 0,
+    "leak": "none",
+    "frame": "none",
+    "chromAb": 0,
+    "bloom": 0,
+    "dust": 0,
+    "dustVariant": -1,
+    "dustCycle": 0,
+    "rawLeakVariant": -1,
+    "rawLeakCycle": 0,
+    "frameVariant": -1,
+    "frameCycle": 0,
+    "halation": 0,
+    "halRadius": 30,
+    "halThresh": 200,
+    "halHue": 0,
+    "anamorph": 0,
+    "streakLen": 50,
+    "flipped": false,
+    "rotation": 0,
+    "compareMode": false,
+    "compareX": 0.5
+  },
+  "userCurves": {
+    "rgb": [
+      [
+        0,
+        0
+      ],
+      [
+        255,
+        255
+      ]
+    ],
+    "r": [
+      [
+        0,
+        0
+      ],
+      [
+        255,
+        255
+      ]
+    ],
+    "g": [
+      [
+        0,
+        0
+      ],
+      [
+        255,
+        255
+      ]
+    ],
+    "b": [
+      [
+        0,
+        0
+      ],
+      [
+        255,
+        255
+      ]
+    ]
+  },
+  "colorMixer": {
+    "hue": {
+      "red": 0,
+      "orange": 0,
+      "yellow": 0,
+      "green": 0,
+      "aqua": 0,
+      "blue": 0,
+      "purple": 0,
+      "magenta": 0
+    },
+    "saturation": {
+      "red": 0,
+      "orange": 0,
+      "yellow": 0,
+      "green": 0,
+      "aqua": 0,
+      "blue": 0,
+      "purple": 0,
+      "magenta": 0
+    },
+    "luminance": {
+      "red": 0,
+      "orange": 0,
+      "yellow": 0,
+      "green": 0,
+      "aqua": 0,
+      "blue": 0,
+      "purple": 0,
+      "magenta": 0
+    }
+  },
+  "colorGrading": {
+    "shadows": {
+      "hue": 0,
+      "saturation": 0,
+      "luminance": 0
+    },
+    "midtones": {
+      "hue": 0,
+      "saturation": 0,
+      "luminance": 0
+    },
+    "highlights": {
+      "hue": 0,
+      "saturation": 0,
+      "luminance": 0
+    },
+    "global": {
+      "hue": 0,
+      "saturation": 0
+    },
+    "blending": 50,
+    "balance": 0
+  },
+  "colorCalibration": {
+    "shadowsTint": 0,
+    "red": {
+      "hue": 0,
+      "saturation": 0
+    },
+    "green": {
+      "hue": 0,
+      "saturation": 0
+    },
+    "blue": {
+      "hue": 0,
+      "saturation": 0
+    }
+  },
+  "batchState": {
+    "isRunning": false,
+    "current": 0,
+    "total": 0,
+    "currentFile": ""
+  },
+  "performance": {
+    "batchPerfEnabled": false,
+    "lastBatchZip": null
+  }
+}

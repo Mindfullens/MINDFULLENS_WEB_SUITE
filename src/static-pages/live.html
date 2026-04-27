@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Mindfullens — Live Cam Pro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Outfit:wght@200;300;400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#08070c;--bg2:#0e0d15;--bg3:#15141f;--bg4:#1d1c29;--surface:rgba(255,255,255,0.03);--surface2:rgba(255,255,255,0.06);--border:rgba(255,255,255,0.06);--border-h:rgba(196,148,78,0.2);--t1:#ede8df;--t2:#9e978b;--t3:#5e584f;--film:#c4944e;--film2:#a67938;--film3:#e8b868;--film4:rgba(196,148,78,0.08);--r:12px;--r2:20px;--ease:cubic-bezier(0.16,1,0.3,1)}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth;-webkit-font-smoothing:antialiased}
+body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--t1);line-height:1.6;overflow-x:hidden}
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='5' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");opacity:0.018;mix-blend-mode:overlay}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--film2);border-radius:3px}
+.nav{position:fixed;top:0;left:0;right:0;z-index:1000;padding:14px 0;background:rgba(8,7,12,0.9);backdrop-filter:blur(24px) saturate(1.5);border-bottom:1px solid var(--border)}
+.nav-inner{max-width:1300px;margin:0 auto;padding:0 24px;display:flex;justify-content:space-between;align-items:center}
+.nav-logo{font-family:'Instrument Serif',serif;font-size:1.3rem;text-decoration:none;color:var(--t1);display:flex;align-items:center;gap:10px;letter-spacing:1px;text-transform:uppercase;cursor:pointer}
+.nav-logo img{height:32px;border-radius:50%;border:1px solid var(--film2)}
+.nav-links{display:flex;gap:4px}
+.nav-link{padding:8px 16px;border-radius:50px;text-decoration:none;text-transform:uppercase;font-size:0.78rem;color:var(--t2);transition:all 0.3s}
+.nav-link:hover,.nav-link.active{color:var(--t1);background:var(--surface)}
+.nav-cta{padding:9px 18px;border-radius:50px;border:1px solid var(--border-h);background:transparent;color:var(--t1);font-size:0.75rem;font-weight:600;text-transform:uppercase;cursor:pointer;transition:all 0.4s;font-family:'Outfit',sans-serif;display:flex;align-items:center}
+.nav-cta:hover{border-color:var(--film);color:var(--film);background:var(--film4)}
+.cart-count{background:var(--film);color:var(--bg);width:20px;height:20px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:700;margin-left:8px}
+.nav-mobile-toggle{display:none;background:none;border:none;color:var(--t1);font-size:1.3rem;cursor:pointer;padding:6px}
+.live-cam-wrapper{padding:120px 24px 40px;max-width:680px;margin:0 auto;display:flex;flex-direction:column;align-items:center}
+.section-header{text-align:center;max-width:550px;margin:0 auto 24px}
+.section-tag{font-family:'JetBrains Mono',monospace;font-size:0.6rem;letter-spacing:2.5px;text-transform:uppercase;color:var(--film);margin-bottom:10px;display:block}
+.section-title{font-family:'Instrument Serif',serif;font-size:clamp(1.8rem,4vw,2.6rem);font-weight:400;margin-bottom:12px;line-height:1.15}
+.section-title em{font-style:italic;color:var(--film)}
+.section-desc{color:var(--t2);font-size:0.95rem;font-weight:300;line-height:1.7}
+.workspace{position:relative;width:100%;max-width:560px;height:78vh;min-height:580px;border-radius:var(--r2);overflow:hidden;border:1px solid var(--border-h);box-shadow:0 20px 60px rgba(0,0,0,0.6);display:flex;flex-direction:column;background:#000}
+.viewfinder{position:relative;flex:1;width:100%;background:#000;overflow:hidden;display:flex;align-items:center;justify-content:center}
+#cameraVideo{display:none}
+#outputCanvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.grid-lines{position:absolute;inset:0;pointer-events:none;z-index:2}
+.grid-lines::before{content:'';position:absolute;top:33.33%;left:0;right:0;bottom:33.33%;border-top:1px solid rgba(255,255,255,0.08);border-bottom:1px solid rgba(255,255,255,0.08)}
+.grid-lines::after{content:'';position:absolute;left:33.33%;top:0;bottom:0;right:33.33%;border-left:1px solid rgba(255,255,255,0.08);border-right:1px solid rgba(255,255,255,0.08)}
+.focus-ring{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:50px;height:50px;border:1px solid rgba(196,148,78,0.5);pointer-events:none;z-index:2;border-radius:3px}
+.hud-top{position:absolute;top:0;left:0;right:0;z-index:10;display:flex;justify-content:space-between;align-items:flex-start;padding:12px}
+.hud-info{display:flex;align-items:center;gap:6px;font-family:'JetBrains Mono',monospace;font-size:0.6rem;color:var(--film);background:rgba(0,0,0,0.6);padding:5px 10px;border-radius:4px;backdrop-filter:blur(5px);border:1px solid rgba(196,148,78,0.15)}
+.rec-dot{width:7px;height:7px;background:#ff4757;border-radius:50%;animation:blink 1.5s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+.hud-buttons{display:flex;gap:8px}
+.btn-hud{background:rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.15);color:#fff;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;backdrop-filter:blur(10px);font-size:1rem;-webkit-tap-highlight-color:transparent;-webkit-appearance:none;outline:none;user-select:none}
+.btn-hud:focus,.btn-hud:hover{background:rgba(0,0,0,0.6);border-color:rgba(255,255,255,0.15);color:#fff}
+.btn-hud.active,.btn-hud.active:focus,.btn-hud.active:hover{background:#e6c832;border-color:#e6c832;color:#000}
+.strength-bar{position:absolute;bottom:0;left:0;right:0;z-index:10;padding:8px 16px;background:linear-gradient(transparent,rgba(0,0,0,0.7));display:flex;align-items:center;gap:10px}
+.strength-label{font-family:'JetBrains Mono',monospace;font-size:0.55rem;color:var(--film);text-transform:uppercase;letter-spacing:1px;min-width:28px;text-align:right}
+.strength-slider{flex:1;-webkit-appearance:none;height:3px;border-radius:2px;background:rgba(255,255,255,0.15);outline:none}
+.strength-slider::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--film);border:2px solid rgba(0,0,0,0.5);box-shadow:0 0 8px rgba(196,148,78,0.4)}
+.bottom-panel{background:var(--bg2);padding:14px 8px 16px;display:flex;flex-direction:column;align-items:center;border-top:1px solid var(--border);z-index:10}
+.cat-tabs{display:flex;gap:3px;margin-bottom:10px;padding:0 12px;width:100%}
+.cat-tab{flex:1;padding:5px 2px;border:1px solid rgba(255,255,255,0.04);border-radius:5px;background:transparent;color:var(--t3);font-family:'JetBrains Mono',monospace;font-size:0.5rem;cursor:pointer;transition:all 0.2s;text-align:center;text-transform:uppercase}
+.cat-tab:hover{border-color:rgba(255,255,255,0.08);color:var(--t2)}
+.cat-tab.active{border-color:var(--film);color:var(--film);background:var(--film4)}
+.film-selector{width:100%;display:flex;overflow-x:auto;scroll-snap-type:x mandatory;padding:0 calc(50% - 36px);scrollbar-width:none;margin-bottom:14px;align-items:center;scroll-behavior:smooth}
+.film-selector::-webkit-scrollbar{display:none}
+.film-item{scroll-snap-align:center;display:flex;flex-direction:column;align-items:center;min-width:72px;cursor:pointer;opacity:0.35;transition:all 0.3s;padding:4px}
+.film-item.active{opacity:1;transform:scale(1.1)}
+.film-color{width:36px;height:36px;border-radius:50%;border:2px solid transparent;margin-bottom:6px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;transition:all 0.3s}
+.film-item.active .film-color{border-color:var(--film);box-shadow:0 0 14px rgba(196,148,78,0.4)}
+.film-item-name{font-family:'JetBrains Mono',monospace;font-size:0.48rem;text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap;color:var(--t2);text-align:center;max-width:68px;overflow:hidden;text-overflow:ellipsis}
+.shutter-row{display:flex;align-items:center;gap:20px}
+.shutter-btn{width:60px;height:60px;border-radius:50%;background:#fff;border:3px solid var(--t2);outline:2px solid #fff;outline-offset:2px;cursor:pointer;transition:transform 0.1s,background 0.2s;flex-shrink:0}
+.shutter-btn:active{transform:scale(0.88);background:var(--film)}
+.shutter-side-btn{width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:var(--t2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.8rem;transition:all 0.3s}
+.shutter-side-btn:hover{background:var(--film4);border-color:var(--film);color:var(--film)}
+.flash-overlay{position:absolute;inset:0;background:#fff;z-index:15;opacity:0;pointer-events:none}
+.flash-overlay.fire{animation:flashAnim 0.5s ease-out}
+@keyframes flashAnim{0%{opacity:1}100%{opacity:0}}
+.permission-screen{position:absolute;inset:0;background:var(--bg2);z-index:40;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:30px}
+.perm-fallback{background:var(--bg2);padding:20px;text-align:center;display:none}
+.perm-fallback p{color:var(--t2);font-size:0.8rem;margin-bottom:10px}
+.permission-screen h2{font-family:'Instrument Serif',serif;font-size:2rem;margin-bottom:10px}
+.permission-screen p{color:var(--t2);font-size:0.9rem;margin-bottom:20px;max-width:320px}
+.btn-allow{padding:13px 26px;border-radius:50px;background:linear-gradient(135deg,var(--film),var(--film2));color:var(--bg);font-weight:700;border:none;cursor:pointer;text-transform:uppercase;font-size:0.82rem;font-family:'Outfit',sans-serif}
+.lock-screen{position:absolute;inset:0;background:rgba(8,7,12,0.9);backdrop-filter:blur(10px);z-index:20;display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:30px}
+.lock-screen.show{display:flex}
+.lock-screen h2{font-family:'Instrument Serif',serif;font-size:2rem;margin-bottom:8px;color:var(--film)}
+.lock-screen p{font-size:0.85rem;color:var(--t2);margin-bottom:20px;max-width:240px}
+.btn-unlock{padding:13px 26px;border-radius:50px;background:linear-gradient(135deg,var(--film),var(--film2));color:var(--bg);font-weight:700;border:none;cursor:pointer;text-transform:uppercase;font-size:0.78rem;font-family:'Outfit',sans-serif;margin-bottom:10px}
+.btn-close-lock{background:transparent;border:none;color:var(--t3);text-decoration:underline;font-size:0.78rem;cursor:pointer;font-family:'Outfit',sans-serif}
+.photo-result{position:absolute;inset:0;background:var(--bg);z-index:30;display:none;flex-direction:column;align-items:center;justify-content:center;padding:16px}
+.photo-result.show{display:flex}
+.photo-result img{max-width:100%;max-height:60%;object-fit:contain;border-radius:6px;box-shadow:0 8px 30px rgba(0,0,0,0.7);margin-bottom:16px;border:1px solid var(--border)}
+.photo-result-info{font-family:'JetBrains Mono',monospace;font-size:0.6rem;color:var(--film);text-transform:uppercase;letter-spacing:1px;margin-bottom:14px}
+.ios-hint{color:var(--film);font-size:0.82rem;font-weight:500;text-align:center;line-height:1.4;animation:pulseText 2s infinite;margin-bottom:12px;background:rgba(196,148,78,0.1);padding:10px 14px;border-radius:8px;border:1px solid var(--border-h);width:100%;max-width:280px}
+@keyframes pulseText{0%,100%{opacity:1}50%{opacity:0.7}}
+.photo-actions{display:flex;flex-direction:column;gap:10px;width:100%;max-width:280px;align-items:center}
+.btn-photo{flex:1;padding:11px;border-radius:50px;font-family:'Outfit',sans-serif;cursor:pointer;text-transform:uppercase;font-size:0.75rem;font-weight:600;text-align:center;transition:all 0.3s}
+.btn-photo-back{background:transparent;color:var(--t1);border:1px solid var(--border)}
+.btn-photo-save{background:var(--film);color:var(--bg);border:none}
+.ai-hint{position:absolute;bottom:50px;left:12px;right:12px;z-index:11;background:rgba(8,7,12,0.85);backdrop-filter:blur(10px);border:1px solid var(--border-h);border-radius:8px;padding:10px 14px;display:none;transition:opacity 0.3s}
+.ai-hint.show{display:block}
+.ai-hint-title{font-family:'JetBrains Mono',monospace;font-size:0.5rem;color:var(--film3);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px}
+.ai-hint-text{font-size:0.72rem;color:var(--t2);line-height:1.4}
+.ai-hint-close{position:absolute;top:6px;right:8px;background:none;border:none;color:var(--t3);cursor:pointer;font-size:0.7rem}
+#bundles{padding:60px 24px;background:var(--bg)}
+.cta-banner{max-width:700px;margin:0 auto;background:var(--bg3);border:1px solid var(--border-h);border-radius:var(--r2);padding:40px 32px;text-align:center}
+.cta-banner h3{font-family:'Instrument Serif',serif;font-size:1.8rem;margin-bottom:10px}
+.cta-banner p{color:var(--t2);font-size:0.9rem;margin-bottom:20px;max-width:450px;margin-left:auto;margin-right:auto;line-height:1.6}
+.btn-buy{padding:14px 28px;border-radius:50px;font-family:'Outfit',sans-serif;font-size:0.87rem;font-weight:600;text-transform:uppercase;cursor:pointer;transition:all 0.3s;border:none;text-align:center;background:linear-gradient(135deg,var(--film),var(--film2));color:var(--bg);text-decoration:none;display:inline-block}
+.footer{padding:50px 24px 25px;background:var(--bg2);border-top:1px solid var(--border)}
+.footer-inner{max-width:1050px;margin:0 auto;display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:40px}
+.footer-desc{color:var(--t3);font-size:0.8rem;line-height:1.7;max-width:250px;margin-top:10px}
+.footer-col-title{font-family:'JetBrains Mono',monospace;font-size:0.55rem;letter-spacing:2px;text-transform:uppercase;color:var(--t3);margin-bottom:12px}
+.footer-col a{display:block;color:var(--t2);text-decoration:none;font-size:0.8rem;padding:4px 0;transition:color 0.3s}
+.footer-col a:hover{color:var(--film)}
+.footer-bottom{max-width:1050px;margin:30px auto 0;padding-top:16px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:0.7rem;color:var(--t3);flex-wrap:wrap;gap:6px}
+.footer-legal a{color:var(--t3);text-decoration:none;margin-left:12px}
+.cart-drawer{position:fixed;top:0;right:-400px;bottom:0;width:360px;z-index:2500;background:var(--bg3);border-left:1px solid var(--border);box-shadow:-10px 0 50px rgba(0,0,0,0.5);transition:right 0.4s var(--ease);display:flex;flex-direction:column}
+.cart-drawer.open{right:0}
+.cart-drawer-header{padding:18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.cart-drawer-title{font-family:'Instrument Serif',serif;font-size:1.3rem}
+.modal-close{background:var(--surface2);border:1px solid var(--border);width:30px;height:30px;border-radius:50%;color:var(--t2);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.3s}
+.cart-items{flex:1;overflow-y:auto;padding:18px}
+.cart-empty{text-align:center;padding:40px 14px;color:var(--t3)}
+.cart-footer{padding:18px;border-top:1px solid var(--border);background:var(--bg4)}
+.cart-total{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;font-family:'Instrument Serif',serif;font-size:1.6rem}
+@media(max-width:700px){.nav-links{display:none;flex-direction:column;position:absolute;top:100%;left:0;width:100%;background:var(--bg2);border-bottom:1px solid var(--border);padding:16px 0}.nav-links.active{display:flex}.nav-mobile-toggle{display:block}.cart-drawer{width:100%;right:-100%}.workspace{height:80vh;min-height:500px;border-radius:var(--r)}.live-cam-wrapper{padding:90px 12px 30px}.footer-inner{grid-template-columns:1fr 1fr;gap:25px}.mega-menu{position:static;transform:none;width:100%;border-radius:0;border:none;box-shadow:none;padding:10px}.nav-dropdown.open .mega-menu{animation:none}.mega-menu-grid{grid-template-columns:1fr}.mega-footer{flex-direction:column;gap:8px;align-items:flex-start}}
+
+/* DROPDOWN & MEGA MENU */
+.nav-dropdown{position:relative}
+.nav-dropdown-trigger{padding:8px 16px;border-radius:50px;text-transform:uppercase;font-size:0.78rem;font-weight:400;color:var(--t2);letter-spacing:0.3px;cursor:pointer;display:flex;align-items:center;gap:5px;background:none;border:none;font-family:'Outfit',sans-serif;transition:all 0.3s}
+.nav-dropdown-trigger:hover,.nav-dropdown.open .nav-dropdown-trigger{color:var(--t1);background:var(--surface2)}
+.nav-dropdown-arrow{font-size:0.6rem;transition:transform 0.3s}
+.nav-dropdown.open .nav-dropdown-arrow{transform:rotate(180deg)}
+.mega-menu{position:absolute;top:calc(100% + 12px);left:50%;transform:translateX(-50%);width:580px;background:var(--bg2);border:1px solid var(--border-h);border-radius:16px;padding:18px;display:none;box-shadow:0 20px 60px rgba(0,0,0,0.6);z-index:100}
+.nav-dropdown.open .mega-menu{display:block;animation:menuIn 0.3s var(--ease)}
+@keyframes menuIn{from{opacity:0;transform:translateX(-50%) translateY(-8px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+.mega-menu-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.mega-item{display:flex;align-items:flex-start;gap:10px;padding:10px;border-radius:8px;text-decoration:none;color:var(--t1);transition:all 0.2s;border:1px solid transparent}
+.mega-item:hover{background:var(--surface2);border-color:var(--border)}
+.mega-item-icon{font-size:1.3rem;flex-shrink:0;width:32px;height:32px;display:flex;align-items:center;justify-content:center;background:var(--surface2);border-radius:7px}
+.mega-item-text{flex:1;min-width:0}
+.mega-item-name{font-size:0.8rem;font-weight:600;margin-bottom:1px;display:flex;align-items:center;gap:5px}
+.mega-item-tag{font-family:'JetBrains Mono',monospace;font-size:0.42rem;padding:2px 4px;border-radius:3px;text-transform:uppercase;letter-spacing:0.5px}
+.mega-item-tag-free{background:rgba(93,232,138,0.15);color:#5de88a}
+.mega-item-tag-new{background:rgba(196,148,78,0.15);color:var(--film3)}
+.mega-item-tag-pro{background:rgba(93,138,232,0.15);color:#5d8ae8}
+.mega-item-desc{font-size:0.68rem;color:var(--t3);line-height:1.3}
+.mega-footer{margin-top:14px;padding-top:14px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.mega-footer-text{font-size:0.75rem;color:var(--t2)}
+.mega-footer-btn{padding:7px 18px;border-radius:50px;background:linear-gradient(135deg,var(--film),var(--film2));color:var(--bg);font-family:'Outfit',sans-serif;font-size:0.7rem;font-weight:600;text-decoration:none;text-transform:uppercase;border:none;cursor:pointer}
+/* Unified landing menu + CTA */
+.nav-link-red{color:#ff4757 !important;font-weight:600;text-shadow:0 0 10px rgba(255,71,87,0.3)}
+.nav-link-red:hover{color:#ff6b81 !important;background:rgba(255,71,87,0.1) !important;text-shadow:0 0 15px rgba(255,71,87,0.5)}
+#bundles{padding:80px 24px;background:var(--bg)}
+.cta-banner-wrapper{width:100%;max-width:1000px;margin:0 auto}
+.cta-banner{position:relative;overflow:hidden;background:linear-gradient(135deg,var(--bg3),var(--bg2));border:1px solid var(--film);border-radius:var(--r2);padding:42px 44px;display:flex;align-items:center;justify-content:space-between;gap:32px;box-shadow:0 10px 40px rgba(196,148,78,0.15);text-align:left}
+.cta-banner::before{content:'';position:absolute;left:-10px;top:50%;transform:translateY(-50%);width:40px;height:40px;border-radius:50%;background:rgba(196,148,78,0.2);border:1px solid rgba(196,148,78,0.35)}
+.cta-banner-text{position:relative;z-index:2;max-width:640px}
+.cta-banner-tag{font-family:'JetBrains Mono',monospace;font-size:0.62rem;letter-spacing:2px;text-transform:uppercase;color:var(--film3);margin-bottom:12px;display:inline-block}
+.cta-banner-text h3{font-family:'Instrument Serif',serif;font-size:2.2rem;margin:0 0 12px;color:var(--t1);font-weight:400;line-height:1.12}
+.cta-banner-text p{margin:0;color:var(--t2);font-size:0.95rem;line-height:1.6}
+.cta-banner-text p + p{margin-top:12px}
+.cta-banner-text .cta-banner-highlight{font-size:1.08rem;color:var(--t1);line-height:1.5}
+.cta-btn,.btn-buy{padding:16px 34px;border-radius:50px;background:linear-gradient(135deg,var(--film),var(--film2));color:var(--bg);font-family:'Outfit',sans-serif;font-size:0.92rem;font-weight:700;text-decoration:none;text-transform:uppercase;white-space:nowrap;transition:transform 0.3s,box-shadow 0.3s;border:none;cursor:pointer;position:relative;z-index:2;display:inline-block}
+.cta-btn:hover,.btn-buy:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(196,148,78,0.35)}
+@media(max-width:900px){#bundles{padding:56px 20px}.cta-banner{flex-direction:column;text-align:center;padding:32px 22px}.cta-banner::before{display:none}.cta-banner-text{max-width:100%}}
+</style>
+</head>
+<body>
+
+<nav class="nav" id="mainNav">
+  <div class="nav-inner">
+    <a href="https://mindfullens.pl/" class="nav-logo">
+      <img src="https://mindfullens.pl/logo.png" alt="Mindfullens Logo" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'32\' height=\'32\'><circle cx=\'16\' cy=\'16\' r=\'16\' fill=\'%23c4944e\'/></svg>'">
+      Mindfullens
+    </a>
+    <div class="nav-links" id="navLinks">
+      <a href="https://mindfullens.pl/" class="nav-link">Strona Główna</a>
+      <div class="nav-dropdown" id="toolsDropdown">
+        <button class="nav-dropdown-trigger" onclick="event.stopPropagation();document.getElementById('toolsDropdown').classList.toggle('open')">
+          Narzędzia <span class="nav-dropdown-arrow">▾</span>
+        </button>
+        <div class="mega-menu">
+          <div class="mega-menu-grid">
+            <a href="https://mindfullens.pl/film-lab/" class="mega-item"><div class="mega-item-icon">⚗️</div><div class="mega-item-text"><div class="mega-item-name">Film Lab <span class="mega-item-tag mega-item-tag-free">Free</span></div><div class="mega-item-desc">Nakładaj symulacje klisz w przeglądarce</div></div></a>
+            <a href="https://mindfullens.pl/live/" class="mega-item"><div class="mega-item-icon">📸</div><div class="mega-item-text"><div class="mega-item-name">Live Cam <span class="mega-item-tag mega-item-tag-free">Free</span></div><div class="mega-item-desc">Testuj profile na żywo kamerą w telefonie</div></div></a>
+            <a href="https://mindfullens.pl/matcher/" class="mega-item"><div class="mega-item-icon">🧠</div><div class="mega-item-text"><div class="mega-item-name">AI Matcher <span class="mega-item-tag mega-item-tag-pro">AI</span></div><div class="mega-item-desc">Wrzuć inspirację, AI dopasuje idealny profil</div></div></a>
+            <a href="https://mindfullens.pl/timemachine/" class="mega-item"><div class="mega-item-icon">⏳</div><div class="mega-item-text"><div class="mega-item-name">Time Machine <span class="mega-item-tag mega-item-tag-new">Nowe</span></div><div class="mega-item-desc">Symulacja starzenia kliszy dekady do tyłu</div></div></a>
+            <a href="https://mindfullens.pl/ciemnia/" class="mega-item"><div class="mega-item-icon">🧪</div><div class="mega-item-text"><div class="mega-item-name">Recipe Lab <span class="mega-item-tag mega-item-tag-new">Nowe</span></div><div class="mega-item-desc">Stwórz własną recepturę filmową od zera</div></div></a>
+            <a href="https://mindfullens.pl/blendstudio/" class="mega-item"><div class="mega-item-icon">⚗️</div><div class="mega-item-text"><div class="mega-item-name">Blend Studio <span class="mega-item-tag mega-item-tag-new">Nowe</span></div><div class="mega-item-desc">Miksuj dwie klisze w jedno zdjęcie</div></div></a>
+            <a href="https://mindfullens.pl/contact-sheet/" class="mega-item"><div class="mega-item-icon">🎞️</div><div class="mega-item-text"><div class="mega-item-name">Contact Sheet</div><div class="mega-item-desc">109 profili na jednym arkuszu porównania</div></div></a>
+            <a href="https://mindfullens.pl/color-sync/" class="mega-item"><div class="mega-item-icon">🔄</div><div class="mega-item-text"><div class="mega-item-name">Color Sync <span class="mega-item-tag mega-item-tag-pro">Pro</span></div><div class="mega-item-desc">Zrównaj kolory z 2-3 aparatów kliknięciem</div></div></a>
+          </div>
+          <div class="mega-footer"><span class="mega-footer-text">Zobacz profile i szybkie porównania przed/po</span><a href="https://mindfullens.pl/cennik/" class="mega-footer-btn">Przejdź do pakietów</a></div>
+        </div>
+      </div>
+      <a href="https://mindfullens.pl/camera-settings-app" class="nav-link">Camera App</a>
+      <a href="https://mindfullens.pl/analog-signature/" class="nav-link nav-link-red">Analog Signature</a>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <button class="nav-mobile-toggle" onclick="document.getElementById('navLinks').classList.toggle('active')" aria-label="Menu">☰</button>
+      <button class="nav-cta" onclick="toggleCart()">Koszyk <span class="cart-count" id="cartCount">0</span></button>
+    </div>
+  </div>
+</nav>
+
+<div class="live-cam-wrapper">
+<div class="section-header">
+<span class="section-tag">✦ 55 Profili Filmowych na Żywo</span>
+<h1 class="section-title">Mindfullens <em>Live Cam</em></h1>
+<p class="section-desc">Zezwól na aparat i testuj profile analogowe w czasie rzeczywistym. Przełączaj klisze, reguluj siłę, rób zdjęcia.</p>
+</div>
+
+<div class="workspace">
+<div class="permission-screen" id="permScreen">
+<h2>Zezwól na aparat</h2>
+<p>Edycja odbywa się w 100% na Twoim urządzeniu — nic nie jest wysyłane na serwer.</p>
+<button class="btn-allow" onclick="initCamera()">Włącz Aparat</button>
+</div>
+
+<div class="viewfinder" id="viewfinder">
+<div class="hud-top">
+<div class="hud-info"><div class="rec-dot"></div><span id="currentLabel">Oryginał</span></div>
+<div class="hud-buttons">
+<button class="btn-hud" id="btnChromAb" onclick="toggleChromAb()" title="Aberracja chromatyczna 🔒" style="font-size:0.6rem">CA</button>
+<button class="btn-hud" id="btnGlow" onclick="toggleGlow()" title="Glow / Bloom 🔒" style="font-size:0.6rem">GL</button>
+<button class="btn-hud" id="btnGrid" onclick="toggleGrid()" title="Siatka">⊞</button>
+<button class="btn-hud" onclick="switchCamera()" title="Odwróć kamerę">↻</button>
+</div>
+</div>
+<video id="cameraVideo" autoplay playsinline muted></video>
+<canvas id="outputCanvas"></canvas>
+<div class="grid-lines" id="gridLines"></div>
+<div class="focus-ring"></div>
+<div class="flash-overlay" id="flash"></div>
+<div class="ai-hint" id="aiHint"><button class="ai-hint-close" onclick="closeAIHint()">✕</button><div class="ai-hint-title">✦ AI Podpowiedź</div><div class="ai-hint-text" id="aiHintText"></div></div>
+<div class="strength-bar"><span class="strength-label" id="strLabel">60%</span><input type="range" class="strength-slider" min="0" max="100" value="60" id="strSlider" oninput="updateStrength()"></div>
+</div>
+
+<div class="bottom-panel">
+<div class="cat-tabs">
+<button class="cat-tab active" onclick="filterCat('all',this)">Wszystkie</button>
+<button class="cat-tab" onclick="filterCat('neg',this)">Kolor</button>
+<button class="cat-tab" onclick="filterCat('slide',this)">Slajd</button>
+<button class="cat-tab" onclick="filterCat('bw',this)">B&W</button>
+<button class="cat-tab" onclick="filterCat('cine',this)">Cine</button>
+</div>
+<div class="film-selector" id="filmCarousel"></div>
+<div class="shutter-row">
+<button class="shutter-side-btn" onclick="prevFilm()">◂</button>
+<button class="shutter-btn" onclick="takePhoto()"></button>
+<button class="shutter-side-btn" onclick="nextFilm()">▸</button>
+</div>
+</div>
+
+<div class="lock-screen" id="lockScreen">
+<h2>Zablokowane 🔒</h2>
+<p>Ten profil premium jest dostępny w pełnej kolekcji Mindfullens.</p>
+<button class="btn-unlock" onclick="document.getElementById('bundles').scrollIntoView({behavior:'smooth'});closeLock()">Zobacz Pakiety</button>
+<button class="btn-close-lock" onclick="closeLock()">Wróć do darmowych</button>
+</div>
+
+<div class="photo-result" id="photoResult">
+<img id="resultImg" src="" alt="Zdjęcie">
+<div class="photo-result-info" id="photoInfo"></div>
+<div class="ios-hint" id="iosHint">👇 Przytrzymaj zdjęcie palcem i wybierz „Zapisz w Zdjęciach" 👇</div>
+<div class="photo-actions"><div style="display:flex;gap:10px;width:100%">
+<button class="btn-photo btn-photo-back" onclick="closeResult()">Wróć</button>
+<button class="btn-photo btn-photo-save" onclick="sharePhoto()">Udostępnij</button>
+<button class="btn-photo btn-photo-save" onclick="downloadPhoto()">Pobierz</button>
+</div></div>
+</div>
+</div>
+</div>
+
+<section id="bundles">
+  <div class="cta-banner-wrapper">
+    <div class="cta-banner">
+      <div class="cta-banner-text">
+        <span class="cta-banner-tag">✦ Odblokuj pełną moc</span>
+        <h3>Wybierz swój pakiet</h3>
+        <p class="cta-banner-highlight">Profile Lightroom, receptury Camera App, system Analog Signature i 9 narzędzi AI.</p>
+        <p>Wybierz rozwiązanie idealne dla siebie. Kup pakiet <strong>Complete Studio</strong> i otrzymaj wszystkie nasze produkty w jednym: potężny ekosystem do edycji plików RAW (.xmp), gotowe ustawienia JPEG prosto z aparatu oraz dożywotni dostęp do wszystkich narzędzi webowych.</p>
+      </div>
+      <a href="https://mindfullens.pl/cennik/" class="cta-btn">Zobacz pakiety →</a>
+    </div>
+  </div>
+</section>
+
+<footer class="footer"><div class="footer-inner">
+<div class="footer-brand"><a href="https://mindfullens.pl/" class="nav-logo"><img src="https://mindfullens.pl/logo.png" alt="Mindfullens" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'32\' height=\'32\'><circle cx=\'16\' cy=\'16\' r=\'16\' fill=\'%23c4944e\'/></svg>'">Mindfullens</a><p class="footer-desc">Profile filmowe i narzędzia AI dla fotografów.</p></div>
+<div class="footer-col"><div class="footer-col-title">Narzędzia</div><a href="https://mindfullens.pl/">Presety</a><a href="https://mindfullens.pl/film-lab/">Film Lab</a><a href="#">Live Cam</a></div>
+<div class="footer-col"><div class="footer-col-title">Wsparcie</div><a href="#">FAQ</a><a href="#">Kontakt</a></div>
+<div class="footer-col"><div class="footer-col-title">Bezpieczeństwo</div><div style="font-size:0.8rem;color:var(--t2);margin-bottom:5px">✔️ 30-dniowa gwarancja</div><div style="font-size:0.8rem;color:var(--t2)">🔒 Bezpieczne płatności</div></div>
+</div><div class="footer-bottom"><div>© 2026 Mindfullens.</div><div class="footer-legal"><a href="#">Regulamin</a><a href="#">Prywatność</a></div></div></footer>
+
+<div class="cart-drawer" id="cartDrawer"><div class="cart-drawer-header"><div class="cart-drawer-title">Koszyk</div><button class="modal-close" onclick="toggleCart()">✕</button></div><div class="cart-items" id="cartItems"><div class="cart-empty">Koszyk pusty.</div></div><div class="cart-footer"><div class="cart-total"><span style="font-family:'Outfit',sans-serif;font-size:0.85rem;color:var(--t2)">Razem</span><span id="cartTotal">0 PLN</span></div><button class="btn-buy" style="width:100%;border-radius:50px;padding:14px" onclick="checkout()">Przejdź do kasy →</button></div></div>
+
+<script>
+// ===== 55 FILM PROFILES (from Grain & Light collection) =====
+const F=[{"n":"Oryginał","s":"Bez modyfikacji","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,0],[255,255]],"r":[[0,0],[255,255]],"g":[[0,0],[255,255]],"b":[[0,0],[255,255]]},"vib":0,"sat":0,"con":0,"exp":0,"temp":0,"tint":0,"highlights":0,"shadows":0,"whites":0,"blacks":0,"gr":0,"grs":20,"gm":null},{"n":"Kodak Portra 160","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,16],[32,42],[64,82],[128,143],[192,212],[224,214],[255,224]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":-10,"sat":4,"con":-4,"exp":0,"temp":0,"tint":0,"highlights":-14,"shadows":6,"whites":-22,"blacks":-2,"gr":22,"grs":20,"gm":null},{"n":"Kodak Portra 400","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,16],[32,40],[64,78],[128,141],[192,200],[224,214],[255,232]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":-8,"sat":-4,"con":-2,"exp":0,"temp":0,"tint":0,"highlights":-10,"shadows":8,"whites":-20,"blacks":-5,"gr":21,"grs":20,"gm":null},{"n":"Kodak Portra 800","s":"Master","c":"cine","f":true,"bw":false,"cr":{"rgb":[[0,6],[32,26],[64,62],[128,138],[192,204],[224,220],[255,235]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":-8,"sat":-4,"con":-28,"exp":0,"temp":0,"tint":0,"highlights":-45,"shadows":15,"whites":-20,"blacks":-9,"gr":47,"grs":28,"gm":null},{"n":"Kodak Gold 200","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,16],[32,36],[64,70],[128,142],[192,206],[224,218],[255,232]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":10,"sat":4,"con":5,"exp":0,"temp":0,"tint":0,"highlights":-38,"shadows":28,"whites":-14,"blacks":-8,"gr":27,"grs":20,"gm":null},{"n":"Kodak ColorPlus 200","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,6],[32,35],[64,64],[128,132],[192,198],[224,212],[255,232]],"r":[[0,6],[128,132],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":10,"sat":-8,"con":-10,"exp":0,"temp":0,"tint":0,"highlights":-38,"shadows":28,"whites":-14,"blacks":-2,"gr":30,"grs":26,"gm":null},{"n":"Kodak Ektar 100","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,10],[32,26],[64,58],[128,140],[192,210],[224,228],[255,244]],"r":[[0,0],[128,128],[255,255]],"g":[[0,0],[128,128],[255,255]],"b":[[0,0],[128,128],[255,255]]},"vib":8,"sat":-7,"con":30,"exp":0,"temp":5500,"tint":2,"highlights":-46,"shadows":20,"whites":12,"blacks":-18,"gr":15,"grs":25,"gm":null},{"n":"Kodak Ultra Max 400","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,16],[32,40],[64,78],[128,141],[192,200],[224,214],[255,232]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":-8,"sat":-4,"con":0,"exp":0,"temp":0,"tint":0,"highlights":-10,"shadows":8,"whites":-20,"blacks":-5,"gr":21,"grs":20,"gm":null},{"n":"Kodak Ektachrome","s":"Master","c":"slide","f":true,"bw":false,"cr":{"rgb":[[0,4],[32,18],[64,60],[128,142],[192,218],[224,237],[255,247]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":10,"sat":4,"con":4,"exp":0,"temp":0,"tint":0,"highlights":-38,"shadows":28,"whites":-14,"blacks":-12,"gr":18,"grs":16,"gm":null},{"n":"CineStill 800T","s":"Master","c":"cine","f":true,"bw":false,"cr":{"rgb":[[0,8],[32,28],[64,60],[128,136],[192,208],[224,224],[255,240]],"r":[[0,0],[255,255]],"g":[[0,0],[255,255]],"b":[[0,0],[255,255]]},"vib":6,"sat":-4,"con":0,"exp":0,"temp":0,"tint":0,"highlights":-45,"shadows":35,"whites":0,"blacks":-10,"gr":25,"grs":30,"gm":null},{"n":"CineStill 50D","s":"Master","c":"cine","f":true,"bw":false,"cr":{"rgb":[[0,6],[32,35],[64,66],[128,146],[192,202],[224,216],[255,236]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":-8,"sat":-4,"con":-1,"exp":0.05,"temp":5400,"tint":3,"highlights":-45,"shadows":35,"whites":-20,"blacks":0,"gr":12,"grs":14,"gm":null},{"n":"Fuji Pro 400H","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,6],[32,30],[64,64],[128,146],[192,200],[224,214],[255,233]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":-10,"sat":4,"con":0,"exp":0,"temp":5350,"tint":2,"highlights":-50,"shadows":38,"whites":-22,"blacks":-1,"gr":18,"grs":20,"gm":null},{"n":"Fuji Superia X-Tra 400","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,6],[32,24],[64,62],[128,144],[192,218],[224,232],[255,243]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":-10,"sat":4,"con":3,"exp":0,"temp":5000,"tint":2,"highlights":-50,"shadows":38,"whites":-22,"blacks":-7,"gr":28,"grs":25,"gm":null},{"n":"Fuji Natura 1600","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,8],[32,26],[64,58],[128,130],[192,208],[224,220],[255,238]],"r":[[0,6],[128,130],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":-10,"sat":4,"con":-4,"exp":0.1,"temp":4750,"tint":-5,"highlights":-50,"shadows":38,"whites":-22,"blacks":-9,"gr":45,"grs":33,"gm":null},{"n":"Fuji Superia 1600","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,8],[32,20],[64,58],[128,140],[192,204],[224,216],[255,233]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":-10,"sat":4,"con":2,"exp":0,"temp":4300,"tint":7,"highlights":-50,"shadows":38,"whites":-22,"blacks":-10,"gr":46,"grs":32,"gm":null},{"n":"Fuji Velvia 50","s":"Master","c":"slide","f":true,"bw":false,"cr":{"rgb":[[0,4],[32,12],[64,52],[128,142],[192,234],[224,251],[255,247]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":10,"sat":4,"con":6,"exp":0,"temp":6300,"tint":2,"highlights":-38,"shadows":28,"whites":-14,"blacks":-16,"gr":12,"grs":12,"gm":null},{"n":"Fuji Astia 100F","s":"Master","c":"slide","f":true,"bw":false,"cr":{"rgb":[[0,8],[32,34],[64,72],[128,138],[192,196],[224,210],[255,238]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":-10,"sat":4,"con":-2,"exp":0,"temp":5100,"tint":4,"highlights":-50,"shadows":38,"whites":-22,"blacks":-2,"gr":22,"grs":20,"gm":null},{"n":"Fuji Provia 100F","s":"Master","c":"slide","f":true,"bw":false,"cr":{"rgb":[[0,4],[32,25],[64,58],[128,133],[192,208],[224,228],[255,242]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":10,"sat":4,"con":6,"exp":0,"temp":6250,"tint":1,"highlights":-38,"shadows":28,"whites":-14,"blacks":-7,"gr":10,"grs":11,"gm":null},{"n":"Fuji Provia RX","s":"Master","c":"slide","f":true,"bw":false,"cr":{"rgb":[[0,4],[32,25],[64,58],[128,133],[192,208],[224,228],[255,242]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":10,"sat":4,"con":3,"exp":0,"temp":6250,"tint":1,"highlights":-38,"shadows":28,"whites":-14,"blacks":-7,"gr":10,"grs":11,"gm":null},{"n":"Fuji Fortia 50","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,4],[32,12],[64,52],[128,142],[192,234],[224,251],[255,247]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":10,"sat":4,"con":6,"exp":0,"temp":6300,"tint":2,"highlights":-38,"shadows":28,"whites":-14,"blacks":-16,"gr":12,"grs":12,"gm":null},{"n":"Kodak Vision3 50D","s":"Master","c":"cine","f":true,"bw":false,"cr":{"rgb":[[0,6],[32,35],[64,66],[128,146],[192,202],[224,216],[255,236]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":-8,"sat":-4,"con":1,"exp":0.05,"temp":5400,"tint":3,"highlights":-45,"shadows":35,"whites":-20,"blacks":0,"gr":12,"grs":14,"gm":null},{"n":"Kodak Vision3 250D","s":"Master","c":"cine","f":true,"bw":false,"cr":{"rgb":[[0,8],[32,33],[64,64],[128,142],[192,200],[224,214],[255,234]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":-8,"sat":-4,"con":-26,"exp":0,"temp":5250,"tint":4,"highlights":-45,"shadows":35,"whites":-20,"blacks":-3,"gr":20,"grs":19,"gm":null},{"n":"Kodak Vision3 200T","s":"Master","c":"cine","f":true,"bw":false,"cr":{"rgb":[[0,8],[32,24],[64,54],[128,140],[192,212],[224,224],[255,242]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":-6,"sat":-4,"con":-10,"exp":0,"temp":3500,"tint":0,"highlights":-40,"shadows":30,"whites":-18,"blacks":-6,"gr":28,"grs":30,"gm":null},{"n":"Kodak Vision3 200T Plus","s":"Master","c":"cine","f":true,"bw":false,"cr":{"rgb":[[0,8],[32,30],[64,62],[128,134],[192,204],[224,218],[255,238]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":-10,"sat":4,"con":-4,"exp":0.1,"temp":4900,"tint":-2,"highlights":-50,"shadows":38,"whites":-22,"blacks":-6,"gr":36,"grs":30,"gm":null},{"n":"Kodak Vision3 500T","s":"Master","c":"cine","f":true,"bw":false,"cr":{"rgb":[[0,8],[32,27],[64,62],[128,140],[192,196],[224,210],[255,231]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":-8,"sat":-4,"con":-28,"exp":0,"temp":5000,"tint":8,"highlights":-45,"shadows":35,"whites":-20,"blacks":-9,"gr":34,"grs":27,"gm":null},{"n":"Kodachrome 25","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,6],[32,28],[64,62],[128,136],[192,212],[224,230],[255,246]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":10,"sat":4,"con":4,"exp":0,"temp":0,"tint":0,"highlights":-38,"shadows":28,"whites":-14,"blacks":-12,"gr":20,"grs":16,"gm":null},{"n":"Kodachrome 64","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,4],[32,18],[64,60],[128,142],[192,218],[224,237],[255,247]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":10,"sat":4,"con":4,"exp":0,"temp":0,"tint":0,"highlights":-38,"shadows":28,"whites":-14,"blacks":-12,"gr":18,"grs":16,"gm":null},{"n":"Kodak Oktar","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,10],[32,26],[64,58],[128,140],[192,210],[224,228],[255,244]],"r":[[0,0],[128,128],[255,255]],"g":[[0,0],[128,128],[255,255]],"b":[[0,0],[128,128],[255,255]]},"vib":8,"sat":-7,"con":28,"exp":0,"temp":5500,"tint":2,"highlights":-46,"shadows":20,"whites":12,"blacks":-18,"gr":15,"grs":25,"gm":null},{"n":"Agfa Precisa","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,4],[32,25],[64,58],[128,133],[192,208],[224,228],[255,242]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":10,"sat":4,"con":3,"exp":0,"temp":6250,"tint":1,"highlights":-38,"shadows":28,"whites":-14,"blacks":-7,"gr":10,"grs":11,"gm":null},{"n":"Redscale Ultra","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,6],[32,35],[64,64],[128,132],[192,198],[224,212],[255,232]],"r":[[0,6],[128,132],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":10,"sat":-8,"con":-8,"exp":0,"temp":0,"tint":0,"highlights":-38,"shadows":28,"whites":-14,"blacks":-2,"gr":30,"grs":26,"gm":null},{"n":"Harman Phoenix","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,6],[32,35],[64,64],[128,132],[192,198],[224,212],[255,232]],"r":[[0,6],[128,132],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":10,"sat":-8,"con":-8,"exp":0,"temp":0,"tint":0,"highlights":-38,"shadows":28,"whites":-14,"blacks":-2,"gr":30,"grs":26,"gm":null},{"n":"GAF 500","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,6],[32,35],[64,64],[128,132],[192,198],[224,212],[255,232]],"r":[[0,6],[128,132],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":10,"sat":-8,"con":-8,"exp":0,"temp":0,"tint":0,"highlights":-38,"shadows":28,"whites":-14,"blacks":-2,"gr":30,"grs":26,"gm":null},{"n":"Eastman Color Negative II 100","s":"Master","c":"cine","f":true,"bw":false,"cr":{"rgb":[[0,16],[32,40],[64,78],[128,141],[192,200],[224,214],[255,232]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":-8,"sat":-4,"con":0,"exp":0,"temp":0,"tint":0,"highlights":-10,"shadows":8,"whites":-20,"blacks":-5,"gr":21,"grs":20,"gm":null},{"n":"Kodak Solara 100","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,16],[32,36],[64,70],[128,142],[192,206],[224,218],[255,232]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":10,"sat":4,"con":2,"exp":0,"temp":0,"tint":0,"highlights":-38,"shadows":28,"whites":-14,"blacks":-8,"gr":27,"grs":20,"gm":null},{"n":"Kodak Tri-X 400","s":"Master","c":"bw","f":true,"bw":true,"cr":{"rgb":[[0,0],[255,255]],"r":[[0,0],[255,255]],"g":[[0,0],[255,255]],"b":[[0,0],[255,255]]},"vib":0,"sat":0,"con":8,"exp":0,"temp":6450,"tint":6,"highlights":-38,"shadows":28,"whites":-14,"blacks":-32,"gr":80,"grs":45,"gm":null},{"n":"Kodak Tri-X 1600","s":"Master","c":"bw","f":true,"bw":true,"cr":{"rgb":[[0,0],[255,255]],"r":[[0,0],[255,255]],"g":[[0,0],[255,255]],"b":[[0,0],[255,255]]},"vib":0,"sat":0,"con":8,"exp":0,"temp":6450,"tint":6,"highlights":-38,"shadows":28,"whites":-14,"blacks":-32,"gr":80,"grs":45,"gm":null},{"n":"Ilford XP2 Super","s":"Master","c":"bw","f":true,"bw":true,"cr":{"rgb":[[0,12],[32,32],[64,64],[128,134],[192,198],[224,212],[255,248]],"r":[[0,0],[128,128],[255,255]],"g":[[0,0],[128,128],[255,255]],"b":[[0,0],[128,128],[255,255]]},"vib":0,"sat":0,"con":-6,"exp":0.1,"temp":6450,"tint":6,"highlights":-38,"shadows":28,"whites":-14,"blacks":6,"gr":10,"grs":24,"gm":null},{"n":"Kodak T-Max 400","s":"Master","c":"bw","f":true,"bw":true,"cr":{"rgb":[[0,0],[255,255]],"r":[[0,0],[255,255]],"g":[[0,0],[255,255]],"b":[[0,0],[255,255]]},"vib":0,"sat":0,"con":3,"exp":0,"temp":6450,"tint":6,"highlights":-38,"shadows":28,"whites":-14,"blacks":-7,"gr":24,"grs":17,"gm":null},{"n":"Kodak T-Max 100","s":"Master","c":"bw","f":true,"bw":true,"cr":{"rgb":[[0,0],[255,255]],"r":[[0,0],[255,255]],"g":[[0,0],[255,255]],"b":[[0,0],[255,255]]},"vib":0,"sat":0,"con":3,"exp":0,"temp":6450,"tint":6,"highlights":-38,"shadows":28,"whites":-14,"blacks":-7,"gr":24,"grs":17,"gm":null},{"n":"Fomapan 100","s":"Master","c":"bw","f":true,"bw":true,"cr":{"rgb":[[0,8],[32,29],[64,62],[128,138],[192,200],[224,214],[255,236]],"r":[[0,6],[128,138],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":0,"sat":0,"con":3,"exp":0.05,"temp":6450,"tint":6,"highlights":-38,"shadows":28,"whites":-14,"blacks":-9,"gr":26,"grs":21,"gm":null},{"n":"Arista EDU 100","s":"Master","c":"bw","f":true,"bw":true,"cr":{"rgb":[[0,8],[32,29],[64,62],[128,138],[192,200],[224,214],[255,236]],"r":[[0,6],[128,138],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":0,"sat":0,"con":3,"exp":0.05,"temp":6450,"tint":6,"highlights":-38,"shadows":28,"whites":-14,"blacks":-9,"gr":26,"grs":21,"gm":null},{"n":"Ilford HP5 400","s":"Master","c":"bw","f":true,"bw":true,"cr":{"rgb":[[0,0],[255,255]],"r":[[0,0],[255,255]],"g":[[0,0],[255,255]],"b":[[0,0],[255,255]]},"vib":0,"sat":0,"con":5,"exp":0,"temp":6450,"tint":6,"highlights":-38,"shadows":28,"whites":-14,"blacks":-20,"gr":60,"grs":36,"gm":null},{"n":"Ilford Delta 3200","s":"Master","c":"bw","f":true,"bw":true,"cr":{"rgb":[[0,0],[255,255]],"r":[[0,0],[255,255]],"g":[[0,0],[255,255]],"b":[[0,0],[255,255]]},"vib":0,"sat":0,"con":2,"exp":0.05,"temp":6450,"tint":6,"highlights":-38,"shadows":28,"whites":-14,"blacks":-4,"gr":15,"grs":17,"gm":null},{"n":"Kosmo Pan","s":"Master","c":"bw","f":true,"bw":true,"cr":{"rgb":[[0,8],[32,29],[64,62],[128,138],[192,200],[224,214],[255,236]],"r":[[0,6],[128,138],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":0,"sat":0,"con":3,"exp":0.05,"temp":6450,"tint":6,"highlights":-38,"shadows":28,"whites":-14,"blacks":-9,"gr":26,"grs":21,"gm":null},{"n":"Kodak Vision3 BW","s":"Master","c":"bw","f":true,"bw":true,"cr":{"rgb":[[0,8],[32,30],[64,60],[128,136],[192,208],[224,222],[255,242]],"r":[[0,0],[128,128],[255,255]],"g":[[0,0],[128,128],[255,255]],"b":[[0,0],[128,128],[255,255]]},"vib":0,"sat":0,"con":-4,"exp":0.1,"temp":6500,"tint":0,"highlights":-45,"shadows":35,"whites":-20,"blacks":3,"gr":21,"grs":30,"gm":null},{"n":"Fomapan 400","s":"Master","c":"bw","f":true,"bw":true,"cr":{"rgb":[[0,10],[32,20],[64,50],[128,128],[192,208],[224,224],[255,232]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":0,"sat":0,"con":4,"exp":0,"temp":6450,"tint":6,"highlights":-38,"shadows":28,"whites":-14,"blacks":-19,"gr":60,"grs":35,"gm":null},{"n":"Ilford Delta 100","s":"Master","c":"bw","f":true,"bw":true,"cr":{"rgb":[[0,0],[255,255]],"r":[[0,0],[255,255]],"g":[[0,0],[255,255]],"b":[[0,0],[255,255]]},"vib":0,"sat":0,"con":2,"exp":0.05,"temp":6450,"tint":6,"highlights":-38,"shadows":28,"whites":-14,"blacks":-4,"gr":15,"grs":17,"gm":null},{"n":"Sony Standard CL","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,8],[32,31],[64,63],[128,138],[192,203],[224,218],[255,235]],"r":[[0,6],[128,134],[255,248]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,121],[255,233]]},"vib":1,"sat":-1,"con":0,"exp":0.03,"temp":5550,"tint":1,"highlights":-22,"shadows":14,"whites":-7,"blacks":-7,"gr":12,"grs":13,"gm":null},{"n":"Vektro100","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,8],[32,30],[64,62],[128,137],[192,204],[224,219],[255,235]],"r":[[0,6],[128,134],[255,248]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,121],[255,233]]},"vib":2,"sat":0,"con":3,"exp":0.03,"temp":5480,"tint":0,"highlights":-24,"shadows":12,"whites":-6,"blacks":-9,"gr":12,"grs":13,"gm":null},{"n":"Senova Light","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,9],[32,34],[64,66],[128,143],[192,204],[224,218],[255,236]],"r":[[0,6],[128,134],[255,248]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,122],[255,234]]},"vib":-2,"sat":-3,"con":-10,"exp":0.05,"temp":5600,"tint":1,"highlights":-24,"shadows":18,"whites":-10,"blacks":-3,"gr":12,"grs":13,"gm":null},{"n":"Evpro+","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,7],[32,28],[64,61],[128,137],[192,204],[224,220],[255,236]],"r":[[0,6],[128,134],[255,248]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":5,"sat":1,"con":8,"exp":0.03,"temp":5700,"tint":1,"highlights":-28,"shadows":16,"whites":-6,"blacks":-12,"gr":14,"grs":14,"gm":null},{"n":"Kodak Gold V1","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,14],[32,34],[64,68],[128,142],[192,204],[224,218],[255,234]],"r":[[0,8],[128,135],[255,248]],"g":[[0,2],[128,126],[255,243]],"b":[[0,4],[128,121],[255,233]]},"vib":7,"sat":1,"con":-1,"exp":0.08,"temp":5540,"tint":1,"highlights":-34,"shadows":22,"whites":-12,"blacks":-6,"gr":18,"grs":17,"gm":null},{"n":"Kodak Gold V2","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,14],[32,35],[64,70],[128,143],[192,205],[224,219],[255,234]],"r":[[0,8],[128,136],[255,249]],"g":[[0,2],[128,126],[255,242]],"b":[[0,4],[128,120],[255,232]]},"vib":8,"sat":2,"con":3,"exp":0.1,"temp":5580,"tint":2,"highlights":-32,"shadows":22,"whites":-10,"blacks":-7,"gr":19,"grs":18,"gm":null},{"n":"Kodachrome V1","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,4],[32,18],[64,60],[128,142],[192,218],[224,237],[255,247]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":8,"sat":2,"con":7,"exp":0.03,"temp":6000,"tint":1,"highlights":-28,"shadows":18,"whites":-8,"blacks":-14,"gr":12,"grs":12,"gm":null},{"n":"Kodachrome V2","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,3],[32,16],[64,58],[128,144],[192,220],[224,239],[255,248]],"r":[[0,6],[128,136],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,118],[255,230]]},"vib":10,"sat":3,"con":10,"exp":0.04,"temp":6125,"tint":2,"highlights":-26,"shadows":16,"whites":-7,"blacks":-16,"gr":10,"grs":12,"gm":null},{"n":"Kodachrome V3","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,4],[32,18],[64,60],[128,140],[192,214],[224,234],[255,246]],"r":[[0,6],[128,134],[255,248]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":6,"sat":1,"con":5,"exp":0.03,"temp":5900,"tint":1,"highlights":-30,"shadows":18,"whites":-8,"blacks":-13,"gr":12,"grs":12,"gm":null},{"n":"Leicachrome","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,4],[32,18],[64,58],[128,140],[192,214],[224,234],[255,246]],"r":[[0,6],[128,134],[255,248]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":6,"sat":1,"con":6,"exp":0.02,"temp":5750,"tint":1,"highlights":-30,"shadows":20,"whites":-10,"blacks":-12,"gr":10,"grs":12,"gm":null},{"n":"Velvia Pro","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,4],[32,12],[64,52],[128,142],[192,234],[224,251],[255,247]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":10,"sat":4,"con":8,"exp":0.02,"temp":6200,"tint":2,"highlights":-30,"shadows":18,"whites":-8,"blacks":-16,"gr":10,"grs":12,"gm":null},{"n":"Classic Chrome","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,8],[32,30],[64,62],[128,134],[192,202],[224,218],[255,236]],"r":[[0,6],[128,132],[255,248]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,118],[255,230]]},"vib":-6,"sat":-8,"con":-7,"exp":0.04,"temp":5400,"tint":1,"highlights":-32,"shadows":18,"whites":-10,"blacks":-7,"gr":14,"grs":16,"gm":null},{"n":"Pro Neg Std","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,8],[32,32],[64,64],[128,141],[192,200],[224,215],[255,234]],"r":[[0,6],[128,133],[255,248]],"g":[[0,0],[128,126],[255,243]],"b":[[0,4],[128,121],[255,233]]},"vib":-3,"sat":-4,"con":-8,"exp":0.04,"temp":5450,"tint":1,"highlights":-30,"shadows":18,"whites":-10,"blacks":-4,"gr":12,"grs":13,"gm":null},{"n":"Sony Classic Negative","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,9],[32,34],[64,67],[128,134],[192,199],[224,221],[255,244]],"r":[[0,5],[128,132],[255,245]],"g":[[0,2],[128,126],[255,242]],"b":[[0,4],[128,123],[255,236]]},"vib":-5,"sat":-5,"con":-8,"exp":0.04,"temp":5600,"tint":0,"highlights":-28,"shadows":18,"whites":-12,"blacks":-4,"gr":12,"grs":13,"gm":null},{"n":"Fuji Nostalgic Neg","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,7],[32,31],[64,64],[128,142],[192,202],[224,216],[255,235]],"r":[[0,6],[128,134],[255,248]],"g":[[0,0],[128,126],[255,243]],"b":[[0,4],[128,121],[255,233]]},"vib":-2,"sat":-3,"con":-5,"exp":0.06,"temp":5600,"tint":0,"highlights":-28,"shadows":20,"whites":-10,"blacks":-5,"gr":15,"grs":15,"gm":null},{"n":"Fuji Eterna","s":"Master","c":"cine","f":true,"bw":false,"cr":{"rgb":[[0,8],[32,32],[64,64],[128,140],[192,198],[224,214],[255,234]],"r":[[0,6],[128,132],[255,248]],"g":[[0,0],[128,126],[255,243]],"b":[[0,4],[128,121],[255,233]]},"vib":-4,"sat":-4,"con":-10,"exp":0.05,"temp":5250,"tint":0,"highlights":-30,"shadows":24,"whites":-12,"blacks":-4,"gr":14,"grs":14,"gm":null},{"n":"Sony Eterna","s":"Master","c":"cine","f":true,"bw":false,"cr":{"rgb":[[0,8],[32,32],[64,64],[128,140],[192,198],[224,214],[255,234]],"r":[[0,6],[128,132],[255,248]],"g":[[0,0],[128,126],[255,243]],"b":[[0,4],[128,121],[255,233]]},"vib":-4,"sat":-4,"con":-10,"exp":0.04,"temp":5280,"tint":0,"highlights":-30,"shadows":24,"whites":-12,"blacks":-4,"gr":13,"grs":14,"gm":null},{"n":"Acros X","s":"Master","c":"bw","f":true,"bw":true,"cr":{"rgb":[[0,0],[255,255]],"r":[[0,0],[255,255]],"g":[[0,0],[255,255]],"b":[[0,0],[255,255]]},"vib":0,"sat":0,"con":6,"exp":0,"temp":6100,"tint":4,"highlights":-36,"shadows":26,"whites":-12,"blacks":-18,"gr":48,"grs":28,"gm":null},{"n":"Acros XY","s":"Master","c":"bw","f":true,"bw":true,"cr":{"rgb":[[0,0],[255,255]],"r":[[0,0],[255,255]],"g":[[0,0],[255,255]],"b":[[0,0],[255,255]]},"vib":0,"sat":0,"con":5,"exp":0.01,"temp":6150,"tint":4,"highlights":-34,"shadows":24,"whites":-11,"blacks":-18,"gr":46,"grs":28,"gm":null},{"n":"Acros XR","s":"Master","c":"bw","f":true,"bw":true,"cr":{"rgb":[[0,0],[255,255]],"r":[[0,0],[255,255]],"g":[[0,0],[255,255]],"b":[[0,0],[255,255]]},"vib":0,"sat":0,"con":10,"exp":0.01,"temp":6200,"tint":5,"highlights":-34,"shadows":22,"whites":-10,"blacks":-20,"gr":52,"grs":30,"gm":null},{"n":"Acros XG","s":"Master","c":"bw","f":true,"bw":true,"cr":{"rgb":[[0,0],[255,255]],"r":[[0,0],[255,255]],"g":[[0,0],[255,255]],"b":[[0,0],[255,255]]},"vib":0,"sat":0,"con":3,"exp":0,"temp":6000,"tint":3,"highlights":-38,"shadows":32,"whites":-12,"blacks":-16,"gr":44,"grs":27,"gm":null},{"n":"Sony Nostalgic Neg","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,7],[32,31],[64,64],[128,142],[192,202],[224,216],[255,235]],"r":[[0,6],[128,134],[255,248]],"g":[[0,0],[128,126],[255,243]],"b":[[0,4],[128,121],[255,233]]},"vib":-2,"sat":-3,"con":-5,"exp":0.05,"temp":5675,"tint":1,"highlights":-26,"shadows":20,"whites":-10,"blacks":-5,"gr":13,"grs":14,"gm":null},{"n":"Classic Cinema","s":"Master","c":"cine","f":true,"bw":false,"cr":{"rgb":[[0,6],[32,34],[64,66],[128,144],[192,202],[224,217],[255,236]],"r":[[0,6],[128,134],[255,248]],"g":[[0,0],[128,126],[255,243]],"b":[[0,4],[128,121],[255,233]]},"vib":-1,"sat":-2,"con":-3,"exp":0.06,"temp":5380,"tint":1,"highlights":-32,"shadows":24,"whites":-11,"blacks":-5,"gr":16,"grs":16,"gm":null},{"n":"Oktar","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,8],[32,31],[64,63],[128,138],[192,203],[224,218],[255,235]],"r":[[0,6],[128,134],[255,247]],"g":[[0,1],[128,127],[255,243]],"b":[[0,4],[128,121],[255,233]]},"vib":2,"sat":0,"con":1,"exp":0.03,"temp":5725,"tint":1,"highlights":-24,"shadows":14,"whites":-7,"blacks":-8,"gr":12,"grs":13,"gm":null},{"n":"Zero Mute","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,10],[32,36],[64,68],[128,133],[192,198],[224,221],[255,246]],"r":[[0,5],[128,130],[255,245]],"g":[[0,4],[128,126],[255,243]],"b":[[0,7],[128,123],[255,240]]},"vib":-9,"sat":-12,"con":-15,"exp":0.04,"temp":5400,"tint":0,"highlights":-28,"shadows":22,"whites":-14,"blacks":-2,"gr":10,"grs":12,"gm":null},{"n":"CineChrome","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,8],[32,30],[64,62],[128,134],[192,202],[224,218],[255,236]],"r":[[0,6],[128,132],[255,248]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,118],[255,230]]},"vib":-5,"sat":-7,"con":-8,"exp":0.04,"temp":5180,"tint":-1,"highlights":-30,"shadows":18,"whites":-10,"blacks":-6,"gr":14,"grs":16,"gm":null},{"n":"ProColor","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,8],[32,31],[64,63],[128,138],[192,203],[224,218],[255,235]],"r":[[0,6],[128,134],[255,248]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,121],[255,233]]},"vib":2,"sat":-1,"con":1,"exp":0.05,"temp":5650,"tint":1,"highlights":-24,"shadows":16,"whites":-8,"blacks":-7,"gr":14,"grs":15,"gm":null},{"n":"Blue Velvet - CineStill 50D","s":"Master","c":"cine","f":true,"bw":false,"cr":{"rgb":[[0,6],[32,34],[64,66],[128,144],[192,201],[224,216],[255,236]],"r":[[0,6],[128,132],[255,246]],"g":[[0,0],[128,125],[255,242]],"b":[[0,6],[128,123],[255,234]]},"vib":-5,"sat":-4,"con":-5,"exp":0.02,"temp":5100,"tint":-4,"highlights":-38,"shadows":28,"whites":-14,"blacks":-4,"gr":14,"grs":15,"gm":null},{"n":"CineStill 800","s":"Master","c":"cine","f":true,"bw":false,"cr":{"rgb":[[0,8],[32,27],[64,60],[128,136],[192,206],[224,222],[255,238]],"r":[[0,6],[128,134],[255,248]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,118],[255,230]]},"vib":2,"sat":-3,"con":-3,"exp":0.1,"temp":4900,"tint":2,"highlights":-34,"shadows":22,"whites":-8,"blacks":-8,"gr":22,"grs":24,"gm":null},{"n":"CineStill X","s":"Master","c":"cine","f":true,"bw":false,"cr":{"rgb":[[0,8],[32,31],[64,64],[128,137],[192,202],[224,219],[255,238]],"r":[[0,4],[128,130],[255,241]],"g":[[0,1],[128,125],[255,239]],"b":[[0,6],[128,126],[255,241]]},"vib":-2,"sat":-1,"con":0,"exp":0.05,"temp":5000,"tint":-1,"highlights":-30,"shadows":20,"whites":-10,"blacks":-6,"gr":12,"grs":13,"gm":null},{"n":"Chroma Fade","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,12],[32,36],[64,68],[128,146],[192,206],[224,220],[255,237]],"r":[[0,8],[128,136],[255,248]],"g":[[0,3],[128,128],[255,244]],"b":[[0,7],[128,124],[255,235]]},"vib":-10,"sat":-12,"con":-15,"exp":0.06,"temp":5450,"tint":-1,"highlights":-18,"shadows":24,"whites":-14,"blacks":0,"gr":13,"grs":15,"gm":null},{"n":"Neo Max","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,5],[32,24],[64,56],[128,136],[192,207],[224,217],[255,230]],"r":[[0,4],[128,129],[255,240]],"g":[[0,1],[128,124],[255,238]],"b":[[0,5],[128,123],[255,236]]},"vib":-2,"sat":-4,"con":11,"exp":0.03,"temp":5200,"tint":-1,"highlights":-24,"shadows":10,"whites":-6,"blacks":-12,"gr":12,"grs":13,"gm":null},{"n":"MidRed Infra","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,7],[32,28],[64,59],[128,136],[192,204],[224,218],[255,234]],"r":[[0,8],[128,138],[255,250]],"g":[[0,1],[128,126],[255,241]],"b":[[0,2],[128,118],[255,228]]},"vib":4,"sat":2,"con":4,"exp":0.04,"temp":6200,"tint":4,"highlights":-18,"shadows":12,"whites":-5,"blacks":-10,"gr":12,"grs":13,"gm":null},{"n":"DreamNeg","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,9],[32,34],[64,67],[128,145],[192,205],[224,219],[255,236]],"r":[[0,6],[128,134],[255,248]],"g":[[0,1],[128,127],[255,244]],"b":[[0,5],[128,122],[255,234]]},"vib":-4,"sat":-5,"con":-13,"exp":0.08,"temp":5525,"tint":2,"highlights":-20,"shadows":18,"whites":-12,"blacks":-3,"gr":16,"grs":18,"gm":null},{"n":"Zetra 100","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,8],[32,31],[64,63],[128,139],[192,204],[224,219],[255,236]],"r":[[0,5],[128,133],[255,246]],"g":[[0,1],[128,126],[255,242]],"b":[[0,4],[128,122],[255,234]]},"vib":2,"sat":0,"con":3,"exp":0.03,"temp":5625,"tint":0,"highlights":-24,"shadows":14,"whites":-7,"blacks":-8,"gr":12,"grs":13,"gm":null},{"n":"Rose Spectra","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,9],[32,33],[64,66],[128,136],[192,201],[224,220],[255,239]],"r":[[0,7],[128,136],[255,250]],"g":[[0,2],[128,126],[255,244]],"b":[[0,4],[128,124],[255,236]]},"vib":3,"sat":1,"con":-2,"exp":0.04,"temp":5950,"tint":3,"highlights":-22,"shadows":16,"whites":-8,"blacks":-6,"gr":12,"grs":13,"gm":null},{"n":"Asteroid City - Kodak Vision T200 - V1","s":"Master","c":"cine","f":true,"bw":false,"cr":{"rgb":[[0,8],[32,28],[64,62],[128,136],[192,204],[224,220],[255,236]],"r":[[0,6],[128,134],[255,248]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,122],[255,234]]},"vib":-3,"sat":-5,"con":-6,"exp":0.06,"temp":5280,"tint":-4,"highlights":-26,"shadows":18,"whites":-10,"blacks":-8,"gr":16,"grs":15,"gm":null},{"n":"Asteroid City - Kodak Vision T200 - V2","s":"Master","c":"cine","f":true,"bw":false,"cr":{"rgb":[[0,8],[32,30],[64,62],[128,140],[192,204],[224,220],[255,236]],"r":[[0,6],[128,134],[255,248]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,122],[255,234]]},"vib":-1,"sat":-3,"con":-5,"exp":0.05,"temp":5425,"tint":-2,"highlights":-24,"shadows":18,"whites":-10,"blacks":-7,"gr":15,"grs":15,"gm":null},{"n":"Ayon 200","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,8],[32,30],[64,62],[128,138],[192,206],[224,221],[255,236]],"r":[[0,6],[128,134],[255,248]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,121],[255,233]]},"vib":-3,"sat":-6,"con":-8,"exp":0.08,"temp":5225,"tint":3,"highlights":-24,"shadows":20,"whites":-10,"blacks":-6,"gr":18,"grs":17,"gm":null},{"n":"Phoenix Harman","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,7],[32,28],[64,61],[128,138],[192,205],[224,221],[255,236]],"r":[[0,6],[128,135],[255,248]],"g":[[0,0],[128,125],[255,243]],"b":[[0,4],[128,120],[255,232]]},"vib":6,"sat":2,"con":11,"exp":0.05,"temp":5850,"tint":4,"highlights":-26,"shadows":14,"whites":-4,"blacks":-12,"gr":18,"grs":17,"gm":null},{"n":"Phenomena","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,7],[32,30],[64,61],[128,137],[192,205],[224,218],[255,233]],"r":[[0,5],[128,132],[255,246]],"g":[[0,1],[128,127],[255,244]],"b":[[0,3],[128,121],[255,232]]},"vib":2,"sat":0,"con":6,"exp":0.03,"temp":5480,"tint":1,"highlights":-24,"shadows":14,"whites":-6,"blacks":-10,"gr":12,"grs":13,"gm":null},{"n":"Crimson","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,7],[32,28],[64,61],[128,138],[192,204],[224,220],[255,236]],"r":[[0,7],[128,136],[255,248]],"g":[[0,0],[128,125],[255,243]],"b":[[0,4],[128,120],[255,232]]},"vib":4,"sat":1,"con":4,"exp":0.04,"temp":5900,"tint":5,"highlights":-24,"shadows":14,"whites":-6,"blacks":-10,"gr":16,"grs":16,"gm":null},{"n":"Acidnom","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,7],[32,28],[64,60],[128,136],[192,204],[224,220],[255,236]],"r":[[0,5],[128,132],[255,247]],"g":[[0,0],[128,124],[255,242]],"b":[[0,6],[128,120],[255,232]]},"vib":2,"sat":-1,"con":3,"exp":0.04,"temp":5000,"tint":-6,"highlights":-20,"shadows":12,"whites":-6,"blacks":-9,"gr":15,"grs":15,"gm":null},{"n":"Estra 500","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,8],[32,31],[64,63],[128,139],[192,202],[224,217],[255,235]],"r":[[0,6],[128,133],[255,248]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,121],[255,233]]},"vib":-1,"sat":-2,"con":-4,"exp":0.05,"temp":5325,"tint":2,"highlights":-28,"shadows":20,"whites":-9,"blacks":-5,"gr":16,"grs":16,"gm":null},{"n":"X-Tarr","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,7],[32,29],[64,61],[128,137],[192,203],[224,218],[255,235]],"r":[[0,5],[128,131],[255,244]],"g":[[0,2],[128,127],[255,243]],"b":[[0,4],[128,122],[255,234]]},"vib":2,"sat":1,"con":2,"exp":0.04,"temp":5350,"tint":-1,"highlights":-22,"shadows":14,"whites":-6,"blacks":-8,"gr":12,"grs":13,"gm":null},{"n":"Magic Spice","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,8],[32,31],[64,64],[128,141],[192,204],[224,219],[255,236]],"r":[[0,6],[128,135],[255,248]],"g":[[0,0],[128,126],[255,243]],"b":[[0,4],[128,121],[255,233]]},"vib":2,"sat":0,"con":-2,"exp":0.06,"temp":6125,"tint":2,"highlights":-18,"shadows":18,"whites":-8,"blacks":-5,"gr":15,"grs":16,"gm":null},{"n":"Amarelo 30D","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,8],[32,32],[64,65],[128,142],[192,204],[224,219],[255,236]],"r":[[0,6],[128,134],[255,248]],"g":[[0,1],[128,127],[255,244]],"b":[[0,4],[128,122],[255,234]]},"vib":1,"sat":-1,"con":-4,"exp":0.06,"temp":6250,"tint":-1,"highlights":-16,"shadows":16,"whites":-8,"blacks":-4,"gr":13,"grs":14,"gm":null},{"n":"Vespera","s":"Master","c":"cine","f":true,"bw":false,"cr":{"rgb":[[0,6],[32,28],[64,59],[128,136],[192,206],[224,217],[255,231]],"r":[[0,4],[128,130],[255,242]],"g":[[0,1],[128,125],[255,240]],"b":[[0,4],[128,123],[255,235]]},"vib":3,"sat":0,"con":8,"exp":0.03,"temp":5050,"tint":-2,"highlights":-20,"shadows":12,"whites":-5,"blacks":-11,"gr":12,"grs":13,"gm":null},{"n":"Veniliqum","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,8],[32,31],[64,63],[128,135],[192,201],[224,219],[255,238]],"r":[[0,4],[128,130],[255,243]],"g":[[0,2],[128,125],[255,240]],"b":[[0,5],[128,124],[255,238]]},"vib":-1,"sat":-2,"con":0,"exp":0.04,"temp":5150,"tint":-1,"highlights":-26,"shadows":18,"whites":-8,"blacks":-8,"gr":12,"grs":13,"gm":null},{"n":"Gold Luxe","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,14],[32,34],[64,68],[128,142],[192,206],[224,220],[255,236]],"r":[[0,8],[128,136],[255,248]],"g":[[0,2],[128,126],[255,242]],"b":[[0,4],[128,121],[255,232]]},"vib":8,"sat":1,"con":0,"exp":0.1,"temp":5650,"tint":2,"highlights":-34,"shadows":24,"whites":-12,"blacks":-5,"gr":20,"grs":18,"gm":null},{"n":"Fuji 400H","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,6],[32,30],[64,64],[128,146],[192,200],[224,214],[255,233]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":-10,"sat":4,"con":0,"exp":0,"temp":5350,"tint":2,"highlights":-50,"shadows":38,"whites":-22,"blacks":-1,"gr":18,"grs":20,"gm":null},{"n":"Ektar 100","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,10],[32,26],[64,58],[128,140],[192,210],[224,228],[255,244]],"r":[[0,0],[128,128],[255,255]],"g":[[0,0],[128,128],[255,255]],"b":[[0,0],[128,128],[255,255]]},"vib":8,"sat":-7,"con":28,"exp":0,"temp":5500,"tint":2,"highlights":-46,"shadows":20,"whites":12,"blacks":-18,"gr":15,"grs":25,"gm":null},{"n":"Kodak Color Plus 200","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,6],[32,35],[64,64],[128,132],[192,198],[224,212],[255,232]],"r":[[0,6],[128,132],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":10,"sat":-8,"con":-8,"exp":0,"temp":0,"tint":0,"highlights":-38,"shadows":28,"whites":-14,"blacks":-2,"gr":30,"grs":26,"gm":null},{"n":"Ektachrome","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,4],[32,18],[64,60],[128,142],[192,218],[224,237],[255,247]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":10,"sat":4,"con":4,"exp":0,"temp":0,"tint":0,"highlights":-38,"shadows":28,"whites":-14,"blacks":-12,"gr":18,"grs":16,"gm":null},{"n":"Fuji Provia","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,4],[32,25],[64,58],[128,133],[192,208],[224,228],[255,242]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":10,"sat":4,"con":3,"exp":0,"temp":6250,"tint":1,"highlights":-38,"shadows":28,"whites":-14,"blacks":-7,"gr":10,"grs":11,"gm":null},{"n":"Provia RX","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,4],[32,25],[64,58],[128,133],[192,208],[224,228],[255,242]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":10,"sat":4,"con":3,"exp":0,"temp":6250,"tint":1,"highlights":-38,"shadows":28,"whites":-14,"blacks":-7,"gr":10,"grs":11,"gm":null},{"n":"Astia","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,8],[32,34],[64,72],[128,138],[192,196],[224,210],[255,238]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":-10,"sat":4,"con":-2,"exp":0,"temp":5100,"tint":4,"highlights":-50,"shadows":38,"whites":-22,"blacks":-2,"gr":22,"grs":20,"gm":null},{"n":"Fortia 50","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,4],[32,12],[64,52],[128,142],[192,234],[224,251],[255,247]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":10,"sat":4,"con":6,"exp":0,"temp":6300,"tint":2,"highlights":-38,"shadows":28,"whites":-14,"blacks":-16,"gr":12,"grs":12,"gm":null},{"n":"T-Max100","s":"Master","c":"bw","f":true,"bw":true,"cr":{"rgb":[[0,0],[255,255]],"r":[[0,0],[255,255]],"g":[[0,0],[255,255]],"b":[[0,0],[255,255]]},"vib":0,"sat":0,"con":3,"exp":0,"temp":6450,"tint":6,"highlights":-38,"shadows":28,"whites":-14,"blacks":-7,"gr":24,"grs":17,"gm":null},{"n":"Delta 3200","s":"Master","c":"bw","f":true,"bw":true,"cr":{"rgb":[[0,0],[255,255]],"r":[[0,0],[255,255]],"g":[[0,0],[255,255]],"b":[[0,0],[255,255]]},"vib":0,"sat":0,"con":2,"exp":0.05,"temp":6450,"tint":6,"highlights":-38,"shadows":28,"whites":-14,"blacks":-4,"gr":15,"grs":17,"gm":null},{"n":"Ilford HP5","s":"Master","c":"bw","f":true,"bw":true,"cr":{"rgb":[[0,0],[255,255]],"r":[[0,0],[255,255]],"g":[[0,0],[255,255]],"b":[[0,0],[255,255]]},"vib":0,"sat":0,"con":5,"exp":0,"temp":6450,"tint":6,"highlights":-38,"shadows":28,"whites":-14,"blacks":-20,"gr":60,"grs":36,"gm":null},{"n":"RedScale Ultra","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,6],[32,35],[64,64],[128,132],[192,198],[224,212],[255,232]],"r":[[0,6],[128,132],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":10,"sat":-8,"con":-8,"exp":0,"temp":0,"tint":0,"highlights":-38,"shadows":28,"whites":-14,"blacks":-2,"gr":30,"grs":26,"gm":null},{"n":"Solara 100","s":"Master","c":"neg","f":true,"bw":false,"cr":{"rgb":[[0,16],[32,36],[64,70],[128,142],[192,206],[224,218],[255,232]],"r":[[0,6],[128,134],[255,250]],"g":[[0,0],[128,126],[255,244]],"b":[[0,4],[128,120],[255,232]]},"vib":10,"sat":4,"con":2,"exp":0,"temp":0,"tint":0,"highlights":-38,"shadows":28,"whites":-14,"blacks":-8,"gr":27,"grs":20,"gm":null}];
+
+// ===== iOS DETECTION =====
+const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+if(isIOS){const bd=document.getElementById('btnDownload');if(bd)bd.style.display='none'}
+else{document.getElementById('iosHint').style.display='none'}
+
+// ===== CART =====
+let cart=[];
+function toggleCart(){document.getElementById('cartDrawer').classList.toggle('open')}
+function addToCart(n,p){if(!cart.find(i=>i.name===n))cart.push({name:n,price:p});updateCartUI();document.getElementById('cartDrawer').classList.add('open')}
+function updateCartUI(){const c=document.getElementById('cartItems'),t=document.getElementById('cartTotal');document.getElementById('cartCount').textContent=cart.length;if(!cart.length){c.innerHTML='<div class="cart-empty">Koszyk pusty.</div>';t.textContent='0 PLN';return}let tot=0;c.innerHTML=cart.map((item,i)=>{tot+=item.price;return`<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)"><div><div style="font-size:0.9rem;font-weight:500">${item.name}</div><div style="font-family:'JetBrains Mono',monospace;color:var(--film);font-size:0.78rem">${item.price} PLN</div></div><button onclick="cart.splice(${i},1);updateCartUI()" style="background:none;border:none;color:var(--t3);cursor:pointer;font-size:0.7rem;text-transform:uppercase">Usuń</button></div>`}).join('');t.textContent=tot+' PLN'}
+function checkout(){window.location.href='https://mindfullens.pl/cennik/'}
+
+// ===== STATE =====
+let curIdx=0,strength=60,curStream=null,facingMode='environment',animId=null,lastDataURL=null,showGrid=true;
+let filteredIndices=[],curFilteredPos=0,devMode=false;
+let proChromAb=false,proGlow=false;
+const video=document.getElementById('cameraVideo');
+const canvas=document.getElementById('outputCanvas');
+const ctx=canvas.getContext('2d',{willReadFrequently:true});
+const vf=document.getElementById('viewfinder');
+const fxCv=document.createElement('canvas');
+const fxCx=fxCv.getContext('2d');
+
+// ===== BUILD LUT =====
+function buildLUT(pts){const lut=new Uint8Array(256);if(!pts||pts.length<2){for(let i=0;i<256;i++)lut[i]=i;return lut}const s=[...pts].sort((a,b)=>a[0]-b[0]);for(let i=0;i<256;i++){if(i<=s[0][0]){lut[i]=Math.max(0,Math.min(255,s[0][1]));continue}if(i>=s[s.length-1][0]){lut[i]=Math.max(0,Math.min(255,s[s.length-1][1]));continue}for(let j=0;j<s.length-1;j++){if(i>=s[j][0]&&i<=s[j+1][0]){const t=(i-s[j][0])/(s[j+1][0]-s[j][0]);const sm=t*t*(3-2*t);lut[i]=Math.max(0,Math.min(255,Math.round(s[j][1]+(s[j+1][1]-s[j][1])*sm)));break}}}return lut}
+const filmLUTs=F.map(f=>({rgb:buildLUT(f.cr?.rgb),r:buildLUT(f.cr?.r),g:buildLUT(f.cr?.g),b:buildLUT(f.cr?.b)}));
+
+function swatchStyle(f,i){if(f.bw)return'background:linear-gradient(135deg,#666,#333)';const lut=filmLUTs[i];return`background:linear-gradient(135deg,rgb(${lut.r[180]},${lut.g[160]},${lut.b[140]}),rgb(${lut.r[80]},${lut.g[90]},${lut.b[100]}))`}
+
+// ===== CAROUSEL =====
+function buildCarousel(cat='all'){filteredIndices=[];F.forEach((f,i)=>{if(cat==='all'||f.c===cat)filteredIndices.push(i)});curFilteredPos=filteredIndices.indexOf(curIdx);if(curFilteredPos<0)curFilteredPos=0;const car=document.getElementById('filmCarousel');car.innerHTML=filteredIndices.map(fi=>{const f=F[fi];return`<div class="film-item ${fi===curIdx?'active':''}" id="fi-${fi}" onclick="selectFilm(${fi})"><div class="film-color" style="${swatchStyle(f,fi)}">${!f.f&&!devMode?'🔒':''}</div><div class="film-item-name">${f.n}</div></div>`}).join('');setTimeout(()=>scrollToFilm(curIdx),50)}
+function scrollToFilm(fi){const car=document.getElementById('filmCarousel');const el=document.getElementById('fi-'+fi);if(el)car.scrollTo({left:el.offsetLeft-car.offsetWidth/2+el.offsetWidth/2,behavior:'smooth'})}
+function selectFilm(fi){const f=F[fi];if(!f.f&&!devMode){document.getElementById('lockScreen').classList.add('show');return}curIdx=fi;curFilteredPos=filteredIndices.indexOf(fi);document.querySelectorAll('.film-item').forEach(e=>e.classList.remove('active'));const el=document.getElementById('fi-'+fi);if(el)el.classList.add('active');document.getElementById('currentLabel').textContent=f.n;scrollToFilm(fi)}
+function prevFilm(){let p=curFilteredPos-1;while(p>=0&&!F[filteredIndices[p]].f&&!devMode)p--;if(p<0)return;curFilteredPos=p;selectFilm(filteredIndices[p])}
+function nextFilm(){let p=curFilteredPos+1;while(p<filteredIndices.length&&!F[filteredIndices[p]].f&&!devMode)p++;if(p>=filteredIndices.length)return;curFilteredPos=p;selectFilm(filteredIndices[p])}
+function filterCat(cat,btn){document.querySelectorAll('.cat-tab').forEach(t=>t.classList.remove('active'));btn.classList.add('active');buildCarousel(cat)}
+function closeLock(){document.getElementById('lockScreen').classList.remove('show')}
+function toggleGrid(){showGrid=!showGrid;document.getElementById('gridLines').style.display=showGrid?'':'none';document.getElementById('btnGrid').classList.toggle('active',showGrid)}
+function toggleChromAb(){if(!devMode){document.getElementById('lockScreen').classList.add('show');return}proChromAb=!proChromAb;document.getElementById('btnChromAb').classList.toggle('active',proChromAb)}
+function toggleGlow(){if(!devMode){document.getElementById('lockScreen').classList.add('show');return}proGlow=!proGlow;document.getElementById('btnGlow').classList.toggle('active',proGlow)}
+function updateStrength(){strength=parseInt(document.getElementById('strSlider').value);document.getElementById('strLabel').textContent=strength+'%'}
+
+// ===== CAMERA =====
+async function initCamera(){document.getElementById('permScreen').style.display='none';await startStream();setTimeout(showAIHint,2500)}
+async function startStream(){if(curStream)curStream.getTracks().forEach(t=>t.stop());try{const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent);const constraints={video:{facingMode},audio:false};if(!isIOS){constraints.video.width={ideal:4032};constraints.video.height={ideal:3024}}curStream=await navigator.mediaDevices.getUserMedia(constraints);video.srcObject=curStream;canvas.style.transform=facingMode==='user'?'scaleX(-1)':'scaleX(1)';await new Promise((resolve)=>{video.onloadedmetadata=()=>{video.play().then(resolve).catch(resolve)};setTimeout(resolve,3000)});resizeCanvas();if(animId)cancelAnimationFrame(animId);renderLoop()}catch(e){console.error('Camera error:',e);document.getElementById('permScreen').style.display='none';const vf=document.getElementById('viewfinder');vf.innerHTML='<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--t2);text-align:center;padding:20px"><div style="font-size:2rem;margin-bottom:10px">📷</div><div style="font-size:0.9rem;margin-bottom:8px">Aparat niedostępny</div><div style="font-size:0.7rem;color:var(--t3);margin-bottom:12px">'+(e&&e.message||'Sprawdź uprawnienia kamery')+'</div><button class="btn-allow" onclick="location.reload()">Spróbuj ponownie</button></div>'}}
+function switchCamera(){facingMode=facingMode==='environment'?'user':'environment';startStream()}
+function resizeCanvas(){const r=vf.getBoundingClientRect();canvas.width=r.width*window.devicePixelRatio;canvas.height=r.height*window.devicePixelRatio}
+window.addEventListener('resize',resizeCanvas);
+
+// ===== RENDER LOOP =====
+function renderLoop(){if(video.readyState>=video.HAVE_ENOUGH_DATA){const cw=canvas.width,ch=canvas.height;const scale=Math.max(cw/video.videoWidth,ch/video.videoHeight);const x=(cw/2)-(video.videoWidth/2)*scale;const y=(ch/2)-(video.videoHeight/2)*scale;ctx.drawImage(video,x,y,video.videoWidth*scale,video.videoHeight*scale);const f=F[curIdx];const str=strength/100;if(str>0&&curIdx>0){applyFilmToCanvas(ctx,cw,ch,f,curIdx,str)}}animId=requestAnimationFrame(renderLoop)}
+
+// Shared film processing — lean pixel loop
+function applyFilmToCanvas(cx,w,h,f,fi,str){
+const imgData=cx.getImageData(0,0,w,h);const d=imgData.data;
+const lut=filmLUTs[fi];
+const isBW=f.bw;
+const gm=f.gm||[0,0,0];
+const totalCon=1+(f.con||0)*str/250;
+const totalSat=1+(f.sat||0)*str/80;
+const totalVib=(f.vib||0)*str/80;
+for(let i=0;i<d.length;i+=4){
+let r=d[i],g=d[i+1],b=d[i+2];
+let ri=r>255?255:r<0?0:r|0;let gi=g>255?255:g<0?0:g|0;let bi=b>255?255:b<0?0:b|0;
+r=r*(1-str)+lut.r[ri]*str;g=g*(1-str)+lut.g[gi]*str;b=b*(1-str)+lut.b[bi]*str;
+ri=r>255?255:r<0?0:r|0;gi=g>255?255:g<0?0:g|0;bi=b>255?255:b<0?0:b|0;
+r=r*(1-str)+lut.rgb[ri]*str;g=g*(1-str)+lut.rgb[gi]*str;b=b*(1-str)+lut.rgb[bi]*str;
+if(isBW){
+let rw=0.30+gm[0]*str*0.008,gw=0.59+gm[1]*str*0.008,bw=0.11+gm[2]*str*0.008;
+let ws=Math.abs(rw)+Math.abs(gw)+Math.abs(bw);if(ws>0){rw/=ws;gw/=ws;bw/=ws}
+let gy=r*rw+g*gw+b*bw;if(gy<0)gy=0;r=g=b=gy;
+}
+if(totalCon!==1){r=((r/255-0.5)*totalCon+0.5)*255;g=((g/255-0.5)*totalCon+0.5)*255;b=((b/255-0.5)*totalCon+0.5)*255}
+if(!isBW&&(totalSat!==1||totalVib!==0)){
+let gy=0.299*r+0.587*g+0.114*b;let sm=totalSat;
+if(totalVib!==0){const mx=Math.max(r,g,b),mn=Math.min(r,g,b);sm+=totalVib*(1-(mx>0?(mx-mn)/mx:0))}
+r=gy+(r-gy)*sm;g=gy+(g-gy)*sm;b=gy+(b-gy)*sm;
+}
+d[i]=r>255?255:r<0?0:r;d[i+1]=g>255?255:g<0?0:g;d[i+2]=b>255?255:b<0?0:b;
+}
+cx.putImageData(imgData,0,0);
+
+
+// CA (PRO)
+if(proChromAb&&str>0){
+const sh=Math.max(3,Math.round(w*0.007));
+fxCv.width=w;fxCv.height=h;
+fxCx.drawImage(cx.canvas,0,0);
+cx.save();cx.globalAlpha=0.4;cx.globalCompositeOperation='screen';
+cx.drawImage(fxCv,-sh,0);cx.drawImage(fxCv,sh,0);
+cx.globalAlpha=1;cx.globalCompositeOperation='source-over';cx.restore();
+}
+// Glow (PRO) — 2x stronger
+if(proGlow&&str>0){
+fxCv.width=w;fxCv.height=h;
+fxCx.filter='blur('+Math.max(8,Math.round(w*0.02))+'px)';
+fxCx.drawImage(cx.canvas,0,0);fxCx.filter='none';
+cx.save();cx.globalCompositeOperation='screen';cx.globalAlpha=0.6*str;
+cx.drawImage(fxCv,0,0);cx.globalAlpha=1;cx.globalCompositeOperation='source-over';cx.restore();
+}
+}
+
+// ===== TAKE PHOTO =====
+function takePhoto(){const flash=document.getElementById('flash');flash.classList.remove('fire');void flash.offsetWidth;flash.classList.add('fire');cancelAnimationFrame(animId);setTimeout(()=>{let w=video.videoWidth,h=video.videoHeight;const hqC=document.createElement('canvas');hqC.width=w;hqC.height=h;const hqX=hqC.getContext('2d',{willReadFrequently:true});if(facingMode==='user'){hqX.translate(w,0);hqX.scale(-1,1)}hqX.drawImage(video,0,0,w,h);const f=F[curIdx];const str=strength/100;if(str>0&&curIdx>0){applyFilmToCanvas(hqX,w,h,f,curIdx,str)}lastDataURL=hqC.toDataURL('image/jpeg',1.0);document.getElementById('resultImg').src=lastDataURL;document.getElementById('photoInfo').textContent=f.n+' · '+strength+'% · '+w+'×'+h;document.getElementById('photoResult').classList.add('show')},100)}
+function closeResult(){document.getElementById('photoResult').classList.remove('show');renderLoop()}
+function downloadPhoto(){
+if(!lastDataURL)return;
+const fileName='Mindfullens_'+F[curIdx].n.replace(/\s/g,'_')+'.jpg';
+// Convert to blob
+const bin=atob(lastDataURL.split(',')[1]);
+const ab=new ArrayBuffer(bin.length);
+const u8=new Uint8Array(ab);
+for(let i=0;i<bin.length;i++)u8[i]=bin.charCodeAt(i);
+const blob=new Blob([ab],{type:'image/jpeg'});
+// Blob URL download — works on both iOS and Android
+const url=URL.createObjectURL(blob);
+const a=document.createElement('a');
+a.href=url;a.download=fileName;a.style.display='none';
+document.body.appendChild(a);a.click();
+document.body.removeChild(a);
+setTimeout(()=>URL.revokeObjectURL(url),10000);
+}
+function sharePhoto(){
+if(!lastDataURL)return;
+const fileName='Mindfullens_'+F[curIdx].n.replace(/\s/g,'_')+'.jpg';
+const bin=atob(lastDataURL.split(',')[1]);
+const ab=new ArrayBuffer(bin.length);
+const u8=new Uint8Array(ab);
+for(let i=0;i<bin.length;i++)u8[i]=bin.charCodeAt(i);
+const blob=new Blob([ab],{type:'image/jpeg'});
+const file=new File([blob],fileName,{type:'image/jpeg'});
+if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){
+navigator.share({files:[file],title:'Mindfullens Photo'}).catch(()=>{});
+}else{downloadPhoto()}
+}
+
+// ===== AI HINT =====
+function showAIHint(){const hints=['Portra 400 jest idealny do portretów — naturalne tony skóry.','Wypróbuj Velvia 50 na krajobrazach — żywe, nasycone kolory.','Tri-X 400 to klasyk street photography — wyraziste czernie.','Kodachrome daje kultowy ciepły look — idealny w złotej godzinie.','CineStill 800T najlepiej wygląda nocą — halacja i niebieski odcień.','Reguluj siłę profilu suwakiem — delikatne efekty wyglądają naturalniej.'];document.getElementById('aiHintText').textContent=hints[Math.floor(Math.random()*hints.length)];document.getElementById('aiHint').classList.add('show');setTimeout(()=>document.getElementById('aiHint').classList.remove('show'),8000)}
+function closeAIHint(){document.getElementById('aiHint').classList.remove('show')}
+
+// ===== DROPDOWN CLOSE =====
+document.addEventListener('click',(e)=>{const dd=document.getElementById('toolsDropdown');if(dd&&!dd.contains(e.target))dd.classList.remove('open')});
+document.addEventListener('keydown',(e)=>{if(e.key==='Escape'){const dd=document.getElementById('toolsDropdown');if(dd)dd.classList.remove('open')}});
+
+// ===== DEV MODE: 7x tap logo =====
+let logoTaps=0,logoTimer=null;
+document.getElementById('logoBtn').addEventListener('click',(e)=>{
+  e.preventDefault();logoTaps++;clearTimeout(logoTimer);
+  logoTimer=setTimeout(()=>{logoTaps=0},1200);
+  if(logoTaps>=7){activateDevMode();logoTaps=0}
+});
+function activateDevMode(){
+  if(devMode)return;devMode=true;
+  F.forEach(f=>{f.f=true});
+  buildCarousel();
+  document.getElementById('bundles').style.display='none';
+  document.title='🔓 Mindfullens — Live Cam Pro [DEV]';
+}
+
+// ===== INIT =====
+buildCarousel();
+document.getElementById('currentLabel').textContent=F[curIdx].n;
+</script>
+</body>
+</html>

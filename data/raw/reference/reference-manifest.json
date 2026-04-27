@@ -1,0 +1,558 @@
+{
+  "name": "mindfullens-raw-reference-v1-local",
+  "description": "Uzupełnij tę listę do minimum 30 raportów DIAG JSON.",
+  "defaultThresholds": {
+    "maxHighlightClipRatio": 0.12,
+    "maxShadowClipRatio": 0.16,
+    "maxAbMeanDelta": 24,
+    "allowBlackGuard": false,
+    "allowSuspectedBlackFrame": false
+  },
+  "references": [
+    {
+      "id": "mindfullens_render_debug_1776534665735",
+      "report": "data/raw/reference/reports/mindfullens_render_debug_1776534665735.json",
+      "expected": {
+        "selectedBackend": "macOS ImageIO / sips",
+        "colorPipelineStage": "srgb-linear-srgb-v1",
+        "rawDecodeAdapter": "http-bridge"
+      },
+      "thresholds": {
+        "maxHighlightClipRatio": 0.12,
+        "maxShadowClipRatio": 0.16,
+        "maxAbMeanDelta": 24
+      }
+    },
+    {
+      "id": "mindfullens_render_debug_1776534838108",
+      "report": "data/raw/reference/reports/mindfullens_render_debug_1776534838108.json",
+      "expected": {
+        "selectedBackend": "macOS ImageIO / sips",
+        "colorPipelineStage": "srgb-linear-srgb-v1",
+        "rawDecodeAdapter": "http-bridge"
+      },
+      "thresholds": {
+        "maxHighlightClipRatio": 0.3147958291708292,
+        "maxShadowClipRatio": 0.16,
+        "maxAbMeanDelta": 24
+      }
+    },
+    {
+      "id": "mindfullens_render_debug_1776534854074",
+      "report": "data/raw/reference/reports/mindfullens_render_debug_1776534854074.json",
+      "expected": {
+        "selectedBackend": "macOS ImageIO / sips",
+        "colorPipelineStage": "srgb-linear-srgb-v1",
+        "rawDecodeAdapter": "http-bridge"
+      },
+      "thresholds": {
+        "maxHighlightClipRatio": 0.12,
+        "maxShadowClipRatio": 0.16,
+        "maxAbMeanDelta": 24
+      }
+    },
+    {
+      "id": "mindfullens_render_debug_1776534882261",
+      "report": "data/raw/reference/reports/mindfullens_render_debug_1776534882261.json",
+      "expected": {
+        "selectedBackend": "macOS ImageIO / sips",
+        "colorPipelineStage": "srgb-linear-srgb-v1",
+        "rawDecodeAdapter": "http-bridge"
+      },
+      "thresholds": {
+        "maxHighlightClipRatio": 0.12,
+        "maxShadowClipRatio": 0.16,
+        "maxAbMeanDelta": 24
+      }
+    },
+    {
+      "id": "mindfullens_render_debug_1776534895499",
+      "report": "data/raw/reference/reports/mindfullens_render_debug_1776534895499.json",
+      "expected": {
+        "selectedBackend": "macOS ImageIO / sips",
+        "colorPipelineStage": "srgb-linear-srgb-v1",
+        "rawDecodeAdapter": "http-bridge"
+      },
+      "thresholds": {
+        "maxHighlightClipRatio": 0.12,
+        "maxShadowClipRatio": 0.16,
+        "maxAbMeanDelta": 24
+      }
+    },
+    {
+      "id": "mindfullens_render_debug_1776534908488",
+      "report": "data/raw/reference/reports/mindfullens_render_debug_1776534908488.json",
+      "expected": {
+        "selectedBackend": "macOS ImageIO / sips",
+        "colorPipelineStage": "srgb-linear-srgb-v1",
+        "rawDecodeAdapter": "http-bridge"
+      },
+      "thresholds": {
+        "maxHighlightClipRatio": 0.12,
+        "maxShadowClipRatio": 0.16,
+        "maxAbMeanDelta": 24
+      }
+    },
+    {
+      "id": "mindfullens_render_debug_1776534921039",
+      "report": "data/raw/reference/reports/mindfullens_render_debug_1776534921039.json",
+      "expected": {
+        "selectedBackend": "macOS ImageIO / sips",
+        "colorPipelineStage": "srgb-linear-srgb-v1",
+        "rawDecodeAdapter": "http-bridge"
+      },
+      "thresholds": {
+        "maxHighlightClipRatio": 0.12,
+        "maxShadowClipRatio": 0.16,
+        "maxAbMeanDelta": 24
+      }
+    },
+    {
+      "id": "mindfullens_render_debug_1776534931219",
+      "report": "data/raw/reference/reports/mindfullens_render_debug_1776534931219.json",
+      "expected": {
+        "selectedBackend": "macOS ImageIO / sips",
+        "colorPipelineStage": "srgb-linear-srgb-v1",
+        "rawDecodeAdapter": "http-bridge"
+      },
+      "thresholds": {
+        "maxHighlightClipRatio": 0.20996788761446386,
+        "maxShadowClipRatio": 0.16,
+        "maxAbMeanDelta": 24
+      }
+    },
+    {
+      "id": "mindfullens_render_debug_1776534940397",
+      "report": "data/raw/reference/reports/mindfullens_render_debug_1776534940397.json",
+      "expected": {
+        "selectedBackend": "macOS ImageIO / sips",
+        "colorPipelineStage": "srgb-linear-srgb-v1",
+        "rawDecodeAdapter": "http-bridge"
+      },
+      "thresholds": {
+        "maxHighlightClipRatio": 0.12667140669437763,
+        "maxShadowClipRatio": 0.16,
+        "maxAbMeanDelta": 24
+      }
+    },
+    {
+      "id": "mindfullens_render_debug_1776534955565",
+      "report": "data/raw/reference/reports/mindfullens_render_debug_1776534955565.json",
+      "expected": {
+        "selectedBackend": "macOS ImageIO / sips",
+        "colorPipelineStage": "srgb-linear-srgb-v1"
+      },
+      "thresholds": {
+        "maxHighlightClipRatio": 0.12,
+        "maxShadowClipRatio": 0.16,
+        "maxAbMeanDelta": 24
+      }
+    },
+    {
+      "id": "mindfullens_render_debug_1776534966251",
+      "report": "data/raw/reference/reports/mindfullens_render_debug_1776534966251.json",
+      "expected": {
+        "selectedBackend": "macOS ImageIO / sips",
+        "colorPipelineStage": "srgb-linear-srgb-v1",
+        "rawDecodeAdapter": "http-bridge"
+      },
+      "thresholds": {
+        "maxHighlightClipRatio": 0.12,
+        "maxShadowClipRatio": 0.16,
+        "maxAbMeanDelta": 24
+      }
+    },
+    {
+      "id": "mindfullens_render_debug_1776534980344",
+      "report": "data/raw/reference/reports/mindfullens_render_debug_1776534980344.json",
+      "expected": {
+        "selectedBackend": "macOS ImageIO / sips",
+        "colorPipelineStage": "srgb-linear-srgb-v1",
+        "rawDecodeAdapter": "http-bridge"
+      },
+      "thresholds": {
+        "maxHighlightClipRatio": 0.13491008991008993,
+        "maxShadowClipRatio": 0.16,
+        "maxAbMeanDelta": 24
+      }
+    },
+    {
+      "id": "mindfullens_render_debug_1776534992778",
+      "report": "data/raw/reference/reports/mindfullens_render_debug_1776534992778.json",
+      "expected": {
+        "selectedBackend": "macOS ImageIO / sips",
+        "colorPipelineStage": "srgb-linear-srgb-v1",
+        "rawDecodeAdapter": "http-bridge"
+      },
+      "thresholds": {
+        "maxHighlightClipRatio": 0.16420204795204796,
+        "maxShadowClipRatio": 0.16,
+        "maxAbMeanDelta": 24
+      }
+    },
+    {
+      "id": "mindfullens_render_debug_1776535005013",
+      "report": "data/raw/reference/reports/mindfullens_render_debug_1776535005013.json",
+      "expected": {
+        "selectedBackend": "macOS ImageIO / sips",
+        "colorPipelineStage": "srgb-linear-srgb-v1",
+        "rawDecodeAdapter": "http-bridge"
+      },
+      "thresholds": {
+        "maxHighlightClipRatio": 0.12,
+        "maxShadowClipRatio": 0.16,
+        "maxAbMeanDelta": 24
+      }
+    },
+    {
+      "id": "mindfullens_render_debug_1776535322528",
+      "report": "data/raw/reference/reports/mindfullens_render_debug_1776535322528.json",
+      "expected": {
+        "selectedBackend": "macOS ImageIO / sips",
+        "colorPipelineStage": "srgb-linear-srgb-v1",
+        "rawDecodeAdapter": "http-bridge"
+      },
+      "thresholds": {
+        "maxHighlightClipRatio": 0.12,
+        "maxShadowClipRatio": 0.16,
+        "maxAbMeanDelta": 24
+      }
+    },
+    {
+      "id": "mindfullens_render_debug_1776535341104",
+      "report": "data/raw/reference/reports/mindfullens_render_debug_1776535341104.json",
+      "expected": {
+        "selectedBackend": "macOS ImageIO / sips",
+        "colorPipelineStage": "srgb-linear-srgb-v1",
+        "rawDecodeAdapter": "http-bridge"
+      },
+      "thresholds": {
+        "maxHighlightClipRatio": 0.12,
+        "maxShadowClipRatio": 0.16,
+        "maxAbMeanDelta": 24
+      }
+    },
+    {
+      "id": "mindfullens_render_debug_1776535364753",
+      "report": "data/raw/reference/reports/mindfullens_render_debug_1776535364753.json",
+      "expected": {
+        "selectedBackend": "macOS ImageIO / sips",
+        "colorPipelineStage": "srgb-linear-srgb-v1",
+        "rawDecodeAdapter": "http-bridge"
+      },
+      "thresholds": {
+        "maxHighlightClipRatio": 0.12,
+        "maxShadowClipRatio": 0.16,
+        "maxAbMeanDelta": 24
+      }
+    },
+    {
+      "id": "mindfullens_render_debug_1776535379986",
+      "report": "data/raw/reference/reports/mindfullens_render_debug_1776535379986.json",
+      "expected": {
+        "selectedBackend": "macOS ImageIO / sips",
+        "colorPipelineStage": "srgb-linear-srgb-v1",
+        "rawDecodeAdapter": "http-bridge"
+      },
+      "thresholds": {
+        "maxHighlightClipRatio": 0.12,
+        "maxShadowClipRatio": 0.16,
+        "maxAbMeanDelta": 24
+      }
+    },
+    {
+      "id": "mindfullens_render_debug_1776535390891",
+      "report": "data/raw/reference/reports/mindfullens_render_debug_1776535390891.json",
+      "expected": {
+        "selectedBackend": "macOS ImageIO / sips",
+        "colorPipelineStage": "srgb-linear-srgb-v1",
+        "rawDecodeAdapter": "http-bridge"
+      },
+      "thresholds": {
+        "maxHighlightClipRatio": 0.163885004302926,
+        "maxShadowClipRatio": 0.16,
+        "maxAbMeanDelta": 24
+      }
+    },
+    {
+      "id": "mindfullens_render_debug_1776535443421",
+      "report": "data/raw/reference/reports/mindfullens_render_debug_1776535443421.json",
+      "expected": {
+        "selectedBackend": "macOS ImageIO / sips",
+        "colorPipelineStage": "srgb-linear-srgb-v1",
+        "rawDecodeAdapter": "http-bridge"
+      },
+      "thresholds": {
+        "maxHighlightClipRatio": 0.12,
+        "maxShadowClipRatio": 0.16,
+        "maxAbMeanDelta": 24
+      }
+    },
+    {
+      "id": "mindfullens_render_debug_1776535485541",
+      "report": "data/raw/reference/reports/mindfullens_render_debug_1776535485541.json",
+      "expected": {
+        "selectedBackend": "macOS ImageIO / sips",
+        "colorPipelineStage": "srgb-linear-srgb-v1",
+        "rawDecodeAdapter": "http-bridge"
+      },
+      "thresholds": {
+        "maxHighlightClipRatio": 0.12,
+        "maxShadowClipRatio": 0.16,
+        "maxAbMeanDelta": 24
+      }
+    },
+    {
+      "id": "mindfullens_render_debug_1776535535709",
+      "report": "data/raw/reference/reports/mindfullens_render_debug_1776535535709.json",
+      "expected": {
+        "selectedBackend": "macOS ImageIO / sips",
+        "colorPipelineStage": "srgb-linear-srgb-v1",
+        "rawDecodeAdapter": "http-bridge"
+      },
+      "thresholds": {
+        "maxHighlightClipRatio": 0.12,
+        "maxShadowClipRatio": 0.16,
+        "maxAbMeanDelta": 24
+      }
+    },
+    {
+      "id": "mindfullens_render_debug_1776535563813",
+      "report": "data/raw/reference/reports/mindfullens_render_debug_1776535563813.json",
+      "expected": {
+        "selectedBackend": "macOS ImageIO / sips",
+        "colorPipelineStage": "srgb-linear-srgb-v1",
+        "rawDecodeAdapter": "http-bridge"
+      },
+      "thresholds": {
+        "maxHighlightClipRatio": 0.12,
+        "maxShadowClipRatio": 0.16,
+        "maxAbMeanDelta": 24
+      }
+    },
+    {
+      "id": "mindfullens_render_debug_1776535582044",
+      "report": "data/raw/reference/reports/mindfullens_render_debug_1776535582044.json",
+      "expected": {
+        "selectedBackend": "macOS ImageIO / sips",
+        "colorPipelineStage": "srgb-linear-srgb-v1",
+        "rawDecodeAdapter": "http-bridge"
+      },
+      "thresholds": {
+        "maxHighlightClipRatio": 0.12,
+        "maxShadowClipRatio": 0.16,
+        "maxAbMeanDelta": 24
+      }
+    },
+    {
+      "id": "mindfullens_render_debug_1776535591285",
+      "report": "data/raw/reference/reports/mindfullens_render_debug_1776535591285.json",
+      "expected": {
+        "selectedBackend": "macOS ImageIO / sips",
+        "colorPipelineStage": "srgb-linear-srgb-v1",
+        "rawDecodeAdapter": "http-bridge"
+      },
+      "thresholds": {
+        "maxHighlightClipRatio": 0.12,
+        "maxShadowClipRatio": 0.16,
+        "maxAbMeanDelta": 24
+      }
+    },
+    {
+      "id": "mindfullens_render_debug_1776535611424",
+      "report": "data/raw/reference/reports/mindfullens_render_debug_1776535611424.json",
+      "expected": {
+        "selectedBackend": "macOS ImageIO / sips",
+        "colorPipelineStage": "srgb-linear-srgb-v1",
+        "rawDecodeAdapter": "http-bridge"
+      },
+      "thresholds": {
+        "maxHighlightClipRatio": 0.12,
+        "maxShadowClipRatio": 0.16,
+        "maxAbMeanDelta": 24
+      }
+    },
+    {
+      "id": "mindfullens_render_debug_1776535631075",
+      "report": "data/raw/reference/reports/mindfullens_render_debug_1776535631075.json",
+      "expected": {
+        "selectedBackend": "macOS ImageIO / sips",
+        "colorPipelineStage": "srgb-linear-srgb-v1",
+        "rawDecodeAdapter": "http-bridge"
+      },
+      "thresholds": {
+        "maxHighlightClipRatio": 0.16197932618683003,
+        "maxShadowClipRatio": 0.16,
+        "maxAbMeanDelta": 24
+      }
+    },
+    {
+      "id": "mindfullens_render_debug_1776535649765",
+      "report": "data/raw/reference/reports/mindfullens_render_debug_1776535649765.json",
+      "expected": {
+        "selectedBackend": "macOS ImageIO / sips",
+        "colorPipelineStage": "srgb-linear-srgb-v1",
+        "rawDecodeAdapter": "http-bridge"
+      },
+      "thresholds": {
+        "maxHighlightClipRatio": 0.12,
+        "maxShadowClipRatio": 0.16,
+        "maxAbMeanDelta": 24
+      }
+    },
+    {
+      "id": "mindfullens_render_debug_1776535666600",
+      "report": "data/raw/reference/reports/mindfullens_render_debug_1776535666600.json",
+      "expected": {
+        "selectedBackend": "macOS ImageIO / sips",
+        "colorPipelineStage": "srgb-linear-srgb-v1",
+        "rawDecodeAdapter": "http-bridge"
+      },
+      "thresholds": {
+        "maxHighlightClipRatio": 0.12,
+        "maxShadowClipRatio": 0.16,
+        "maxAbMeanDelta": 24
+      }
+    },
+    {
+      "id": "mindfullens_render_debug_1776536032045",
+      "report": "data/raw/reference/reports/mindfullens_render_debug_1776536032045.json",
+      "expected": {
+        "selectedBackend": "macOS ImageIO / sips",
+        "colorPipelineStage": "srgb-linear-srgb-v1",
+        "rawDecodeAdapter": "http-bridge"
+      },
+      "thresholds": {
+        "maxHighlightClipRatio": 0.3293515497553018,
+        "maxShadowClipRatio": 0.16,
+        "maxAbMeanDelta": 24
+      }
+    },
+    {
+      "id": "mindfullens_render_debug_1776536053593",
+      "report": "data/raw/reference/reports/mindfullens_render_debug_1776536053593.json",
+      "expected": {
+        "selectedBackend": "macOS ImageIO / sips",
+        "colorPipelineStage": "srgb-linear-srgb-v1",
+        "rawDecodeAdapter": "http-bridge"
+      },
+      "thresholds": {
+        "maxHighlightClipRatio": 0.12,
+        "maxShadowClipRatio": 0.16,
+        "maxAbMeanDelta": 24
+      }
+    },
+    {
+      "id": "mindfullens_render_debug_1776536067987",
+      "report": "data/raw/reference/reports/mindfullens_render_debug_1776536067987.json",
+      "expected": {
+        "selectedBackend": "macOS ImageIO / sips",
+        "colorPipelineStage": "srgb-linear-srgb-v1",
+        "rawDecodeAdapter": "http-bridge"
+      },
+      "thresholds": {
+        "maxHighlightClipRatio": 0.12,
+        "maxShadowClipRatio": 0.16,
+        "maxAbMeanDelta": 24
+      }
+    },
+    {
+      "id": "mindfullens_render_debug_1776536096990",
+      "report": "data/raw/reference/reports/mindfullens_render_debug_1776536096990.json",
+      "expected": {
+        "selectedBackend": "macOS ImageIO / sips",
+        "colorPipelineStage": "srgb-linear-srgb-v1",
+        "rawDecodeAdapter": "http-bridge"
+      },
+      "thresholds": {
+        "maxHighlightClipRatio": 0.12,
+        "maxShadowClipRatio": 0.16,
+        "maxAbMeanDelta": 24
+      }
+    },
+    {
+      "id": "mindfullens_render_debug_1776536113243",
+      "report": "data/raw/reference/reports/mindfullens_render_debug_1776536113243.json",
+      "expected": {
+        "selectedBackend": "macOS ImageIO / sips",
+        "colorPipelineStage": "srgb-linear-srgb-v1",
+        "rawDecodeAdapter": "http-bridge"
+      },
+      "thresholds": {
+        "maxHighlightClipRatio": 0.12,
+        "maxShadowClipRatio": 0.16,
+        "maxAbMeanDelta": 24
+      }
+    },
+    {
+      "id": "mindfullens_render_debug_1776536126984",
+      "report": "data/raw/reference/reports/mindfullens_render_debug_1776536126984.json",
+      "expected": {
+        "selectedBackend": "macOS ImageIO / sips",
+        "colorPipelineStage": "srgb-linear-srgb-v1",
+        "rawDecodeAdapter": "http-bridge"
+      },
+      "thresholds": {
+        "maxHighlightClipRatio": 0.12,
+        "maxShadowClipRatio": 0.16,
+        "maxAbMeanDelta": 24
+      }
+    },
+    {
+      "id": "mindfullens_render_debug_1776536142649",
+      "report": "data/raw/reference/reports/mindfullens_render_debug_1776536142649.json",
+      "expected": {
+        "selectedBackend": "macOS ImageIO / sips",
+        "colorPipelineStage": "srgb-linear-srgb-v1",
+        "rawDecodeAdapter": "http-bridge"
+      },
+      "thresholds": {
+        "maxHighlightClipRatio": 0.12,
+        "maxShadowClipRatio": 0.16,
+        "maxAbMeanDelta": 24
+      }
+    },
+    {
+      "id": "mindfullens_render_debug_1776536155602",
+      "report": "data/raw/reference/reports/mindfullens_render_debug_1776536155602.json",
+      "expected": {
+        "selectedBackend": "macOS ImageIO / sips",
+        "colorPipelineStage": "srgb-linear-srgb-v1",
+        "rawDecodeAdapter": "http-bridge"
+      },
+      "thresholds": {
+        "maxHighlightClipRatio": 0.12,
+        "maxShadowClipRatio": 0.16,
+        "maxAbMeanDelta": 24
+      }
+    },
+    {
+      "id": "mindfullens_render_debug_1776536169822",
+      "report": "data/raw/reference/reports/mindfullens_render_debug_1776536169822.json",
+      "expected": {
+        "selectedBackend": "macOS ImageIO / sips",
+        "colorPipelineStage": "srgb-linear-srgb-v1",
+        "rawDecodeAdapter": "http-bridge"
+      },
+      "thresholds": {
+        "maxHighlightClipRatio": 0.12,
+        "maxShadowClipRatio": 0.16,
+        "maxAbMeanDelta": 24
+      }
+    },
+    {
+      "id": "mindfullens_render_debug_1776536178960",
+      "report": "data/raw/reference/reports/mindfullens_render_debug_1776536178960.json",
+      "expected": {
+        "selectedBackend": "macOS ImageIO / sips",
+        "colorPipelineStage": "srgb-linear-srgb-v1",
+        "rawDecodeAdapter": "http-bridge"
+      },
+      "thresholds": {
+        "maxHighlightClipRatio": 0.12,
+        "maxShadowClipRatio": 0.16,
+        "maxAbMeanDelta": 24
+      }
+    }
+  ]
+}

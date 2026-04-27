@@ -1,0 +1,25 @@
+{
+  "name": "mindfullens-raw-reference-v1",
+  "description": "Uzupełnij 30+ raportów DIAG JSON przy stabilnym buildzie. `npm run raw:manifest:build` uzupełnia expected (backend, colorPipelineStage, rawDecodeAdapter, opcj. LibRaw) i scala ręczne pola z poprzedniego pliku; pełna nadpisanka: `npm run raw:manifest:build:fresh`. Opcjonalne expected: librawUseCameraMatrix, librawCameraProfile (embed|none|off), librawMake, librawModel.",
+  "defaultThresholds": {
+    "maxHighlightClipRatio": 0.12,
+    "maxShadowClipRatio": 0.16,
+    "maxAbMeanDelta": 24,
+    "allowBlackGuard": false,
+    "allowSuspectedBlackFrame": false
+  },
+  "references": [
+    {
+      "id": "sample-001",
+      "report": "data/raw/reference/reports/sample-001.json",
+      "expected": {
+        "selectedBackend": "macos quicklook / qlmanage",
+        "colorPipelineStage": "srgb-linear-srgb-v1",
+        "rawDecodeAdapter": "http-bridge"
+      },
+      "thresholds": {
+        "maxAbMeanDelta": 20
+      }
+    }
+  ]
+}

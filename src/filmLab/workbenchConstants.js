@@ -1,0 +1,64 @@
+export const METADATA_VIEW_MODES = ['compact', 'exif', 'full'];
+export const METADATA_VIEW_MODE_LABEL = {
+  compact: 'Kompakt',
+  exif: 'EXIF',
+  full: 'Pełny',
+};
+
+export const RAW_BACKEND_MODES = ['auto', 'quicklook', 'sips'];
+export const RAW_BACKEND_MODE_LABELS = Object.freeze({
+  auto: 'AUTO',
+  quicklook: 'QL',
+  sips: 'SIPS',
+});
+export const RAW_LINEAR_STAGE_MODES = ['auto', 'on', 'off'];
+export const RAW_LINEAR_STAGE_MODE_LABELS = Object.freeze({
+  auto: 'AUTO',
+  on: 'ON',
+  off: 'OFF',
+});
+export const RAW_QA_THRESHOLDS = Object.freeze({
+  highlightWarn: 0.018,
+  highlightFail: 0.05,
+  shadowWarn: 0.024,
+  shadowFail: 0.06,
+  abMeanDeltaWarn: 9,
+  abMeanDeltaFail: 20,
+});
+
+export const SLIDER_DEFS = {
+  strength: { label: 'Siła profilu', min: 0, max: 100 },
+  exposure: { label: 'Ekspozycja', min: -100, max: 100 },
+  contrast: { label: 'Kontrast', min: -100, max: 100 },
+  highlights: { label: 'Światła', min: -100, max: 100 },
+  shadows: { label: 'Cienie', min: -100, max: 100 },
+  whites: { label: 'Biele', min: -100, max: 100 },
+  blacks: { label: 'Czarne', min: -100, max: 100 },
+  level: { label: 'Poziom', min: -20, max: 20 },
+  cropZoom: { label: 'Powiększenie kadru', min: 100, max: 200 },
+  cropX: { label: 'Przesunięcie poziome', min: -100, max: 100 },
+  cropY: { label: 'Przesunięcie pionowe', min: -100, max: 100 },
+  fade: { label: 'Fade', min: 0, max: 100 },
+  clarity: { label: 'Clarity', min: -100, max: 100 },
+  dehaze: { label: 'Dehaze', min: -100, max: 100 },
+  temp: { label: 'Temperatura', min: -100, max: 100 },
+  tint: { label: 'Tint', min: -100, max: 100 },
+  saturation: { label: 'Nasycenie', min: -100, max: 100 },
+  vibrance: { label: 'Vibrance', min: -100, max: 100 },
+  curveLumaMix: { label: 'Luma krzywej RGB', min: 0, max: 100 },
+  userGrain: { label: 'Ilość', min: 0, max: 100 },
+  userGrainSize: { label: 'Rozmiar', min: 10, max: 100 },
+  chromAb: { label: 'Aberracja Chromatyczna', min: 0, max: 100 },
+  bloom: { label: 'Bloom / Glow', min: 0, max: 100 },
+  dust: { label: 'Dust & Scratches', min: 0, max: 100 },
+  userVignette: { label: 'Siła', min: 0, max: 100 },
+  halation: { label: 'Siła halacji', min: 0, max: 100 },
+  halRadius: { label: 'Promień', min: 5, max: 80 },
+  halThresh: { label: 'Próg jasności', min: 120, max: 250 },
+  halHue: { label: 'Odcień (R↔B)', min: -100, max: 100 },
+  anamorph: { label: 'Siła smug', min: 0, max: 100 },
+  streakLen: { label: 'Długość smug', min: 10, max: 100 },
+};
+
+export const SLIDER_DRAG_ACTIVATION_THRESHOLD_PX = 4;
+export const SLIDER_RELEASE_FAILSAFE_MS = 260;
