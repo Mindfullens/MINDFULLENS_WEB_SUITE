@@ -1,6 +1,6 @@
 {
   "name": "mindfullens-raw-reference-v1",
-  "description": "Uzupełnij 30+ raportów DIAG JSON przy stabilnym buildzie. `npm run raw:manifest:build` uzupełnia expected (backend, colorPipelineStage, rawDecodeAdapter, opcj. LibRaw) i scala ręczne pola z poprzedniego pliku; pełna nadpisanka: `npm run raw:manifest:build:fresh`. Opcjonalne expected: librawUseCameraMatrix, librawCameraProfile (embed|none|off), librawMake, librawModel.",
+  "description": "Uzupełnij 30+ raportów DIAG JSON przy stabilnym buildzie. `npm run raw:manifest:build` uzupełnia expected (backend, colorPipelineStage, rawDecodeAdapter, opcj. LibRaw), scala ręczne expected/thresholds i zachowuje qualityComparison; pełna nadpisanka: `npm run raw:manifest:build:fresh`. Dla auto-kalibracji quality gate użyj `npm run raw:manifest:build:suggested` (uzupełnia maxDeltaEMean/maxDeltaEP95/minSsim dla wpisów z qualityComparison). Opcjonalne expected: librawUseCameraMatrix, librawCameraProfile (embed|none|off), librawMake, librawModel. Opcjonalne gate quality: thresholds.maxDeltaEMean/maxDeltaEP95/minSsim + qualityComparison (mode A: referenceImage/candidateImage PNG, mode B: referenceReport/candidateReport + dataUrlPath).",
   "defaultThresholds": {
     "maxHighlightClipRatio": 0.12,
     "maxShadowClipRatio": 0.16,
@@ -17,8 +17,15 @@
         "colorPipelineStage": "srgb-linear-srgb-v1",
         "rawDecodeAdapter": "http-bridge"
       },
+      "qualityComparison": {
+        "referenceImage": "data/raw/reference/images/sample-001-reference.png",
+        "candidateImage": "data/raw/reference/images/sample-001-candidate.png"
+      },
       "thresholds": {
-        "maxAbMeanDelta": 20
+        "maxAbMeanDelta": 20,
+        "maxDeltaEMean": 6.5,
+        "maxDeltaEP95": 14,
+        "minSsim": 0.93
       }
     }
   ]

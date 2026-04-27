@@ -27,6 +27,7 @@
     "test:raw-reference": "node scripts/regression-raw-reference-set.mjs",
     "raw:manifest:build": "node scripts/build-raw-reference-manifest.mjs",
     "raw:manifest:build:fresh": "node scripts/build-raw-reference-manifest.mjs --no-merge",
+    "raw:manifest:build:suggested": "node scripts/build-raw-reference-manifest.mjs --apply-suggested-thresholds",
     "raw:reference:gate": "npm run raw:manifest:build && npm run test:raw-reference",
     "raw:release:check": "npm run raw:reference:gate && npm run test:regression && npm run build",
     "test:deep-audit": "node scripts/deep-audit-film-lab.mjs",
@@ -121,6 +122,7 @@
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^5.2.0",
     "globals": "^17.5.0",
+    "pngjs": "^7.0.0",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.14",
     "vite": "^6.4.2"

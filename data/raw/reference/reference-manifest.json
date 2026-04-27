@@ -271,7 +271,15 @@
       "thresholds": {
         "maxHighlightClipRatio": 0.163885004302926,
         "maxShadowClipRatio": 0.16,
-        "maxAbMeanDelta": 24
+        "maxAbMeanDelta": 24,
+        "maxDeltaEMean": 22.908,
+        "maxDeltaEP95": 66.868,
+        "minSsim": 0.3831
+      },
+      "qualityComparison": {
+        "referenceReport": "data/raw/reference/reports/mindfullens_render_debug_1776535390891.json",
+        "candidateReport": "data/raw/reference/reports/mindfullens_render_debug_1776535631075.json",
+        "dataUrlPath": "pipeline.info.capabilities.backendAbTest.diffHeatmap.dataUrl"
       }
     },
     {
@@ -383,7 +391,15 @@
       "thresholds": {
         "maxHighlightClipRatio": 0.16197932618683003,
         "maxShadowClipRatio": 0.16,
-        "maxAbMeanDelta": 24
+        "maxAbMeanDelta": 24,
+        "maxDeltaEMean": 38.787,
+        "maxDeltaEP95": 82.987,
+        "minSsim": 0
+      },
+      "qualityComparison": {
+        "referenceReport": "data/raw/reference/reports/mindfullens_render_debug_1776534955565.json",
+        "candidateReport": "data/raw/reference/reports/mindfullens_render_debug_1776535631075.json",
+        "dataUrlPath": "pipeline.info.capabilities.backendAbTest.diffHeatmap.dataUrl"
       }
     },
     {

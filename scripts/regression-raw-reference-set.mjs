@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { PNG } from 'pngjs';
 
 const MIN_REFERENCE_ITEMS = 30;
 const DEFAULT_THRESHOLDS = Object.freeze({
@@ -137,6 +138,232 @@ function formatTimestampSuffix(value = new Date()) {
   return `${year}${month}${day}T${hour}${minute}${second}Z`;
 }
 
+function quantile(values, q) {
+  const finite = values.filter((item) => Number.isFinite(item)).sort((a, b) => a - b);
+  if (!finite.length) {
+    return null;
+  }
+  const clampedQ = Math.max(0, Math.min(1, Number(q)));
+  const idx = (finite.length - 1) * clampedQ;
+  const lo = Math.floor(idx);
+  const hi = Math.ceil(idx);
+  if (lo === hi) {
+    return finite[lo];
+  }
+  const t = idx - lo;
+  return finite[lo] * (1 - t) + finite[hi] * t;
+}
+
+function srgbToLinear01(v8) {
+  const x = Math.max(0, Math.min(255, Number(v8))) / 255;
+  return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4;
+}
+
+function rgb8ToLab(r8, g8, b8) {
+  const r = srgbToLinear01(r8);
+  const g = srgbToLinear01(g8);
+  const b = srgbToLinear01(b8);
+
+  const x = (r * 0.4124564 + g * 0.3575761 + b * 0.1804375) / 0.95047;
+  const y = r * 0.2126729 + g * 0.7151522 + b * 0.072175;
+  const z = (r * 0.0193339 + g * 0.119192 + b * 0.9503041) / 1.08883;
+
+  const f = (t) => (t > 0.008856451679035631 ? t ** (1 / 3) : 7.787037037037037 * t + 16 / 116);
+  const fx = f(x);
+  const fy = f(y);
+  const fz = f(z);
+  return {
+    l: 116 * fy - 16,
+    a: 500 * (fx - fy),
+    b: 200 * (fy - fz),
+  };
+}
+
+function decodePngFile(filePath) {
+  const raw = fs.readFileSync(filePath);
+  return PNG.sync.read(raw, { colorType: 6 });
+}
+
+function getByPath(objectValue, dotPath) {
+  const pathValue = String(dotPath ?? '').trim();
+  if (!pathValue) {
+    return undefined;
+  }
+  const segments = pathValue.split('.').map((item) => item.trim()).filter(Boolean);
+  let current = objectValue;
+  for (const segment of segments) {
+    if (!current || typeof current !== 'object' || !(segment in current)) {
+      return undefined;
+    }
+    current = current[segment];
+  }
+  return current;
+}
+
+function decodePngFromDataUrl(dataUrl, contextLabel) {
+  const raw = String(dataUrl ?? '');
+  assert.ok(raw.startsWith('data:image/png;base64,'), `${contextLabel} is not PNG data URL.`);
+  const base64 = raw.slice('data:image/png;base64,'.length);
+  const buffer = Buffer.from(base64, 'base64');
+  return PNG.sync.read(buffer, { colorType: 6 });
+}
+
+function roundTo(value, digits = 3) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) {
+    return null;
+  }
+  const m = 10 ** digits;
+  return Math.round(n * m) / m;
+}
+
+function computeImageQualityComparison(projectRoot, entry) {
+  const qc = entry?.qualityComparison ?? null;
+  const candidatePath = String(qc?.candidateImage ?? '').trim();
+  const referencePath = String(qc?.referenceImage ?? '').trim();
+  const candidateReportPath = String(qc?.candidateReport ?? '').trim();
+  const referenceReportPath = String(qc?.referenceReport ?? '').trim();
+  const dataUrlPath = String(qc?.dataUrlPath ?? 'pipeline.rawBackendComparison.diffHeatmap.dataUrl').trim();
+  const useImageFiles = candidatePath && referencePath;
+  const useReportDataUrls = candidateReportPath && referenceReportPath;
+  if (!useImageFiles && !useReportDataUrls) {
+    return null;
+  }
+
+  let cand;
+  let ref;
+  let sourceMeta = null;
+  if (useImageFiles) {
+    const absoluteCandidate = path.resolve(projectRoot, candidatePath);
+    const absoluteReference = path.resolve(projectRoot, referencePath);
+    assert.ok(
+      fs.existsSync(absoluteCandidate),
+      `Entry "${entry?.id ?? 'unknown'}" missing candidate image: ${absoluteCandidate}`
+    );
+    assert.ok(
+      fs.existsSync(absoluteReference),
+      `Entry "${entry?.id ?? 'unknown'}" missing reference image: ${absoluteReference}`
+    );
+    cand = decodePngFile(absoluteCandidate);
+    ref = decodePngFile(absoluteReference);
+    sourceMeta = {
+      mode: 'image-files',
+      candidateImage: candidatePath.replaceAll('\\', '/'),
+      referenceImage: referencePath.replaceAll('\\', '/'),
+    };
+  } else {
+    const absoluteCandidateReport = path.resolve(projectRoot, candidateReportPath);
+    const absoluteReferenceReport = path.resolve(projectRoot, referenceReportPath);
+    assert.ok(
+      fs.existsSync(absoluteCandidateReport),
+      `Entry "${entry?.id ?? 'unknown'}" missing candidate report: ${absoluteCandidateReport}`
+    );
+    assert.ok(
+      fs.existsSync(absoluteReferenceReport),
+      `Entry "${entry?.id ?? 'unknown'}" missing reference report: ${absoluteReferenceReport}`
+    );
+    const candidatePayload = readJsonFile(absoluteCandidateReport);
+    const referencePayload = readJsonFile(absoluteReferenceReport);
+    const candDataUrl = getByPath(candidatePayload, dataUrlPath);
+    const refDataUrl = getByPath(referencePayload, dataUrlPath);
+    cand = decodePngFromDataUrl(candDataUrl, `Entry "${entry?.id ?? 'unknown'}" candidate ${dataUrlPath}`);
+    ref = decodePngFromDataUrl(refDataUrl, `Entry "${entry?.id ?? 'unknown'}" reference ${dataUrlPath}`);
+    sourceMeta = {
+      mode: 'report-dataurl',
+      dataUrlPath,
+      candidateReport: candidateReportPath.replaceAll('\\', '/'),
+      referenceReport: referenceReportPath.replaceAll('\\', '/'),
+    };
+  }
+  const width = Math.min(Number(cand.width) || 0, Number(ref.width) || 0);
+  const height = Math.min(Number(cand.height) || 0, Number(ref.height) || 0);
+  assert.ok(
+    width > 0 && height > 0,
+    `Entry "${entry?.id ?? 'unknown'}" invalid candidate/reference image dimensions.`
+  );
+
+  const deltaEs = [];
+  const yCand = [];
+  const yRef = [];
+  const n = width * height;
+
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const iCand = (y * cand.width + x) * 4;
+      const iRef = (y * ref.width + x) * 4;
+      const rc = cand.data[iCand];
+      const gc = cand.data[iCand + 1];
+      const bc = cand.data[iCand + 2];
+      const rr = ref.data[iRef];
+      const gr = ref.data[iRef + 1];
+      const br = ref.data[iRef + 2];
+
+      const lc = rgb8ToLab(rc, gc, bc);
+      const lr = rgb8ToLab(rr, gr, br);
+      const dL = lc.l - lr.l;
+      const dA = lc.a - lr.a;
+      const dB = lc.b - lr.b;
+      deltaEs.push(Math.sqrt(dL * dL + dA * dA + dB * dB));
+
+      yCand.push(srgbToLinear01(rc) * 0.2126 + srgbToLinear01(gc) * 0.7152 + srgbToLinear01(bc) * 0.0722);
+      yRef.push(srgbToLinear01(rr) * 0.2126 + srgbToLinear01(gr) * 0.7152 + srgbToLinear01(br) * 0.0722);
+    }
+  }
+
+  const meanDeltaE = mean(deltaEs);
+  const p95DeltaE = quantile(deltaEs, 0.95);
+
+  const muX = mean(yCand) ?? 0;
+  const muY = mean(yRef) ?? 0;
+  let varX = 0;
+  let varY = 0;
+  let cov = 0;
+  for (let i = 0; i < n; i += 1) {
+    const dx = yCand[i] - muX;
+    const dy = yRef[i] - muY;
+    varX += dx * dx;
+    varY += dy * dy;
+    cov += dx * dy;
+  }
+  const denom = Math.max(1, n - 1);
+  varX /= denom;
+  varY /= denom;
+  cov /= denom;
+  const c1 = 0.01 ** 2;
+  const c2 = 0.03 ** 2;
+  const ssim = ((2 * muX * muY + c1) * (2 * cov + c2)) / ((muX * muX + muY * muY + c1) * (varX + varY + c2));
+
+  return {
+    ...sourceMeta,
+    comparedWidth: width,
+    comparedHeight: height,
+    samples: n,
+    deltaEMean: toFiniteOrNull(meanDeltaE),
+    deltaEP95: toFiniteOrNull(p95DeltaE),
+    ssim: toFiniteOrNull(ssim),
+  };
+}
+
+function computeSuggestedThresholdsFromQuality(qualityComparison) {
+  if (!qualityComparison || typeof qualityComparison !== 'object') {
+    return null;
+  }
+  const meanDelta = toFiniteOrNull(qualityComparison.deltaEMean);
+  const p95Delta = toFiniteOrNull(qualityComparison.deltaEP95);
+  const ssim = toFiniteOrNull(qualityComparison.ssim);
+  if (meanDelta == null && p95Delta == null && ssim == null) {
+    return null;
+  }
+  return {
+    maxDeltaEMean: meanDelta == null ? null : roundTo(Math.max(1, meanDelta * 1.15), 3),
+    maxDeltaEP95: p95Delta == null ? null : roundTo(Math.max(2, p95Delta * 1.15), 3),
+    minSsim:
+      ssim == null
+        ? null
+        : roundTo(Math.max(0, Math.min(1, ssim - Math.max(0.02, (1 - ssim) * 0.1))), 4),
+  };
+}
+
 function buildMiniBar(value, maxValue) {
   const numeric = Number(value);
   const max = Number(maxValue);
@@ -177,6 +404,8 @@ function buildTrendHtml({ payload, summary, comparison }) {
         </td>
         <td>${item.highlightClipRatio == null ? 'n/a' : Number(item.highlightClipRatio).toFixed(5)}</td>
         <td>${item.shadowClipRatio == null ? 'n/a' : Number(item.shadowClipRatio).toFixed(5)}</td>
+        <td>${item.deltaEMean == null ? 'n/a' : Number(item.deltaEMean).toFixed(3)}</td>
+        <td>${item.ssim == null ? 'n/a' : Number(item.ssim).toFixed(4)}</td>
       </tr>`;
     })
     .join('\n');
@@ -265,6 +494,8 @@ function buildTrendHtml({ payload, summary, comparison }) {
         <th>ΔL</th>
         <th>Highlight</th>
         <th>Shadow</th>
+        <th>ΔE mean</th>
+        <th>SSIM</th>
       </tr>
     </thead>
     <tbody>
@@ -402,6 +633,18 @@ function writeTrendArtifacts(projectRoot, outDir, summary, trendSummary, compari
         abMeanDelta: item.abMeanDelta,
         blackGuard: item.blackGuard,
         suspectedBlackFrame: item.suspectedBlackFrame,
+        deltaEMean: item.deltaEMean,
+        deltaEP95: item.deltaEP95,
+        ssim: item.ssim,
+        suggestedThresholds: item.suggestedThresholds ?? null,
+      })),
+    qualitySuggestions: summary
+      .filter((item) => item?.qualityComparison && item?.suggestedThresholds)
+      .map((item) => ({
+        id: item.id,
+        reportPath: item.reportPath,
+        qualityComparison: item.qualityComparison,
+        suggestedThresholds: item.suggestedThresholds,
       })),
   };
 
@@ -421,6 +664,9 @@ function writeTrendArtifacts(projectRoot, outDir, summary, trendSummary, compari
     'abMeanDelta',
     'blackGuard',
     'suspectedBlackFrame',
+    'deltaEMean',
+    'deltaEP95',
+    'ssim',
   ];
   const csvRows = summary.map((item) =>
     [
@@ -433,6 +679,9 @@ function writeTrendArtifacts(projectRoot, outDir, summary, trendSummary, compari
       item.abMeanDelta,
       item.blackGuard,
       item.suspectedBlackFrame,
+      item.deltaEMean,
+      item.deltaEP95,
+      item.ssim,
     ]
       .map(toCsvValue)
       .join(',')
@@ -490,6 +739,10 @@ function evaluateEntry(projectRoot, entry, defaultThresholds) {
   const abMeanDelta = toFiniteOrNull(renderQa?.metrics?.abMeanDelta);
   const blackGuard = ensureBoolean(renderQa?.metrics?.blackOutputGuardTriggered, false);
   const suspectedBlackFrame = ensureBoolean(renderQa?.metrics?.suspectedBlackFrame, false);
+  const qualityComparison = computeImageQualityComparison(projectRoot, entry);
+  const deltaEMean = toFiniteOrNull(qualityComparison?.deltaEMean);
+  const deltaEP95 = toFiniteOrNull(qualityComparison?.deltaEP95);
+  const ssim = toFiniteOrNull(qualityComparison?.ssim);
 
   if (highlightClipRatio != null) {
     assert.ok(
@@ -515,6 +768,24 @@ function evaluateEntry(projectRoot, entry, defaultThresholds) {
   }
   if (!ensureBoolean(thresholds.allowSuspectedBlackFrame, false)) {
     assert.equal(suspectedBlackFrame, false, `Entry "${id}" flagged suspected black frame.`);
+  }
+  const maxDeltaEMean = toFiniteOrNull(thresholds?.maxDeltaEMean);
+  if (maxDeltaEMean != null && deltaEMean != null) {
+    assert.ok(
+      deltaEMean <= maxDeltaEMean,
+      `Entry "${id}" DeltaE mean ${deltaEMean} exceeds ${maxDeltaEMean}`
+    );
+  }
+  const maxDeltaEP95 = toFiniteOrNull(thresholds?.maxDeltaEP95);
+  if (maxDeltaEP95 != null && deltaEP95 != null) {
+    assert.ok(
+      deltaEP95 <= maxDeltaEP95,
+      `Entry "${id}" DeltaE p95 ${deltaEP95} exceeds ${maxDeltaEP95}`
+    );
+  }
+  const minSsim = toFiniteOrNull(thresholds?.minSsim);
+  if (minSsim != null && ssim != null) {
+    assert.ok(ssim >= minSsim, `Entry "${id}" SSIM ${ssim} is below ${minSsim}`);
   }
 
   const expectedBackend = String(entry?.expected?.selectedBackend ?? '').trim();
@@ -639,6 +910,11 @@ function evaluateEntry(projectRoot, entry, defaultThresholds) {
     blackGuard,
     suspectedBlackFrame,
     riskScore,
+    deltaEMean,
+    deltaEP95,
+    ssim,
+    qualityComparison: qualityComparison ?? null,
+    suggestedThresholds: computeSuggestedThresholdsFromQuality(qualityComparison),
   };
 }
 
@@ -750,6 +1026,17 @@ function main() {
   const guarded = summary.filter((item) => item.blackGuard || item.suspectedBlackFrame);
   if (guarded.length) {
     formatWarn(`Entries with guard/suspected flags: ${guarded.map((entry) => entry.id).join(', ')}`);
+  }
+
+  const suggestions = summary.filter((item) => item?.qualityComparison && item?.suggestedThresholds);
+  if (suggestions.length) {
+    formatInfo(`Suggested quality thresholds generated for ${suggestions.length} entries:`);
+    suggestions.slice(0, 12).forEach((item) => {
+      const s = item.suggestedThresholds;
+      formatInfo(
+        `  ${item.id} -> maxDeltaEMean=${s?.maxDeltaEMean ?? 'n/a'}, maxDeltaEP95=${s?.maxDeltaEP95 ?? 'n/a'}, minSsim=${s?.minSsim ?? 'n/a'}`
+      );
+    });
   }
 
   const artifacts = writeTrendArtifacts(projectRoot, outDir, summary, trendSummary, comparison);

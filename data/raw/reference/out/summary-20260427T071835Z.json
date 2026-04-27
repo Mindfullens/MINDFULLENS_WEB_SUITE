@@ -1,6 +1,6 @@
 {
   "schema": "mindfullens.raw-reference-trend.v1",
-  "generatedAt": "2026-04-27T07:41:02.561Z",
+  "generatedAt": "2026-04-27T07:18:35.418Z",
   "entryCount": 39,
   "trendSummary": {
     "highlightClipRatio": {
@@ -25,7 +25,7 @@
     }
   },
   "comparison": {
-    "previousGeneratedAt": "2026-04-27T07:29:51.544Z",
+    "previousGeneratedAt": "2026-04-27T07:07:21.582Z",
     "trendDelta": {
       "highlightClipRatio": {
         "meanDelta": 0,
@@ -67,12 +67,7 @@
       "suspectedBlackFrame": false,
       "deltaEMean": 19.919816704630044,
       "deltaEP95": 58.14616979011967,
-      "ssim": 0.43915644694856165,
-      "suggestedThresholds": {
-        "maxDeltaEMean": 22.908,
-        "maxDeltaEP95": 66.868,
-        "minSsim": 0.3831
-      }
+      "ssim": 0.43915644694856165
     },
     {
       "id": "mindfullens_render_debug_1776535631075",
@@ -86,12 +81,7 @@
       "suspectedBlackFrame": false,
       "deltaEMean": 33.728228013782434,
       "deltaEP95": 72.16241855434,
-      "ssim": 0.009123237293259593,
-      "suggestedThresholds": {
-        "maxDeltaEMean": 38.787,
-        "maxDeltaEP95": 82.987,
-        "minSsim": 0
-      }
+      "ssim": 0.009123237293259593
     },
     {
       "id": "mindfullens_render_debug_1776534838108",
@@ -105,8 +95,7 @@
       "suspectedBlackFrame": false,
       "deltaEMean": null,
       "deltaEP95": null,
-      "ssim": null,
-      "suggestedThresholds": null
+      "ssim": null
     },
     {
       "id": "mindfullens_render_debug_1776534931219",
@@ -120,8 +109,7 @@
       "suspectedBlackFrame": false,
       "deltaEMean": null,
       "deltaEP95": null,
-      "ssim": null,
-      "suggestedThresholds": null
+      "ssim": null
     },
     {
       "id": "mindfullens_render_debug_1776534940397",
@@ -135,8 +123,7 @@
       "suspectedBlackFrame": false,
       "deltaEMean": null,
       "deltaEP95": null,
-      "ssim": null,
-      "suggestedThresholds": null
+      "ssim": null
     },
     {
       "id": "mindfullens_render_debug_1776534992778",
@@ -150,8 +137,7 @@
       "suspectedBlackFrame": false,
       "deltaEMean": null,
       "deltaEP95": null,
-      "ssim": null,
-      "suggestedThresholds": null
+      "ssim": null
     },
     {
       "id": "mindfullens_render_debug_1776534980344",
@@ -165,8 +151,7 @@
       "suspectedBlackFrame": false,
       "deltaEMean": null,
       "deltaEP95": null,
-      "ssim": null,
-      "suggestedThresholds": null
+      "ssim": null
     },
     {
       "id": "mindfullens_render_debug_1776534854074",
@@ -180,8 +165,7 @@
       "suspectedBlackFrame": false,
       "deltaEMean": null,
       "deltaEP95": null,
-      "ssim": null,
-      "suggestedThresholds": null
+      "ssim": null
     },
     {
       "id": "mindfullens_render_debug_1776536032045",
@@ -195,8 +179,7 @@
       "suspectedBlackFrame": false,
       "deltaEMean": null,
       "deltaEP95": null,
-      "ssim": null,
-      "suggestedThresholds": null
+      "ssim": null
     },
     {
       "id": "mindfullens_render_debug_1776535364753",
@@ -210,52 +193,7 @@
       "suspectedBlackFrame": false,
       "deltaEMean": null,
       "deltaEP95": null,
-      "ssim": null,
-      "suggestedThresholds": null
-    }
-  ],
-  "qualitySuggestions": [
-    {
-      "id": "mindfullens_render_debug_1776535390891",
-      "reportPath": "data/raw/reference/reports/mindfullens_render_debug_1776535390891.json",
-      "qualityComparison": {
-        "mode": "report-dataurl",
-        "dataUrlPath": "pipeline.info.capabilities.backendAbTest.diffHeatmap.dataUrl",
-        "candidateReport": "data/raw/reference/reports/mindfullens_render_debug_1776535631075.json",
-        "referenceReport": "data/raw/reference/reports/mindfullens_render_debug_1776535390891.json",
-        "comparedWidth": 80,
-        "comparedHeight": 80,
-        "samples": 6400,
-        "deltaEMean": 19.919816704630044,
-        "deltaEP95": 58.14616979011967,
-        "ssim": 0.43915644694856165
-      },
-      "suggestedThresholds": {
-        "maxDeltaEMean": 22.908,
-        "maxDeltaEP95": 66.868,
-        "minSsim": 0.3831
-      }
-    },
-    {
-      "id": "mindfullens_render_debug_1776535631075",
-      "reportPath": "data/raw/reference/reports/mindfullens_render_debug_1776535631075.json",
-      "qualityComparison": {
-        "mode": "report-dataurl",
-        "dataUrlPath": "pipeline.info.capabilities.backendAbTest.diffHeatmap.dataUrl",
-        "candidateReport": "data/raw/reference/reports/mindfullens_render_debug_1776535631075.json",
-        "referenceReport": "data/raw/reference/reports/mindfullens_render_debug_1776534955565.json",
-        "comparedWidth": 80,
-        "comparedHeight": 80,
-        "samples": 6400,
-        "deltaEMean": 33.728228013782434,
-        "deltaEP95": 72.16241855434,
-        "ssim": 0.009123237293259593
-      },
-      "suggestedThresholds": {
-        "maxDeltaEMean": 38.787,
-        "maxDeltaEP95": 82.987,
-        "minSsim": 0
-      }
+      "ssim": null
     }
   ]
 }
