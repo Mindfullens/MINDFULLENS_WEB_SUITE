@@ -49,7 +49,7 @@
     "postbuild": "npm run test:dist-outputs",
     "lint": "eslint --cache --cache-location .eslintcache \"src/**/*.{js,jsx}\" \"scripts/**/*.{js,mjs}\" vite.config.js eslint.config.mjs",
     "lint:fix": "npm run lint -- --fix",
-    "ci": "npm run lint && npm run test:regression && npm run test:crop-geometry && npm run test:deep-audit && npm run test:gh-pages-base && npm run test:static-deploy-assets && npm run test:env-example-parity && npm run test:proxy && npm run test:e2e-pointer && npm run test:fast-preview-webgl2 && npm run test:runtime-env && npm run test:vite-toolchain && npm run build && npm run audit",
+    "ci": "npm run lint && npm run test:regression && npm run test:crop-geometry && npm run test:deep-audit && npm run test:gh-pages-base && npm run test:static-deploy-assets && npm run test:env-example-parity && npm run test:proxy && npm run test:e2e-pointer && npm run test:fast-preview-webgl2 && npm run test:runtime-env && npm run test:vite-toolchain && npm run test:raw-reference && npm run build && npm run audit",
     "check": "npm run ci",
     "ci:smoke": "npm run ci && npm run profiles:verify-source",
     "preflight": "npm run lint && npm test",
