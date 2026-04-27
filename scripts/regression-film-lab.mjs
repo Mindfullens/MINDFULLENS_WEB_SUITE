@@ -1328,6 +1328,11 @@ function runRawColorPipelineGuards() {
     'RAW worker should parse bridge color pipeline headers'
   );
   assert.match(
+    rawWorkerSource,
+    /rawRecovery2d|VITE_FILMLAB_RAW_RECOVERY_2D/,
+    'RAW worker should expose optional 2D recovery metadata controlled by env'
+  );
+  assert.match(
     ingestSource,
     /Color pipeline:/,
     'RAW ingest status message should include color pipeline summary'

@@ -1,6 +1,6 @@
 {
   "name": "mindfullens-raw-reference-v1",
-  "description": "Uzupełnij 30+ raportów DIAG JSON przy stabilnym buildzie. `npm run raw:manifest:build` uzupełnia expected (backend, colorPipelineStage, rawDecodeAdapter, opcj. LibRaw), scala ręczne expected/thresholds i zachowuje qualityComparison; pełna nadpisanka: `npm run raw:manifest:build:fresh`. Dla auto-kalibracji quality gate użyj `npm run raw:manifest:build:suggested` (uzupełnia maxDeltaEMean/maxDeltaEP95/minSsim dla wpisów z qualityComparison). Opcjonalne expected: librawUseCameraMatrix, librawCameraProfile (embed|none|off), librawMake, librawModel. Opcjonalne gate quality: thresholds.maxDeltaEMean/maxDeltaEP95/minSsim + qualityComparison (mode A: referenceImage/candidateImage PNG, mode B: referenceReport/candidateReport + dataUrlPath).",
+  "description": "Uzupełnij 30+ raportów DIAG JSON przy stabilnym buildzie. `npm run raw:manifest:build` uzupełnia expected (backend, colorPipelineStage, rawDecodeAdapter, opcj. LibRaw), scala ręczne expected/thresholds i zachowuje qualityComparison; pełna nadpisanka: `npm run raw:manifest:build:fresh`. Dla auto-kalibracji quality gate użyj `npm run raw:manifest:build:suggested` (uzupełnia maxDeltaEMean/maxDeltaEP95/minSsim dla wpisów z qualityComparison). Opcjonalne expected: librawUseCameraMatrix, librawCameraProfile (embed|none|off), librawMake, librawModel, rawRecovery2dEnabled. Opcjonalne gate quality: thresholds.maxDeltaEMean/maxDeltaEP95/minSsim + qualityComparison (mode A: referenceImage/candidateImage PNG, mode B: referenceReport/candidateReport + dataUrlPath). Opcjonalne gate recovery2d: thresholds.maxRecoveryPostHighlightClipRatio/maxRecoveryPostShadowClipRatio.",
   "defaultThresholds": {
     "maxHighlightClipRatio": 0.12,
     "maxShadowClipRatio": 0.16,
@@ -15,7 +15,8 @@
       "expected": {
         "selectedBackend": "macos quicklook / qlmanage",
         "colorPipelineStage": "srgb-linear-srgb-v1",
-        "rawDecodeAdapter": "http-bridge"
+        "rawDecodeAdapter": "http-bridge",
+        "rawRecovery2dEnabled": true
       },
       "qualityComparison": {
         "referenceImage": "data/raw/reference/images/sample-001-reference.png",
@@ -25,7 +26,9 @@
         "maxAbMeanDelta": 20,
         "maxDeltaEMean": 6.5,
         "maxDeltaEP95": 14,
-        "minSsim": 0.93
+        "minSsim": 0.93,
+        "maxRecoveryPostHighlightClipRatio": 0.12,
+        "maxRecoveryPostShadowClipRatio": 0.16
       }
     }
   ]

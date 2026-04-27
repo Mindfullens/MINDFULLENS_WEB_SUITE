@@ -64,6 +64,21 @@ export function useFilmLabRawQualitySummaries({ hasActiveSource, pipelineInfo, r
     if (capabilities?.suspectedBlackFrame) {
       parts.push('suspected black');
     }
+    const recovery = capabilities?.rawRecovery2d;
+    if (recovery?.enabled) {
+      const changed = Number(recovery?.changedPixelRatio);
+      const recH = Number(recovery?.recoveredHighlightRatio);
+      const recS = Number(recovery?.recoveredShadowRatio);
+      const segment = [
+        'recovery2d on',
+        Number.isFinite(changed) ? `changed ${(changed * 100).toFixed(1)}%` : null,
+        Number.isFinite(recH) ? `h ${(recH * 100).toFixed(2)}%` : null,
+        Number.isFinite(recS) ? `s ${(recS * 100).toFixed(2)}%` : null,
+      ]
+        .filter(Boolean)
+        .join(' · ');
+      parts.push(segment);
+    }
 
     return parts.length ? parts.join(' · ') : 'brak danych';
   }, [pipelineInfo]);
@@ -159,6 +174,10 @@ export function useFilmLabRawQualitySummaries({ hasActiveSource, pipelineInfo, r
     const nonBlackRatio = Number(decodeStats?.nonBlackRatio);
     const opaqueRatio = Number(decodeStats?.opaqueRatio);
     const abMeanDelta = Number(rawBackendAbSummary?.diffHeatmap?.meanDelta);
+    const recovery = pipelineInfo?.capabilities?.rawRecovery2d ?? null;
+    const recoveryResidualHighlight = Number(recovery?.postHighlightClipRatio);
+    const recoveryResidualShadow = Number(recovery?.postShadowClipRatio);
+    const recoveryChanged = Number(recovery?.changedPixelRatio);
     const issues = [];
     let riskScore = 0;
 
@@ -194,6 +213,16 @@ export function useFilmLabRawQualitySummaries({ hasActiveSource, pipelineInfo, r
       issues.push(`Średnia różnica A/B: ΔL ${abMeanDelta.toFixed(1)}`);
       riskScore += 1;
     }
+    if (recovery?.enabled) {
+      if (Number.isFinite(recoveryResidualHighlight) && recoveryResidualHighlight >= RAW_QA_THRESHOLDS.highlightWarn) {
+        issues.push(`Recovery residual highlights: ${formatRatioPercent(recoveryResidualHighlight, 1)}`);
+        riskScore += 1;
+      }
+      if (Number.isFinite(recoveryResidualShadow) && recoveryResidualShadow >= RAW_QA_THRESHOLDS.shadowWarn) {
+        issues.push(`Recovery residual shadows: ${formatRatioPercent(recoveryResidualShadow, 1)}`);
+        riskScore += 1;
+      }
+    }
 
     const tone = riskScore >= 3 ? 'risky' : riskScore >= 1 ? 'neutral' : 'good';
     const label = tone === 'risky' ? 'RISKY' : tone === 'neutral' ? 'NEUTRAL' : 'GOOD';
@@ -215,11 +244,21 @@ export function useFilmLabRawQualitySummaries({ hasActiveSource, pipelineInfo, r
         nonBlackRatio: Number.isFinite(nonBlackRatio) ? nonBlackRatio : null,
         opaqueRatio: Number.isFinite(opaqueRatio) ? opaqueRatio : null,
         abMeanDelta: Number.isFinite(abMeanDelta) ? abMeanDelta : null,
+        rawRecovery2dEnabled: Boolean(recovery?.enabled),
+        rawRecovery2dReason: recovery?.reason ?? null,
+        rawRecovery2dChangedPixelRatio: Number.isFinite(recoveryChanged) ? recoveryChanged : null,
+        rawRecovery2dPostHighlightClipRatio: Number.isFinite(recoveryResidualHighlight)
+          ? recoveryResidualHighlight
+          : null,
+        rawRecovery2dPostShadowClipRatio: Number.isFinite(recoveryResidualShadow)
+          ? recoveryResidualShadow
+          : null,
       },
     };
   }, [
     hasActiveSource,
     pipelineInfo?.capabilities?.decodeStats,
+    pipelineInfo?.capabilities?.rawRecovery2d,
     pipelineInfo?.capabilities?.suspectedBlackFrame,
     pipelineInfo?.pipelineKind,
     rawBackendAbSummary?.diffHeatmap?.meanDelta,

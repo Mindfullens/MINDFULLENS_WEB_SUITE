@@ -143,6 +143,7 @@ export function useFilmLabExportDebugReport({
         colorPipeline: cap.colorPipeline ?? probe?.colorPipeline ?? null,
         librawDevelopSettings: cap.librawDevelopSettings ?? null,
         librawMetadataSummary: cap.librawMetadataSummary ?? null,
+        rawRecovery2d: cap.rawRecovery2d ?? null,
         decodeAdapterId,
         rawDecodeAdapterPhase: cap.rawDecodeAdapterPhase ?? null,
         env: {

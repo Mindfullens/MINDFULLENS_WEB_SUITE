@@ -60,6 +60,13 @@ const DEFAULT_RAW_COLOR_PIPELINE = Object.freeze({
   outputEncoding: 'display-srgb',
   linearStageEnabled: true,
 });
+const DEFAULT_RAW_2D_RECOVERY = Object.freeze({
+  enabled: false,
+  highlightStrength: 0.35,
+  shadowStrength: 0.25,
+  highlightPivot: 0.72,
+  shadowPivot: 0.28,
+});
 
 function withRawDecodeAdapterTelemetry(capabilities) {
   if (!capabilities || typeof capabilities !== 'object') {
@@ -74,6 +81,12 @@ function withRawDecodeAdapterTelemetry(capabilities) {
 function finalizeProbeCapabilities(capabilities) {
   const base =
     capabilities && typeof capabilities === 'object' ? { ...capabilities } : { ...FALLBACK_CAPABILITIES };
+  const recoverySettings = getRaw2dRecoverySettings();
+  base.rawRecovery2d = {
+    enabled: Boolean(recoverySettings.enabled),
+    highlightStrength: recoverySettings.highlightStrength,
+    shadowStrength: recoverySettings.shadowStrength,
+  };
 
   if (getRawDecodeAdapterIdFromEnv() === RAW_DECODE_ADAPTER_LIBRAW_WASM) {
     const hadBridge = Boolean(base.bridge);
@@ -270,6 +283,222 @@ function parseBooleanHeader(value, defaultValue = false) {
     return false;
   }
   return defaultValue;
+}
+
+function parseBooleanEnv(value, defaultValue = false) {
+  const normalized = String(value ?? '')
+    .trim()
+    .toLowerCase();
+  if (normalized === '1' || normalized === 'true' || normalized === 'yes' || normalized === 'on') {
+    return true;
+  }
+  if (normalized === '0' || normalized === 'false' || normalized === 'no' || normalized === 'off') {
+    return false;
+  }
+  return defaultValue;
+}
+
+function parseFiniteEnv(value, fallback) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function getRaw2dRecoverySettings() {
+  try {
+    const env = typeof import.meta !== 'undefined' ? import.meta.env : undefined;
+    return {
+      enabled: parseBooleanEnv(env?.VITE_FILMLAB_RAW_RECOVERY_2D, DEFAULT_RAW_2D_RECOVERY.enabled),
+      highlightStrength: Math.max(
+        0,
+        Math.min(1, parseFiniteEnv(env?.VITE_FILMLAB_RAW_RECOVERY_HIGHLIGHT_STRENGTH, DEFAULT_RAW_2D_RECOVERY.highlightStrength))
+      ),
+      shadowStrength: Math.max(
+        0,
+        Math.min(1, parseFiniteEnv(env?.VITE_FILMLAB_RAW_RECOVERY_SHADOW_STRENGTH, DEFAULT_RAW_2D_RECOVERY.shadowStrength))
+      ),
+      highlightPivot: DEFAULT_RAW_2D_RECOVERY.highlightPivot,
+      shadowPivot: DEFAULT_RAW_2D_RECOVERY.shadowPivot,
+    };
+  } catch {
+    return { ...DEFAULT_RAW_2D_RECOVERY };
+  }
+}
+
+async function applyRaw2dRecovery(buffer, mimeType = 'image/png') {
+  const settings = getRaw2dRecoverySettings();
+  if (!settings.enabled) {
+    return {
+      changed: false,
+      buffer,
+      mimeType,
+      metrics: {
+        enabled: false,
+        reason: 'feature-flag-off',
+      },
+    };
+  }
+  if (
+    typeof createImageBitmap !== 'function' ||
+    typeof OffscreenCanvas === 'undefined' ||
+    !(buffer instanceof ArrayBuffer)
+  ) {
+    return {
+      changed: false,
+      buffer,
+      mimeType,
+      metrics: {
+        enabled: true,
+        reason: 'runtime-unsupported',
+        ...settings,
+      },
+    };
+  }
+
+  let bitmap = null;
+  try {
+    const blob = new Blob([buffer], { type: mimeType || 'image/png' });
+    bitmap = await createImageBitmap(blob, {
+      imageOrientation: 'from-image',
+      colorSpaceConversion: 'default',
+      premultiplyAlpha: 'none',
+    });
+    if (!bitmap?.width || !bitmap?.height) {
+      return {
+        changed: false,
+        buffer,
+        mimeType,
+        metrics: {
+          enabled: true,
+          reason: 'empty-bitmap',
+          ...settings,
+        },
+      };
+    }
+
+    const width = bitmap.width;
+    const height = bitmap.height;
+    const canvas = new OffscreenCanvas(width, height);
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    if (!context) {
+      return {
+        changed: false,
+        buffer,
+        mimeType,
+        metrics: {
+          enabled: true,
+          reason: 'no-2d-context',
+          ...settings,
+        },
+      };
+    }
+
+    context.clearRect(0, 0, width, height);
+    context.drawImage(bitmap, 0, 0, width, height);
+    const imageData = context.getImageData(0, 0, width, height);
+    const data = imageData?.data;
+    if (!data?.length) {
+      return {
+        changed: false,
+        buffer,
+        mimeType,
+        metrics: {
+          enabled: true,
+          reason: 'empty-pixels',
+          ...settings,
+        },
+      };
+    }
+
+    let preHighlight = 0;
+    let preShadow = 0;
+    let postHighlight = 0;
+    let postShadow = 0;
+    let changedSamples = 0;
+    const sampleCount = width * height;
+    const hPivot = settings.highlightPivot;
+    const sPivot = settings.shadowPivot;
+
+    for (let i = 0; i < data.length; i += 4) {
+      const a = data[i + 3] / 255;
+      if (a <= 0.01) {
+        continue;
+      }
+      let r = data[i] / 255;
+      let g = data[i + 1] / 255;
+      let b = data[i + 2] / 255;
+      const preL = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+      if (preL >= 0.98) preHighlight += 1;
+      if (preL <= 0.02) preShadow += 1;
+
+      const recover = (x) => {
+        let out = x;
+        if (out > hPivot) {
+          const t = (out - hPivot) / (1 - hPivot);
+          out = out - settings.highlightStrength * t * t * (1 - hPivot);
+        }
+        if (out < sPivot) {
+          const t = (sPivot - out) / sPivot;
+          out = out + settings.shadowStrength * t * t * sPivot;
+        }
+        return Math.max(0, Math.min(1, out));
+      };
+
+      const nr = recover(r);
+      const ng = recover(g);
+      const nb = recover(b);
+      if (Math.abs(nr - r) > 0.001 || Math.abs(ng - g) > 0.001 || Math.abs(nb - b) > 0.001) {
+        changedSamples += 1;
+      }
+      r = nr;
+      g = ng;
+      b = nb;
+      data[i] = Math.round(r * 255);
+      data[i + 1] = Math.round(g * 255);
+      data[i + 2] = Math.round(b * 255);
+
+      const postL = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+      if (postL >= 0.98) postHighlight += 1;
+      if (postL <= 0.02) postShadow += 1;
+    }
+
+    context.putImageData(imageData, 0, 0);
+    const outBlob = await canvas.convertToBlob({ type: 'image/png' });
+    const outBuffer = await outBlob.arrayBuffer();
+    return {
+      changed: true,
+      buffer: outBuffer,
+      mimeType: 'image/png',
+      metrics: {
+        enabled: true,
+        reason: 'applied',
+        ...settings,
+        preHighlightClipRatio: roundStat(preHighlight / sampleCount, 6),
+        postHighlightClipRatio: roundStat(postHighlight / sampleCount, 6),
+        preShadowClipRatio: roundStat(preShadow / sampleCount, 6),
+        postShadowClipRatio: roundStat(postShadow / sampleCount, 6),
+        recoveredHighlightRatio: roundStat((preHighlight - postHighlight) / sampleCount, 6),
+        recoveredShadowRatio: roundStat((preShadow - postShadow) / sampleCount, 6),
+        changedPixelRatio: roundStat(changedSamples / sampleCount, 6),
+      },
+    };
+  } catch {
+    return {
+      changed: false,
+      buffer,
+      mimeType,
+      metrics: {
+        enabled: true,
+        reason: 'apply-failed',
+        ...settings,
+      },
+    };
+  } finally {
+    try {
+      bitmap?.close?.();
+    } catch {
+      // noop
+    }
+  }
 }
 
 function arrayBufferToBase64(buffer) {
@@ -920,15 +1149,37 @@ self.addEventListener('message', (event) => {
     )
       .then((result) => {
         if (result.ok && result.payload?.buffer) {
-          self.postMessage(
-            {
-              id,
-              ok: true,
-              payload: result.payload,
-            },
-            [result.payload.buffer]
-          );
-          return;
+          return applyRaw2dRecovery(result.payload.buffer, result.payload.mimeType || 'image/png')
+            .then(async (recovery) => {
+              const nextBuffer = recovery?.buffer instanceof ArrayBuffer ? recovery.buffer : result.payload.buffer;
+              const nextMime = recovery?.mimeType || result.payload.mimeType || 'image/png';
+              const nextDecodeStats = await computeDecodeStats(nextBuffer, nextMime);
+              const nextPayload = {
+                ...result.payload,
+                buffer: nextBuffer,
+                mimeType: nextMime,
+                decodeStats: nextDecodeStats ?? result.payload.decodeStats ?? null,
+                rawRecovery2d: recovery?.metrics ?? null,
+              };
+              self.postMessage(
+                {
+                  id,
+                  ok: true,
+                  payload: nextPayload,
+                },
+                [nextPayload.buffer]
+              );
+            })
+            .catch(() => {
+              self.postMessage(
+                {
+                  id,
+                  ok: true,
+                  payload: result.payload,
+                },
+                [result.payload.buffer]
+              );
+            });
         }
 
         self.postMessage({

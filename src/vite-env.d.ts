@@ -66,6 +66,12 @@ interface ImportMetaEnv {
    * `libraw-wasm` = LibRaw WASM (`libraw-wasm`, `rawDecodeLibrawWasm.js`; domyślnie wył. — duży bundle).
    */
   readonly VITE_FILMLAB_RAW_DECODE_ADAPTER?: string;
+  /** Worker RAW: prosty recovery 2D po dekodzie (kompresja świateł + podniesienie cieni). */
+  readonly VITE_FILMLAB_RAW_RECOVERY_2D?: string;
+  /** Siła kompresji świateł dla recovery 2D (0..1), domyślnie 0.35. */
+  readonly VITE_FILMLAB_RAW_RECOVERY_HIGHLIGHT_STRENGTH?: string;
+  /** Siła podnoszenia cieni dla recovery 2D (0..1), domyślnie 0.25. */
+  readonly VITE_FILMLAB_RAW_RECOVERY_SHADOW_STRENGTH?: string;
   /**
    * LibRaw WASM (`rawDecodeLibrawWasm.js`): `use_camera_matrix` (dcraw/LibRaw 0..3). Domyślnie puste → w kodzie **3** (macierz aparatu / linia DCP).
    */
