@@ -266,7 +266,8 @@
       "expected": {
         "selectedBackend": "macOS ImageIO / sips",
         "colorPipelineStage": "srgb-linear-srgb-v1",
-        "rawDecodeAdapter": "http-bridge"
+        "rawDecodeAdapter": "http-bridge",
+        "rawRecovery2dEnabled": false
       },
       "thresholds": {
         "maxHighlightClipRatio": 0.163885004302926,
@@ -274,7 +275,9 @@
         "maxAbMeanDelta": 24,
         "maxDeltaEMean": 22.908,
         "maxDeltaEP95": 66.868,
-        "minSsim": 0.3831
+        "minSsim": 0.3831,
+        "maxRecoveryPostHighlightClipRatio": 0.12,
+        "maxRecoveryPostShadowClipRatio": 0.16
       },
       "qualityComparison": {
         "referenceReport": "data/raw/reference/reports/mindfullens_render_debug_1776535390891.json",
@@ -386,7 +389,8 @@
       "expected": {
         "selectedBackend": "macOS ImageIO / sips",
         "colorPipelineStage": "srgb-linear-srgb-v1",
-        "rawDecodeAdapter": "http-bridge"
+        "rawDecodeAdapter": "http-bridge",
+        "rawRecovery2dEnabled": false
       },
       "thresholds": {
         "maxHighlightClipRatio": 0.16197932618683003,
@@ -394,7 +398,9 @@
         "maxAbMeanDelta": 24,
         "maxDeltaEMean": 38.787,
         "maxDeltaEP95": 82.987,
-        "minSsim": 0
+        "minSsim": 0,
+        "maxRecoveryPostHighlightClipRatio": 0.12,
+        "maxRecoveryPostShadowClipRatio": 0.16
       },
       "qualityComparison": {
         "referenceReport": "data/raw/reference/reports/mindfullens_render_debug_1776534955565.json",
