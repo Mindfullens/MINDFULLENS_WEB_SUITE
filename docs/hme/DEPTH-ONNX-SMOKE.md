@@ -20,8 +20,8 @@ VITE_FILMLAB_DEPTH_ONNX_MODEL_URL=https://twoja-domena/depth.onnx
 # VITE_FILMLAB_DEPTH_ONNX_DEPTH_CHANNELS=mean
 # Start inferencji na wątku głównym: requestIdleCallback (max. opóźnienie w ms, domyślnie 480):
 # VITE_FILMLAB_DEPTH_ONNX_IDLE_TIMEOUT_MS=480
-# WASM w osobnym wątku (mniej blokady UI); przy błędzie — automatyczny fallback na główny wątek:
-# VITE_FILMLAB_DEPTH_ONNX_USE_WORKER=1
+# Domyślnie WASM depth ONNX idzie przez Web Workera (mniej blokady UI); przy błędzie — fallback na główny wątek.
+# Debug na głównym wątku: VITE_FILMLAB_DEPTH_ONNX_MAIN_THREAD_ONLY=1  albo  VITE_FILMLAB_DEPTH_ONNX_USE_WORKER=0
 ```
 
 3. Uruchom `npm run dev`, wejdź w **Film Lab Pro**, wczytaj zdjęcie z treścią (nie jednolity kolor).

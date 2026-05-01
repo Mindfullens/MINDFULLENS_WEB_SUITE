@@ -742,7 +742,7 @@
       "depthProxyHelp": "Głębia (P2, proxy): maska = pędzel × zakres jasności piksela (jasność ≈ głębia zastępcza). Prawdziwa mapa głębi = osobna faza silnika.",
       "depthMapSourceLuminance": "Proxy: jasność",
       "depthMapSourceOnnx": "ONNX (eksperymentalnie)",
-      "depthMapSourceOnnxHelp": "ONNX: w buildzie ustaw `VITE_FILMLAB_DEPTH_ONNX_MODEL_URL`. Bez URL albo z `VITE_FILMLAB_DEPTH_ONNX_USE_LUMA_FALLBACK=1` — tak jak proxy luminancji. Układ wejścia NCHW/NHWC jest wykrywany automatycznie; gdy mapa wygląda źle, ustaw `VITE_FILMLAB_DEPTH_ONNX_INPUT_LAYOUT` na `nchw` lub `nhwc`.",
+      "depthMapSourceOnnxHelp": "ONNX: w buildzie ustaw `VITE_FILMLAB_DEPTH_ONNX_MODEL_URL`. Bez URL albo z `VITE_FILMLAB_DEPTH_ONNX_USE_LUMA_FALLBACK=1` — tak jak proxy luminancji. Inferencja domyślnie w Web Workerze (`VITE_FILMLAB_DEPTH_ONNX_MAIN_THREAD_ONLY=1` wymusza wątek główny). Układ wejścia NCHW/NHWC jest wykrywany automatycznie; gdy mapa wygląda źle, ustaw `VITE_FILMLAB_DEPTH_ONNX_INPUT_LAYOUT` na `nchw` lub `nhwc`.",
       "depthOnnxStatusRunning": "Budowanie mapy głębi…",
       "depthOnnxStatusLumaTest": "Mapa głębi: tryb testu (jasność)",
       "depthOnnxFallbackNoModelUrl": "Brak adresu modelu w buildzie — używana jest jasność zamiast głębi.",

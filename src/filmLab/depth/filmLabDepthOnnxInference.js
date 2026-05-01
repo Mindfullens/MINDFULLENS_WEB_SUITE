@@ -6,10 +6,11 @@
  * Opcjonalnie `VITE_FILMLAB_DEPTH_ONNX_IMAGENET_NORM=1` — normalizacja ImageNet (jak wiele modeli MiDaS).
  * Wyjście: tensor wybierany przez env (`OUTPUT_NAME` / `OUTPUT_INDEX`), domyślnie pierwszy;
  * układ NCHW lub NHWC; wiele kanałów — `DEPTH_CHANNELS=first|mean`. Wartości min–max → [0,1].
- * Opcjonalnie `VITE_FILMLAB_DEPTH_ONNX_USE_WORKER=1` — inferencja w Web Workerze (`filmLabDepthOnnx.worker.js`), przy błędzie — fallback na główny wątek.
+ * Domyślnie inferencja ONNX próbuje Web Workera (`filmLabDepthOnnx.worker.js`), przy błędzie — fallback na główny wątek (WASM).
+ * Wyłączenie workera: `VITE_FILMLAB_DEPTH_ONNX_MAIN_THREAD_ONLY=1` albo `VITE_FILMLAB_DEPTH_ONNX_USE_WORKER=0`.
  */
 
-import { readEnvFlag } from '../runtimeEnv.js';
+import { readEnvFlag, readEnvNegated } from '../runtimeEnv.js';
 import { rgbRec709LumaUnit } from '../../engine/colorMathShared.js';
 import {
   createOnnxInferenceSessionCached,
@@ -17,6 +18,24 @@ import {
   getOnnxRuntimeWebLazy,
 } from '../onnx/filmLabOnnxRuntimeAdapter.js';
 import { hashDepthProxyFloat32 } from './filmLabDepthProxyDigest.js';
+
+/**
+ * Worker jest domyślnie włączony gdy `Worker` jest dostępny — mniejsze blokady UI niż WASM na głównym wątku.
+ *
+ * @returns {boolean}
+ */
+export function shouldTryDepthOnnxWebWorker() {
+  if (typeof globalThis.Worker !== 'function') {
+    return false;
+  }
+  if (readEnvFlag(import.meta.env?.VITE_FILMLAB_DEPTH_ONNX_MAIN_THREAD_ONLY)) {
+    return false;
+  }
+  if (readEnvNegated(import.meta.env?.VITE_FILMLAB_DEPTH_ONNX_USE_WORKER)) {
+    return false;
+  }
+  return true;
+}
 
 function getDepthOnnxModelUrl() {
   const u = import.meta.env?.VITE_FILMLAB_DEPTH_ONNX_MODEL_URL;
@@ -696,7 +715,7 @@ export async function inferDepthProxyBufferFromImageData(imageData) {
     return { ok: false, reason: 'no_model_url' };
   }
 
-  if (readEnvFlag(import.meta.env?.VITE_FILMLAB_DEPTH_ONNX_USE_WORKER) && typeof globalThis.Worker === 'function') {
+  if (shouldTryDepthOnnxWebWorker()) {
     try {
       const { inferDepthProxyBufferFromImageDataViaWorker } = await import('./filmLabDepthOnnxWorkerClient.js');
       const out = await inferDepthProxyBufferFromImageDataViaWorker(imageData);

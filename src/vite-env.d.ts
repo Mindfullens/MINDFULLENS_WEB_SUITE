@@ -23,8 +23,13 @@ interface ImportMetaEnv {
   readonly VITE_FILMLAB_ONNX_DYNAMIC_SPATIAL?: string;
   /** Opcjonalny URL modelu ONNX dla mapy głębi (maska depth — osobny od AI Subject/Sky). */
   readonly VITE_FILMLAB_DEPTH_ONNX_MODEL_URL?: string;
-  /** Gdy `1` — inferencja depth ONNX w Web Workerze; przy błędzie — fallback na główny wątek. */
+  /**
+   * Domyślnie inferencja depth ONNX używa Web Workera (gdy `Worker` jest dostępny).
+   * Ustaw `0` / `false` / `off` / `no`, żeby wymusić WASM na głównym wątku bez próby workera.
+   */
   readonly VITE_FILMLAB_DEPTH_ONNX_USE_WORKER?: string;
+  /** Gdy `1` — cała ścieżka ONNX depth na głównym wątku (debug / diag); pomija worker mimo dostępności API. */
+  readonly VITE_FILMLAB_DEPTH_ONNX_MAIN_THREAD_ONLY?: string;
   /** Gdy `1` — inferencja „depth ONNX” materializuje luminancję (test toru bez modelu). */
   readonly VITE_FILMLAB_DEPTH_ONNX_USE_LUMA_FALLBACK?: string;
   /**

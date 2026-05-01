@@ -742,7 +742,7 @@
       "depthProxyHelp": "Depth (P2, proxy): mask = brush × pixel brightness window (brightness ≈ stand‑in depth). Real depth map is a later engine phase.",
       "depthMapSourceLuminance": "Proxy: luminance",
       "depthMapSourceOnnx": "ONNX (experimental)",
-      "depthMapSourceOnnxHelp": "ONNX: set `VITE_FILMLAB_DEPTH_ONNX_MODEL_URL` in the build. Without a URL, or with `VITE_FILMLAB_DEPTH_ONNX_USE_LUMA_FALLBACK=1`, it matches the luminance proxy. Input layout (NCHW / NHWC) is auto; if the depth map looks wrong, set `VITE_FILMLAB_DEPTH_ONNX_INPUT_LAYOUT` to `nchw` or `nhwc`.",
+      "depthMapSourceOnnxHelp": "ONNX: set `VITE_FILMLAB_DEPTH_ONNX_MODEL_URL` in the build. Without a URL, or with `VITE_FILMLAB_DEPTH_ONNX_USE_LUMA_FALLBACK=1`, it matches the luminance proxy. Inference uses a Web Worker by default (`VITE_FILMLAB_DEPTH_ONNX_MAIN_THREAD_ONLY=1` forces the main thread). Input layout (NCHW / NHWC) is auto; if the depth map looks wrong, set `VITE_FILMLAB_DEPTH_ONNX_INPUT_LAYOUT` to `nchw` or `nhwc`.",
       "depthOnnxStatusRunning": "Building depth map…",
       "depthOnnxStatusLumaTest": "Depth map: test mode (luminance)",
       "depthOnnxFallbackNoModelUrl": "No model URL in the build — using luminance as stand-in.",

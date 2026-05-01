@@ -20,7 +20,8 @@ export function getDepthOnnxIdleCallbackTimeoutMs() {
 /**
  * Odkłada start inferencji ONNX (WASM na głównym wątku) na moment „idle”,
  * żeby przeglądarka zdążyła pomalować klatkę po interakcji / zmianie podglądu.
- * Pełny offload do Web Workera = osobna iteracja (bundle ort + transfer).
+ * Inferencja ONNX może iść w `filmLabDepthOnnx.worker.js` (domyślnie w `inferDepthProxyBufferFromImageData`);
+ * ten moduł tylko odkłada start ścieżki hosta na idle przed wywołaniem inferencji.
  *
  * @param {() => void} fn
  * @param {{ timeoutMs?: number }} [opts]

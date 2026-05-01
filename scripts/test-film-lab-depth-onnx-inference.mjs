@@ -12,7 +12,14 @@ import {
   resolveDepthNhwcInputDims,
   resolveDepthRgbInputDims,
   extractDepthPlaneFromOnnxTensor,
+  shouldTryDepthOnnxWebWorker,
 } from '../src/filmLab/depth/filmLabDepthOnnxInference.js';
+
+assert.strictEqual(
+  shouldTryDepthOnnxWebWorker(),
+  false,
+  'Node test harness has no global Worker — depth ONNX worker gate is off',
+);
 
 assert.deepEqual(depthOnnxLetterboxTargetSize(800, 600, 768), { tw: 768, th: 576 });
 
