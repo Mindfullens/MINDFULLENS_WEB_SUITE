@@ -996,8 +996,8 @@ function main() {
   );
   assert.match(
     filmLabRenderDebugSrc,
-    /Readback parity \(W=main RGB\)/,
-    'Panel: readback parity row (W=main RGB)',
+    /filmLab\.renderDebug\.readbackParityRgb/,
+    'Panel: readback parity row label (i18n key readbackParityRgb, EN copy in locales/en.json)',
   );
   assert.match(
     filmLabRenderDebugSrc,
@@ -1011,8 +1011,8 @@ function main() {
   );
   assert.match(
     filmLabRenderDebugSrc,
-    /main-preview A\/B fallback:/,
-    'Panel: main-preview fallback reason text',
+    /filmLab\.renderDebug\.fallbackGeneric/,
+    'Panel: main-preview A/B fallback copy via i18n (fallbackGeneric + related keys)',
   );
   assert.match(
     filmLabRenderDebugSrc,
@@ -1076,13 +1076,13 @@ function main() {
   );
   assert.match(
     filmLabRenderDebugSrc,
-    /A\/B rollout health/,
-    'Panel: A/B rollout health row (toned)',
+    /filmLab\.renderDebug\.webGpuAbRolloutHealth/,
+    'Panel: A/B rollout health row label (i18n webGpuAbRolloutHealth)',
   );
   assert.match(
     filmLabRenderDebugSrc,
-    /A\/B rollout gate/,
-    'Panel: A/B rollout gate row',
+    /filmLab\.renderDebug\.webGpuAbRolloutGate/,
+    'Panel: A/B rollout gate row label (i18n webGpuAbRolloutGate)',
   );
   const renderStatusLabelsPath = new URL('../src/filmLab/useFilmLabRenderDebugStatusLabels.js', import.meta.url);
   const renderStatusLabelsSrc = fs.readFileSync(renderStatusLabelsPath, 'utf8');
@@ -1103,8 +1103,8 @@ function main() {
   );
   assert.match(
     renderStatusLabelsSrc,
-    /getMainPreviewAbRolloutGateInfo\(renderDebugInfo\)\.badgeSegment/,
-    'Status badge: uses shared helper badgeSegment output',
+    /getMainPreviewAbRolloutGateInfo\(renderDebugInfo,\s*rolloutOpts\)\.badgeSegment/,
+    'Status badge: uses shared helper badgeSegment output (rollout opts passed through)',
   );
   assert.match(
     renderStatusLabelsSrc,
@@ -1150,23 +1150,23 @@ function main() {
   );
   assert.match(
     canvasOverlaysSrc,
-    /E2E warn:/,
-    'Canvas overlays: runtime badge tooltip includes E2E warn line',
+    /filmLab\.pipelineOverlays\.e2eWarnLine/,
+    'Canvas overlays: E2E warn tooltip line (i18n e2eWarnLine)',
   );
   assert.match(
     canvasOverlaysSrc,
-    /A\/B delta:/,
-    'Canvas overlays: runtime badge tooltip includes A/B delta line',
+    /filmLab\.pipelineOverlays\.abDeltaLine/,
+    'Canvas overlays: A/B delta tooltip line (i18n abDeltaLine)',
   );
   assert.match(
     canvasOverlaysSrc,
-    /Rollout health:/,
-    'Canvas overlays: runtime badge tooltip includes rollout health line',
+    /filmLab\.pipelineOverlays\.rolloutHealthLine/,
+    'Canvas overlays: rollout health tooltip line (i18n rolloutHealthLine)',
   );
   assert.match(
     canvasOverlaysSrc,
-    /Rollout gate:/,
-    'Canvas overlays: runtime badge tooltip includes rollout gate line',
+    /filmLab\.pipelineOverlays\.rolloutGateLine/,
+    'Canvas overlays: rollout gate tooltip line (i18n rolloutGateLine)',
   );
   assert.match(
     canvasOverlaysSrc,
