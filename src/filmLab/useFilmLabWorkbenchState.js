@@ -8,6 +8,7 @@ import { cloneCurves } from './curvesCanvas.js';
 import { DEFAULT_ADJUSTMENTS } from './defaultAdjustments.js';
 import { DEFAULT_CURVES } from './defaultCurves.js';
 import { resolveInitialPanelFromLocation } from './panelAndGradeTabs.js';
+import { resolveInitialStudioWorkspaceFromLocation } from './studioWorkspaceTabs.js';
 import { useDevicePixelRatio } from './useDevicePixelRatio.js';
 import { FIT_UI_ZOOM, ZOOM_MODE } from './viewportZoom.js';
 
@@ -18,6 +19,7 @@ export function useFilmLabWorkbenchState() {
   const [activeCategory, setActiveCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [activePanel, setActivePanel] = useState(() => resolveInitialPanelFromLocation());
+  const [studioWorkspace, setStudioWorkspace] = useState(() => resolveInitialStudioWorkspaceFromLocation());
   const [historyRevision, setHistoryRevision] = useState(0);
   const [activeCurveCh, setActiveCurveCh] = useState('rgb');
   const [isStraightenToolArmed, setIsStraightenToolArmed] = useState(false);
@@ -62,6 +64,8 @@ export function useFilmLabWorkbenchState() {
     setSearchQuery,
     activePanel,
     setActivePanel,
+    studioWorkspace,
+    setStudioWorkspace,
     historyRevision,
     setHistoryRevision,
     activeCurveCh,

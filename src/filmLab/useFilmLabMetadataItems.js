@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react';
-import { getPipelineLabel } from '../engine/pipeline/constants.js';
+import { PIPELINE_KIND } from '../engine/pipeline/constants.js';
 import {
   formatAspectRatio,
   formatDateTime,
@@ -7,6 +7,17 @@ import {
   formatMegapixels,
 } from './displayFormat.js';
 import { METADATA_VIEW_MODES } from './workbenchConstants.js';
+import { useI18n } from '../i18n';
+
+function translatePipelineKindTitle(pipelineInfo, t) {
+  if (!pipelineInfo) {
+    return t('filmLab.sourcePanel.pipelineIdle');
+  }
+  if (pipelineInfo.pipelineKind === PIPELINE_KIND.RAW) {
+    return t('filmLab.sourcePanel.pipelineRaw');
+  }
+  return t('filmLab.sourcePanel.pipelineBitmap');
+}
 
 function formatLibrawMetadataSummaryLine(summary) {
   if (!summary || typeof summary !== 'object') {
@@ -43,6 +54,37 @@ function formatLibrawMetadataSummaryLine(summary) {
   return parts.length ? parts.join(' · ') : null;
 }
 
+const COMPACT_ORDER_IDS = [
+  'file',
+  'dimensions',
+  'megapixels',
+  'orientation',
+  'iso',
+  'shutter',
+  'aperture',
+  'zoom',
+  'profile',
+  'pipeline',
+  'libraw',
+  'rawDecode',
+  'render',
+  'qualityAlerts',
+];
+
+const EXIF_ORDER_IDS = [
+  'camera',
+  'lens',
+  'dateTaken',
+  'iso',
+  'shutter',
+  'aperture',
+  'focalLength',
+  'dimensions',
+  'megapixels',
+  'aspectRatio',
+  'orientation',
+];
+
 export function useFilmLabMetadataItems({
   metadataViewMode,
   setMetadataViewMode,
@@ -60,80 +102,148 @@ export function useFilmLabMetadataItems({
   showInlineProcessing,
   isRawDecodeWarning,
 }) {
+  const { t } = useI18n();
+
   const metadataItems = useMemo(() => {
-    const geometryOrientation =
-      imageMeta?.width && imageMeta?.height
-        ? imageMeta.width > imageMeta.height
-          ? 'Poziome'
-          : imageMeta.width < imageMeta.height
-            ? 'Pionowe'
-            : 'Kwadrat'
-        : '—';
+    let geometryOrientation = '—';
+    if (imageMeta?.width && imageMeta?.height) {
+      if (imageMeta.width > imageMeta.height) {
+        geometryOrientation = t('filmLab.metaValue.horizontal');
+      } else if (imageMeta.width < imageMeta.height) {
+        geometryOrientation = t('filmLab.metaValue.vertical');
+      } else {
+        geometryOrientation = t('filmLab.metaValue.square');
+      }
+    }
+
     const orientation =
       exifMeta?.orientationLabel && geometryOrientation !== '—'
-        ? `${geometryOrientation} · EXIF: ${exifMeta.orientationLabel}`
+        ? t('filmLab.metaLine.orientationExif', {
+            geometry: geometryOrientation,
+            exifLabel: exifMeta.orientationLabel,
+          })
         : geometryOrientation;
+
     const orientationCorrection = exifMeta?.orientationTransform
-      ? `${exifMeta.orientationTransform.rotationDegrees}°${exifMeta.orientationTransform.mirrored ? ' + lustro' : ''}`
+      ? `${exifMeta.orientationTransform.rotationDegrees}°${
+          exifMeta.orientationTransform.mirrored ? t('filmLab.meta.mirrorSuffix') : ''
+        }`
       : '—';
+
+    const exifCorrectionValue =
+      exifMeta?.orientationTag != null
+        ? t('filmLab.metaLine.exifCorrectionWithTag', {
+            correction: orientationCorrection,
+            tag: exifMeta.orientationTag,
+          })
+        : orientationCorrection;
+
     const previewScale =
       imageMeta?.width && imageMeta?.previewWidth
         ? `${Math.round((imageMeta.previewWidth / imageMeta.width) * 100)}%`
         : '—';
 
     return [
-      { label: 'Plik', value: uploadedFile?.name || '—' },
-      { label: 'Format', value: uploadedFile?.type || uploadedFile?.name?.split('.').pop()?.toUpperCase() || '—' },
-      { label: 'Rozmiar pliku', value: formatFileSize(uploadedFile?.size) },
-      { label: 'Data pliku', value: formatDateTime(uploadedFile?.lastModified ? new Date(uploadedFile.lastModified) : null) },
+      { id: 'file', label: t('filmLab.meta.file'), value: uploadedFile?.name || '—' },
       {
-        label: 'Aparat',
+        id: 'format',
+        label: t('filmLab.meta.format'),
+        value: uploadedFile?.type || uploadedFile?.name?.split('.').pop()?.toUpperCase() || '—',
+      },
+      { id: 'fileSize', label: t('filmLab.meta.fileSize'), value: formatFileSize(uploadedFile?.size) },
+      {
+        id: 'fileDate',
+        label: t('filmLab.meta.fileDate'),
+        value: formatDateTime(uploadedFile?.lastModified ? new Date(uploadedFile.lastModified) : null),
+      },
+      {
+        id: 'camera',
+        label: t('filmLab.meta.camera'),
         value: [exifMeta?.cameraMake, exifMeta?.cameraModel].filter(Boolean).join(' ') || '—',
       },
-      { label: 'Obiektyw', value: exifMeta?.lensModel || '—' },
-      { label: 'Data zdjęcia', value: formatDateTime(exifMeta?.dateTaken) },
-      { label: 'ISO', value: Number.isFinite(exifMeta?.iso) ? String(exifMeta.iso) : '—' },
-      { label: 'Migawka', value: exifMeta?.shutter || '—' },
-      { label: 'Przysłona', value: exifMeta?.aperture || '—' },
-      { label: 'Ogniskowa', value: exifMeta?.focalLength || '—' },
-      { label: 'Wymiary', value: imageMeta ? `${imageMeta.width}×${imageMeta.height}` : '—' },
-      { label: 'Megapiksele', value: formatMegapixels(imageMeta?.width, imageMeta?.height) },
-      { label: 'Proporcje', value: formatAspectRatio(imageMeta?.width, imageMeta?.height) },
-      { label: 'Orientacja', value: orientation },
+      { id: 'lens', label: t('filmLab.meta.lens'), value: exifMeta?.lensModel || '—' },
       {
-        label: 'Korekcja EXIF',
-        value:
-          exifMeta?.orientationTag != null
-            ? `${orientationCorrection} (tag ${exifMeta.orientationTag})`
-            : orientationCorrection,
+        id: 'dateTaken',
+        label: t('filmLab.meta.dateTaken'),
+        value: formatDateTime(exifMeta?.dateTaken),
       },
       {
-        label: 'Podgląd',
+        id: 'iso',
+        label: t('filmLab.meta.iso'),
+        value: Number.isFinite(exifMeta?.iso) ? String(exifMeta.iso) : '—',
+      },
+      { id: 'shutter', label: t('filmLab.meta.shutter'), value: exifMeta?.shutter || '—' },
+      { id: 'aperture', label: t('filmLab.meta.aperture'), value: exifMeta?.aperture || '—' },
+      {
+        id: 'focalLength',
+        label: t('filmLab.meta.focalLength'),
+        value: exifMeta?.focalLength || '—',
+      },
+      {
+        id: 'dimensions',
+        label: t('filmLab.meta.dimensions'),
+        value: imageMeta ? `${imageMeta.width}×${imageMeta.height}` : '—',
+      },
+      {
+        id: 'megapixels',
+        label: t('filmLab.meta.megapixels'),
+        value: formatMegapixels(imageMeta?.width, imageMeta?.height),
+      },
+      {
+        id: 'aspectRatio',
+        label: t('filmLab.meta.aspectRatio'),
+        value: formatAspectRatio(imageMeta?.width, imageMeta?.height),
+      },
+      { id: 'orientation', label: t('filmLab.meta.orientation'), value: orientation },
+      {
+        id: 'exifCorrection',
+        label: t('filmLab.meta.exifCorrection'),
+        value: exifCorrectionValue,
+      },
+      {
+        id: 'preview',
+        label: t('filmLab.meta.preview'),
         value: imageMeta ? `${imageMeta.previewWidth}×${imageMeta.previewHeight} (${previewScale})` : '—',
       },
-      { label: 'Zoom', value: `${Math.round(zoom * 100)}%` },
-      { label: 'Obrót', value: `${adjustments.rotation ?? 0}°` },
-      { label: 'Odbicie', value: adjustments.flipped ? 'Tak' : 'Nie' },
-      { label: 'Profil', value: activeFilmName || '—' },
-      { label: 'Siła profilu', value: isInputProfile ? '—' : `${adjustments.strength}%` },
-      { label: 'Pipeline', value: getPipelineLabel(pipelineInfo) },
-      { label: 'Render', value: showInlineProcessing ? 'Przetwarzanie…' : 'Gotowy' },
+      { id: 'zoom', label: t('filmLab.meta.zoom'), value: `${Math.round(zoom * 100)}%` },
+      { id: 'rotation', label: t('filmLab.meta.rotation'), value: `${adjustments.rotation ?? 0}°` },
       {
-        label: 'Alerty jakości',
+        id: 'flip',
+        label: t('filmLab.meta.flip'),
+        value: adjustments.flipped ? t('filmLab.metaValue.yes') : t('filmLab.metaValue.no'),
+      },
+      { id: 'profile', label: t('filmLab.meta.profile'), value: activeFilmName || '—' },
+      {
+        id: 'profileStrength',
+        label: t('filmLab.meta.profileStrength'),
+        value: isInputProfile ? '—' : `${adjustments.strength}%`,
+      },
+      { id: 'pipeline', label: t('filmLab.meta.pipeline'), value: translatePipelineKindTitle(pipelineInfo, t) },
+      {
+        id: 'render',
+        label: t('filmLab.meta.render'),
+        value: showInlineProcessing ? t('filmLab.metaValue.processing') : t('filmLab.metaValue.ready'),
+      },
+      {
+        id: 'qualityAlerts',
+        label: t('filmLab.meta.qualityAlerts'),
         value: qualityStatus?.text ?? '—',
         warn: qualityStatus?.tone === 'warn',
       },
       {
-        label: 'RAW Decode',
+        id: 'rawDecode',
+        label: t('filmLab.meta.rawDecode'),
         value: rawDecodeSummary || '—',
         warn: isRawDecodeWarning,
       },
       {
-        label: 'LibRaw',
+        id: 'libraw',
+        label: t('filmLab.meta.libraw'),
         value: formatLibrawMetadataSummaryLine(pipelineInfo?.capabilities?.librawMetadataSummary) ?? '—',
       },
       {
-        label: 'RAW Color Pipeline',
+        id: 'rawColorPipeline',
+        label: t('filmLab.meta.rawColorPipeline'),
         value:
           pipelineInfo?.capabilities?.colorPipeline?.stage
             ? `${pipelineInfo.capabilities.colorPipeline.stage} · ${
@@ -155,60 +265,29 @@ export function useFilmLabMetadataItems({
     adjustments.flipped,
     adjustments.rotation,
     adjustments.strength,
-    imageMeta,
     exifMeta,
+    imageMeta,
     isInputProfile,
     isRawDecodeWarning,
     pipelineInfo,
-    rawLinearStageOverride,
     qualityStatus,
     rawDecodeSummary,
+    rawLinearStageOverride,
     showInlineProcessing,
+    t,
     uploadedFile,
     zoom,
   ]);
 
   const displayedMetadataItems = useMemo(() => {
-    const compactOrder = [
-      'Plik',
-      'Wymiary',
-      'Megapiksele',
-      'Orientacja',
-      'ISO',
-      'Migawka',
-      'Przysłona',
-      'Zoom',
-      'Profil',
-      'Pipeline',
-      'LibRaw',
-      'RAW Decode',
-      'Render',
-      'Alerty jakości',
-    ];
-    const exifOrder = [
-      'Aparat',
-      'Obiektyw',
-      'Data zdjęcia',
-      'ISO',
-      'Migawka',
-      'Przysłona',
-      'Ogniskowa',
-      'Wymiary',
-      'Megapiksele',
-      'Proporcje',
-      'Orientacja',
-    ];
-
-    const byOrder = (order) =>
-      order
-        .map((label) => metadataItems.find((item) => item.label === label))
-        .filter(Boolean);
+    const byOrder = (ids) =>
+      ids.map((id) => metadataItems.find((item) => item.id === id)).filter(Boolean);
 
     if (metadataViewMode === 'compact') {
-      return byOrder(compactOrder);
+      return byOrder(COMPACT_ORDER_IDS);
     }
     if (metadataViewMode === 'exif') {
-      return byOrder(exifOrder);
+      return byOrder(EXIF_ORDER_IDS);
     }
     return metadataItems;
   }, [metadataItems, metadataViewMode]);
@@ -221,7 +300,7 @@ export function useFilmLabMetadataItems({
       }
       return METADATA_VIEW_MODES[(currentIndex + 1) % METADATA_VIEW_MODES.length];
     });
-  }, []);
+  }, [setMetadataViewMode]);
 
   return { metadataItems, displayedMetadataItems, cycleMetadataViewMode };
 }

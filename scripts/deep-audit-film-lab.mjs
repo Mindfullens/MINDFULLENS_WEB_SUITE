@@ -852,8 +852,8 @@ function main() {
   );
   assert.match(
     exportDebugReportSrc,
-    /Thresholds:/,
-    'DIAG export: thresholds hint uses tooltip-compatible "Thresholds:" prefix',
+    /filmLab\.exportDebug\.thresholdsHintPrefix/,
+    'DIAG export: thresholds hint built from i18n prefix + rolloutGate hints',
   );
   assert.match(
     exportDebugReportSrc,
@@ -1170,8 +1170,8 @@ function main() {
   );
   assert.match(
     canvasOverlaysSrc,
-    /Thresholds:/,
-    'Canvas overlays: runtime badge tooltip includes thresholds line',
+    /filmLab\.pipelineOverlays\.thresholdsLine/,
+    'Canvas overlays: runtime badge tooltip thresholds via i18n',
   );
   const rolloutGatePath = new URL('../src/filmLab/rolloutGate.js', import.meta.url);
   const rolloutGateSrc = fs.readFileSync(rolloutGatePath, 'utf8');

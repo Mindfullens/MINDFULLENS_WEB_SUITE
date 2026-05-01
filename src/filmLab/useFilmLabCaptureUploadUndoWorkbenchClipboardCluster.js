@@ -1,5 +1,7 @@
 import { useFilmLabClipboardSessionCluster } from './useFilmLabClipboardSessionCluster.js';
 import { useFilmLabCaptureUploadAndUndoSliderAutoDevelopCluster } from './useFilmLabCaptureUploadAndUndoSliderAutoDevelopCluster.js';
+import { useFilmLabRecipeDocumentApply } from './useFilmLabRecipeDocumentApply.js';
+import { useFilmLabRecipePasteKeyboardShortcut } from './useFilmLabRecipePasteKeyboardShortcut.js';
 
 /**
  * Capture/upload + undo/slider/workbench/auto-develop + clipboard/session persistence (FilmLabPro cluster).
@@ -8,6 +10,7 @@ export function useFilmLabCaptureUploadUndoWorkbenchClipboardCluster({
   captureAndUploadRestoreArgs,
   undoSliderWorkbenchAutoDevelopArgs,
   clipboardSessionClusterArgs,
+  recipeDebugKeyboardArgs,
 }) {
   const workbenchBundle = useFilmLabCaptureUploadAndUndoSliderAutoDevelopCluster({
     captureAndUploadRestoreArgs,
@@ -15,6 +18,16 @@ export function useFilmLabCaptureUploadUndoWorkbenchClipboardCluster({
   });
 
   const { editClipboardArgs, sessionPersistenceArgs } = clipboardSessionClusterArgs;
+
+  const applyRecipeDocument = useFilmLabRecipeDocumentApply({
+    restoreSnapshot: workbenchBundle.restoreSnapshot,
+    uploadedFile: sessionPersistenceArgs?.uploadedFile,
+  });
+
+  useFilmLabRecipePasteKeyboardShortcut({
+    applyRecipeDocument,
+    enabled: Boolean(recipeDebugKeyboardArgs?.showRenderDebugPanel),
+  });
 
   const clipboardBundle = useFilmLabClipboardSessionCluster({
     editClipboardArgs: {
@@ -28,5 +41,5 @@ export function useFilmLabCaptureUploadUndoWorkbenchClipboardCluster({
     },
   });
 
-  return { ...workbenchBundle, ...clipboardBundle };
+  return { ...workbenchBundle, ...clipboardBundle, applyRecipeDocument };
 }

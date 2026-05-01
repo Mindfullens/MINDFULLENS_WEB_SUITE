@@ -1,5 +1,6 @@
 export function buildFilmLabGlobalKeydownProps({
   activePanel,
+  studioWorkspace,
   hasImage,
   isStraightenToolArmed,
   isPreviewFullMode,
@@ -31,6 +32,7 @@ export function buildFilmLabGlobalKeydownProps({
 }) {
   return {
     activePanel,
+    studioWorkspace,
     hasImage,
     isStraightenToolArmed,
     isPreviewFullMode,
@@ -95,6 +97,7 @@ export function buildFilmLabToolbarProps({
   copyToClipboard,
   pasteFromClipboard,
   clipboardFeedback,
+  updateAdjustment,
   exportCubeLut,
   exportDebugReport,
   hasActiveSource,
@@ -140,6 +143,7 @@ export function buildFilmLabToolbarProps({
     copyToClipboard,
     pasteFromClipboard,
     clipboardFeedback,
+    updateAdjustment,
     exportCubeLut,
     exportDebugReport,
     hasActiveSource,
@@ -158,6 +162,7 @@ export function buildFilmLabToolbarProps({
 }
 
 export function buildFilmLabCanvasAreaProps({
+  studioWorkspace,
   canvasAreaRef,
   hasImage,
   histogramCanvasRef,
@@ -173,6 +178,9 @@ export function buildFilmLabCanvasAreaProps({
   isZoomBeyondFit,
   isPanning,
   canvasViewportSize,
+  adjustments,
+  setAdjustments,
+  saveUndo,
   handleCanvasPointerDown,
   handleCanvasPointerMove,
   handleCanvasPointerUp,
@@ -202,6 +210,7 @@ export function buildFilmLabCanvasAreaProps({
   handleFileUpload,
 }) {
   return {
+    studioWorkspace,
     canvasAreaRef,
     hasImage,
     histogramCanvasRef,
@@ -217,6 +226,9 @@ export function buildFilmLabCanvasAreaProps({
     isZoomBeyondFit,
     isPanning,
     canvasViewportSize,
+    adjustments,
+    setAdjustments,
+    saveUndo,
     handleCanvasPointerDown,
     handleCanvasPointerMove,
     handleCanvasPointerUp,
@@ -248,6 +260,7 @@ export function buildFilmLabCanvasAreaProps({
 }
 
 export function buildFilmLabRightPanelProps({
+  maskWorkbench,
   rightSidebarRef,
   panelTabs,
   activePanel,
@@ -322,6 +335,7 @@ export function buildFilmLabRightPanelProps({
   activeFilm,
 }) {
   return {
+    maskWorkbench,
     rightSidebarRef,
     panelTabs,
     activePanel,

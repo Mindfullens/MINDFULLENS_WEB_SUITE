@@ -1,4 +1,8 @@
+import { useI18n } from './i18n';
+
 export default function FilmLabSessionRestorePrompt({ open, savedAt, fileName, onConfirm, onDecline }) {
+  const { t } = useI18n();
+
   if (!open) {
     return null;
   }
@@ -18,25 +22,26 @@ export default function FilmLabSessionRestorePrompt({ open, savedAt, fileName, o
     >
       <div className="export-modal-content session-restore-modal" onClick={(event) => event.stopPropagation()}>
         <div className="export-modal-header">
-          <h2 id="session-restore-title">Przywrócić auto-zapis?</h2>
+          <h2 id="session-restore-title">{t('session.restore.title')}</h2>
         </div>
         <p className="session-restore-body">
-          Znaleziono zapis automatyczny z <strong>{when}</strong>
+          {t('session.restore.intro')}{' '}
+          <strong>{when}</strong>
           {fileName ? (
             <>
               {' '}
-              — plik: <strong>{fileName}</strong>
+              {t('session.restore.fileLead')} <strong>{fileName}</strong>
             </>
           ) : null}
-          . Czy chcesz przywrócić sesję (zdjęcie i ustawienia)?
+          {t('session.restore.question')}
         </p>
-        <p className="session-restore-hint">„Nie przywracaj” usunie ten zapis z przeglądarki.</p>
+        <p className="session-restore-hint">{t('session.restore.hint')}</p>
         <div className="session-restore-actions">
           <button type="button" className="session-restore-btn session-restore-btn--primary" onClick={onConfirm}>
-            Przywróć
+            {t('session.restore.confirm')}
           </button>
           <button type="button" className="session-restore-btn session-restore-btn--ghost" onClick={onDecline}>
-            Nie przywracaj
+            {t('session.restore.decline')}
           </button>
         </div>
       </div>

@@ -409,6 +409,8 @@ function copyDistIndexTo404Plugin() {
 }
 
 export default defineConfig({
+  /** SPA — `/film-lab` i inne ścieżki klienckie muszą padać na `index.html` (dev + preview). */
+  appType: 'spa',
   base: normalizeViteBase(process.env.VITE_BASE ?? ''),
   define: {
     'import.meta.env.VITE_FILM_LAB_GIT_SHA': JSON.stringify(getFilmLabGitShortSha()),

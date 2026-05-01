@@ -39,6 +39,7 @@ import {
   CLIPPING_SHADOW_LUMA_FLOOR,
   clamp,
   clampUnit,
+  rgbRec709LumaUnit,
   smoothstep,
   resolveCurveLumaMix,
   mix,
@@ -72,6 +73,39 @@ import {
   PREVIEW_E2E_FRAME_COST_TARGET_MS,
   PREVIEW_E2E_KPI_TARGET_MS,
 } from '../filmLab/rolloutGate.js';
+import {
+  combineLocalMaskGraphWeights,
+  normalizeLocalMaskGraphOp,
+} from '../filmLab/localMaskGraph.js';
+import { applyRecipeLayerToneRgb } from '../filmLab/recipeLayerBlendApply.js';
+import {
+  applyRetouchHealBoxBlurPass,
+  computeRetouchMaskWeightAtPixel,
+} from './filmLabRetouchPreviewPass.js';
+import { applyCmykSoftProofApproxToRgba } from './filmLabCmykSoftProofApprox.js';
+import { inferDepthProxyBufferFromImageData } from '../filmLab/depth/filmLabDepthOnnxInference.js';
+import {
+  getDepthOnnxIdleCallbackTimeoutMs,
+  scheduleDepthOnnxInferOnIdle,
+} from '../filmLab/depth/filmLabDepthOnnxHostSchedule.js';
+import { computeLocalMaskWeightAtPixel } from './filmLabLocalMaskRangeMath.js';
+import { applyExposureGainWithShoulder } from './filmLabExposureGainShoulder.js';
+import { resolveRuntimeTier } from '../filmLab/runtimeTier.js';
+import { applyAdjustmentBindingsForTonePipeline } from '../filmLab/maskAdjustmentBindingApply.js';
+import { encodeFlatSnapshotToRecipeDocument } from '../filmLab/recipe/filmLabRecipeCodec.js';
+import { fingerprintRecipeDocumentStable } from '../filmLab/recipe/filmLabRecipeFingerprint.js';
+import { SERVICE_BUILD_LABEL, SERVICE_BUILD_TAG, VIEWPORT_BUILD_MARKER } from '../filmLab/buildInfo.js';
+import { buildFilmLabExportManifestArtifactRow } from './filmLabExportManifestArtifact.js';
+import {
+  manifestLossyQualityForFilmLabExport,
+  normalizeFilmLabExportFileFormat,
+} from './filmLabExportFormats.js';
+import { applyOutputSharpening } from './outputSharpening.js';
+import {
+  attachFilmLabExportManifestDigest,
+  buildFilmLabExportManifestRootBase,
+} from './filmLabExportManifestHelpers.js';
+import { activeCropRectNormFromAdjustments, recomputeAiAssistMasksHeuristic } from '../filmLab/adaptivePresetV1.js';
 
 function readPreviewE2ePointerContext(isAdjustingRef, isPanningRef) {
   return (
@@ -233,7 +267,6 @@ function withPreviewE2eFrameCostGate(nextState) {
   };
 }
 // Export-only modules: loaded lazily on first export to keep the preview pipeline fast.
-// import { applyOutputSharpening } from './outputSharpening.js';
 // import { processBatch as runBatch } from './batchProcessor.js';
 // import piexif from 'piexifjs';
 
@@ -1516,59 +1549,6 @@ function buildFastLookLut({
   };
 }
 
-function applyExposureGainWithShoulder(red, green, blue, gain) {
-  if (gain === 1) {
-    return [red, green, blue];
-  }
-
-  let nextRed = red * gain;
-  let nextGreen = green * gain;
-  let nextBlue = blue * gain;
-
-  if (gain <= 1.0001) {
-    return [nextRed, nextGreen, nextBlue];
-  }
-
-  const gainHeadroom = clampUnit((gain - 1) / 1.85);
-  const luminance = (0.299 * nextRed + 0.587 * nextGreen + 0.114 * nextBlue) / 255;
-  const shoulderStart = mix(0.62, 0.46, gainHeadroom);
-
-  if (luminance > shoulderStart) {
-    const shoulderRange = Math.max(1e-6, 1 - shoulderStart);
-    const distanceIntoShoulder = Math.max(0, luminance - shoulderStart);
-    const shoulderCompression = 3.2 + gainHeadroom * 4.4;
-    const softLuminance =
-      shoulderStart +
-      distanceIntoShoulder /
-        (1 + (distanceIntoShoulder * shoulderCompression) / shoulderRange);
-    const shoulderBlend = clampUnit((gain - 1) * (1.22 + gainHeadroom * 0.68));
-    const targetLuminance = mix(luminance, softLuminance, shoulderBlend);
-    const luminanceScale = luminance > 1e-6 ? targetLuminance / luminance : 1;
-
-    nextRed *= luminanceScale;
-    nextGreen *= luminanceScale;
-    nextBlue *= luminanceScale;
-  }
-
-  const peak = Math.max(nextRed, nextGreen, nextBlue) / 255;
-  const kneeStart = mix(0.9, 0.78, gainHeadroom);
-
-  if (peak > kneeStart) {
-    const kneeRange = Math.max(1e-6, 1 - kneeStart);
-    const peakDistance = peak - kneeStart;
-    const kneeCompression = 4.4 + gainHeadroom * 5.6;
-    const compressedPeak =
-      kneeStart + peakDistance / (1 + (peakDistance * kneeCompression) / kneeRange);
-    const peakScale = peak > 1e-6 ? compressedPeak / peak : 1;
-
-    nextRed *= peakScale;
-    nextGreen *= peakScale;
-    nextBlue *= peakScale;
-  }
-
-  return [nextRed, nextGreen, nextBlue];
-}
-
 function srgbToLinearUnit(value) {
   const safe = clampUnit(value);
   if (safe <= 0.04045) {
@@ -2243,6 +2223,582 @@ function applyAnamorph(context, canvas, fxCanvasRef, strength, streakLength) {
   context.globalAlpha = strength * 0.7;
   context.drawImage(fxCanvas, 0, 0);
   context.restore();
+}
+
+function buildBrushMaskBuffer(width, height, brushStrokes) {
+  if (!Array.isArray(brushStrokes) || brushStrokes.length === 0 || width < 1 || height < 1) {
+    return null;
+  }
+  const mask = new Float32Array(width * height);
+  for (const stroke of brushStrokes) {
+    const cx = Math.round(clampUnit(Number(stroke?.x ?? 0.5)) * (width - 1));
+    const cy = Math.round(clampUnit(Number(stroke?.y ?? 0.5)) * (height - 1));
+    const radiusNorm = Math.max(0.004, Math.min(0.5, Number(stroke?.radius ?? 0.05)));
+    const feather = clampUnit(Number(stroke?.feather ?? 0.65));
+    const radiusPx = Math.max(2, Math.round(radiusNorm * Math.max(width, height)));
+    const softStart = radiusPx * (1 - feather * 0.85);
+    const yMin = Math.max(0, cy - radiusPx);
+    const yMax = Math.min(height - 1, cy + radiusPx);
+    const xMin = Math.max(0, cx - radiusPx);
+    const xMax = Math.min(width - 1, cx + radiusPx);
+    for (let y = yMin; y <= yMax; y += 1) {
+      for (let x = xMin; x <= xMax; x += 1) {
+        const dx = x - cx;
+        const dy = y - cy;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist > radiusPx) {
+          continue;
+        }
+        let weight = 1;
+        if (dist > softStart) {
+          const t = (dist - softStart) / Math.max(1e-5, radiusPx - softStart);
+          weight = 1 - t;
+        }
+        const idx = y * width + x;
+        const edgeGain = Math.max(0.12, Math.min(1, Number(stroke?.edgeGain ?? 1)));
+        const safeWeight = Math.max(0, Math.min(1, weight * edgeGain));
+        if (stroke?.erase) {
+          mask[idx] = Math.max(0, mask[idx] - safeWeight);
+        } else {
+          mask[idx] = Math.max(mask[idx], safeWeight);
+        }
+      }
+    }
+  }
+  return mask;
+}
+
+function buildBrushMaskSignature(width, height, brushStrokes) {
+  if (!Array.isArray(brushStrokes) || brushStrokes.length === 0) {
+    return `${width}x${height}:0`;
+  }
+  // Compact stable signature: dimensions + stroke count + rounded stroke fields.
+  let signature = `${width}x${height}:${brushStrokes.length}`;
+  for (let i = 0; i < brushStrokes.length; i += 1) {
+    const s = brushStrokes[i];
+    const x = Math.round(clampUnit(Number(s?.x ?? 0.5)) * 1000);
+    const y = Math.round(clampUnit(Number(s?.y ?? 0.5)) * 1000);
+    const r = Math.round(Math.max(0, Math.min(0.5, Number(s?.radius ?? 0.05))) * 1000);
+    const f = Math.round(clampUnit(Number(s?.feather ?? 0.65)) * 1000);
+    const e = s?.erase ? 1 : 0;
+    const g = Math.round(Math.max(0, Math.min(1, Number(s?.edgeGain ?? 1))) * 1000);
+    signature += `|${x},${y},${r},${f},${e},${g}`;
+  }
+  return signature;
+}
+
+function buildLinearMaskBuffer(width, height, adjustments) {
+  if (width < 1 || height < 1) {
+    return null;
+  }
+  const mask = new Float32Array(width * height);
+  const angleDeg = Number(adjustments?.linearMaskAngle ?? 0);
+  const angle = (angleDeg * Math.PI) / 180;
+  const dirX = Math.cos(angle);
+  const dirY = Math.sin(angle);
+  const feather = clampUnit(Number(adjustments?.linearMaskFeather ?? 55) / 100);
+  const offset = Math.max(-1, Math.min(1, Number(adjustments?.linearMaskOffset ?? 0) / 100));
+  const span = Math.max(0.03, 0.25 + feather * 0.5);
+  for (let y = 0; y < height; y += 1) {
+    const ny = height > 1 ? y / (height - 1) - 0.5 : 0;
+    for (let x = 0; x < width; x += 1) {
+      const nx = width > 1 ? x / (width - 1) - 0.5 : 0;
+      const p = nx * dirX + ny * dirY - offset * 0.5;
+      const t = clampUnit((p + span) / (span * 2));
+      mask[y * width + x] = t * t * (3 - 2 * t);
+    }
+  }
+  return mask;
+}
+
+function buildRadialMaskBuffer(width, height, adjustments) {
+  if (width < 1 || height < 1) {
+    return null;
+  }
+  const mask = new Float32Array(width * height);
+  const cx = clampUnit(Number(adjustments?.radialMaskCenterX ?? 50) / 100);
+  const cy = clampUnit(Number(adjustments?.radialMaskCenterY ?? 50) / 100);
+  const radius = Math.max(0.04, Math.min(1, Number(adjustments?.radialMaskRadius ?? 35) / 100));
+  const feather = clampUnit(Number(adjustments?.radialMaskFeather ?? 55) / 100);
+  const inner = Math.max(0, radius * (1 - feather * 0.92));
+  for (let y = 0; y < height; y += 1) {
+    const ny = height > 1 ? y / (height - 1) : 0;
+    for (let x = 0; x < width; x += 1) {
+      const nx = width > 1 ? x / (width - 1) : 0;
+      const d = Math.hypot(nx - cx, ny - cy);
+      let w = 0;
+      if (d <= inner) {
+        w = 1;
+      } else if (d < radius) {
+        const t = 1 - (d - inner) / Math.max(1e-5, radius - inner);
+        w = t * t * (3 - 2 * t);
+      }
+      mask[y * width + x] = w;
+    }
+  }
+  return mask;
+}
+
+function buildLocalMaskSignature(width, height, adjustments) {
+  const mode = String(adjustments?.localMaskMode ?? 'brush');
+  if (mode === 'linear') {
+    return `linear:${width}x${height}:${Math.round(Number(adjustments?.linearMaskAngle ?? 0) * 10)}:${Math.round(
+      Number(adjustments?.linearMaskFeather ?? 55) * 10
+    )}:${Math.round(Number(adjustments?.linearMaskOffset ?? 0) * 10)}`;
+  }
+  if (mode === 'radial') {
+    return `radial:${width}x${height}:${Math.round(Number(adjustments?.radialMaskCenterX ?? 50) * 10)}:${Math.round(
+      Number(adjustments?.radialMaskCenterY ?? 50) * 10
+    )}:${Math.round(Number(adjustments?.radialMaskRadius ?? 35) * 10)}:${Math.round(
+      Number(adjustments?.radialMaskFeather ?? 55) * 10
+    )}`;
+  }
+  if (mode === 'luma') {
+    return `luma:${Math.round(Number(adjustments?.lumaMaskMin ?? 0) * 10)}:${Math.round(
+      Number(adjustments?.lumaMaskMax ?? 100) * 10
+    )}:${Math.round(Number(adjustments?.lumaMaskFeather ?? 35) * 10)}`;
+  }
+  if (mode === 'color') {
+    return `color:${Math.round(Number(adjustments?.colorMaskHueCenter ?? 210) * 10)}:${Math.round(
+      Number(adjustments?.colorMaskHueWidth ?? 90) * 10
+    )}:${Math.round(Number(adjustments?.colorMaskFeather ?? 35) * 10)}:${Math.round(
+      Number(adjustments?.colorMaskChromaMin ?? 0) * 10
+    )}:${Math.round(Number(adjustments?.colorMaskChromaMax ?? 100) * 10)}`;
+  }
+  if (mode === 'depth') {
+    const digestRaw = adjustments?.depthProxyDigest;
+    const digest =
+      digestRaw != null && String(digestRaw).trim() !== ''
+        ? String(digestRaw).trim().slice(0, 80)
+        : 'luma';
+    const dms = String(adjustments?.depthMapSource ?? 'luminance').slice(0, 32);
+    return `depth:${Math.round(Number(adjustments?.depthMaskMin ?? 0) * 10)}:${Math.round(
+      Number(adjustments?.depthMaskMax ?? 100) * 10
+    )}:${Math.round(Number(adjustments?.depthMaskFeather ?? 35) * 10)}:${dms}:${digest}:${buildBrushMaskSignature(
+      width,
+      height,
+      adjustments?.brushMaskStrokes
+    )}`;
+  }
+  return `brush:${buildBrushMaskSignature(width, height, adjustments?.brushMaskStrokes)}`;
+}
+
+/**
+ * Same mask stack resolution as the render loop (for export / diagnostics).
+ * @param {Map} maskCache — reuse brushMask buffers when provided (e.g. brushMaskCacheRef.current).
+ */
+function buildLocalMaskStackSnapshot(width, height, adjustments, maskCache) {
+  const cache = maskCache instanceof Map ? maskCache : new Map();
+  const brushMaskEnabled = Boolean(adjustments?.brushMaskEnabled);
+  const localMaskEntries = (() => {
+    const stack = Array.isArray(adjustments?.localMasks) ? adjustments.localMasks : [];
+    const soloIndex = Number(adjustments?.localMaskSoloIndex ?? -1);
+    const activeIdx = Math.max(
+      0,
+      Math.min(stack.length > 0 ? stack.length - 1 : 0, Number(adjustments?.activeLocalMaskIndex ?? 0))
+    );
+    const current = {
+      enabled: adjustments?.localMaskEnabled !== false,
+      mode: String(adjustments?.localMaskMode ?? 'brush'),
+      opacity: Number(adjustments?.localMaskOpacity ?? 100),
+      blend: String(adjustments?.localMaskBlend ?? 'normal'),
+      exposure: Number(adjustments?.brushMaskExposure ?? 0),
+      brush: {
+        strokes: Array.isArray(adjustments?.brushMaskStrokes) ? adjustments.brushMaskStrokes : [],
+      },
+      linear: {
+        angle: Number(adjustments?.linearMaskAngle ?? 0),
+        feather: Number(adjustments?.linearMaskFeather ?? 55),
+        offset: Number(adjustments?.linearMaskOffset ?? 0),
+      },
+      radial: {
+        centerX: Number(adjustments?.radialMaskCenterX ?? 50),
+        centerY: Number(adjustments?.radialMaskCenterY ?? 50),
+        radius: Number(adjustments?.radialMaskRadius ?? 35),
+        feather: Number(adjustments?.radialMaskFeather ?? 55),
+      },
+      luma: {
+        min: Number(adjustments?.lumaMaskMin ?? 0),
+        max: Number(adjustments?.lumaMaskMax ?? 100),
+        feather: Number(adjustments?.lumaMaskFeather ?? 35),
+      },
+      color: {
+        hueCenter: Number(adjustments?.colorMaskHueCenter ?? 210),
+        hueWidth: Number(adjustments?.colorMaskHueWidth ?? 90),
+        feather: Number(adjustments?.colorMaskFeather ?? 35),
+        chromaMin: Number(adjustments?.colorMaskChromaMin ?? 0),
+        chromaMax: Number(adjustments?.colorMaskChromaMax ?? 100),
+      },
+      depth: {
+        min: Number(adjustments?.depthMaskMin ?? 0),
+        max: Number(adjustments?.depthMaskMax ?? 100),
+        feather: Number(adjustments?.depthMaskFeather ?? 35),
+        mapSource: String(adjustments?.depthMapSource ?? 'luminance'),
+      },
+    };
+    if (!brushMaskEnabled) {
+      return [];
+    }
+    if (stack.length === 0) {
+      return [current];
+    }
+    const merged = stack.map((entry, idx) => (idx === activeIdx ? current : entry));
+    if (Number.isInteger(soloIndex) && soloIndex >= 0 && soloIndex < merged.length) {
+      return [merged[soloIndex]];
+    }
+    return merged.filter((entry) => entry?.enabled !== false);
+  })();
+
+  const localMaskStack = localMaskEntries
+    .map((entry, maskIndex) => {
+      const exposure = Number(entry?.exposure ?? entry?.brushMaskExposure ?? 0);
+      const opacity = Math.max(0, Math.min(1, Number(entry?.opacity ?? entry?.localMaskOpacity ?? 100) / 100));
+      if (Math.abs(exposure) < 0.01 || opacity <= 0.0001) {
+        return null;
+      }
+      const mode = String(entry?.mode ?? entry?.localMaskMode ?? 'brush');
+      const signature = buildLocalMaskSignature(width, height, {
+        ...entry,
+        localMaskMode: mode,
+        linearMaskAngle: entry?.linear?.angle ?? entry?.linearMaskAngle,
+        linearMaskFeather: entry?.linear?.feather ?? entry?.linearMaskFeather,
+        linearMaskOffset: entry?.linear?.offset ?? entry?.linearMaskOffset,
+        radialMaskCenterX: entry?.radial?.centerX ?? entry?.radialMaskCenterX,
+        radialMaskCenterY: entry?.radial?.centerY ?? entry?.radialMaskCenterY,
+        radialMaskRadius: entry?.radial?.radius ?? entry?.radialMaskRadius,
+        radialMaskFeather: entry?.radial?.feather ?? entry?.radialMaskFeather,
+        brushMaskStrokes: entry?.brush?.strokes ?? entry?.brushMaskStrokes,
+        lumaMaskMin: entry?.luma?.min ?? entry?.lumaMaskMin,
+        lumaMaskMax: entry?.luma?.max ?? entry?.lumaMaskMax,
+        lumaMaskFeather: entry?.luma?.feather ?? entry?.lumaMaskFeather,
+        colorMaskHueCenter: entry?.color?.hueCenter ?? entry?.colorMaskHueCenter,
+        colorMaskHueWidth: entry?.color?.hueWidth ?? entry?.colorMaskHueWidth,
+        colorMaskFeather: entry?.color?.feather ?? entry?.colorMaskFeather,
+        colorMaskChromaMin: entry?.color?.chromaMin ?? entry?.colorMaskChromaMin,
+        colorMaskChromaMax: entry?.color?.chromaMax ?? entry?.colorMaskChromaMax,
+        depthMaskMin: entry?.depth?.min ?? entry?.depthMaskMin,
+        depthMaskMax: entry?.depth?.max ?? entry?.depthMaskMax,
+        depthMaskFeather: entry?.depth?.feather ?? entry?.depthMaskFeather,
+        depthMapSource: entry?.depth?.mapSource ?? adjustments?.depthMapSource ?? 'luminance',
+        depthProxyDigest:
+          adjustments?.depthProxyDigest ??
+          entry?.depthProxyDigest ??
+          (typeof entry?.depth?.digest === 'string' ? entry.depth.digest : null),
+      });
+      const cacheKey = `${maskIndex}:${signature}`;
+      let buffer = cache.get(cacheKey) ?? null;
+      if (!(buffer instanceof Float32Array) || buffer.length !== width * height) {
+        if (mode === 'linear') {
+          buffer = buildLinearMaskBuffer(width, height, {
+            linearMaskAngle: entry?.linear?.angle ?? entry?.linearMaskAngle,
+            linearMaskFeather: entry?.linear?.feather ?? entry?.linearMaskFeather,
+            linearMaskOffset: entry?.linear?.offset ?? entry?.linearMaskOffset,
+          });
+        } else if (mode === 'radial') {
+          buffer = buildRadialMaskBuffer(width, height, {
+            radialMaskCenterX: entry?.radial?.centerX ?? entry?.radialMaskCenterX,
+            radialMaskCenterY: entry?.radial?.centerY ?? entry?.radialMaskCenterY,
+            radialMaskRadius: entry?.radial?.radius ?? entry?.radialMaskRadius,
+            radialMaskFeather: entry?.radial?.feather ?? entry?.radialMaskFeather,
+          });
+        } else {
+          buffer = buildBrushMaskBuffer(
+            width,
+            height,
+            Array.isArray(entry?.brush?.strokes ?? entry?.brushMaskStrokes)
+              ? entry?.brush?.strokes ?? entry?.brushMaskStrokes
+              : []
+          );
+        }
+        if (buffer instanceof Float32Array) {
+          cache.set(cacheKey, buffer);
+          if (cache.size > 12) {
+            const firstKey = cache.keys().next().value;
+            cache.delete(firstKey);
+          }
+        }
+      }
+      return {
+        buffer: buffer instanceof Float32Array ? buffer : null,
+        exposure,
+        opacity,
+        mode,
+        lumaMin: Number(entry?.luma?.min ?? entry?.lumaMaskMin ?? 0) / 100,
+        lumaMax: Number(entry?.luma?.max ?? entry?.lumaMaskMax ?? 100) / 100,
+        lumaFeather: Number(entry?.luma?.feather ?? entry?.lumaMaskFeather ?? 35) / 100,
+        colorHueCenter: Number(entry?.color?.hueCenter ?? entry?.colorMaskHueCenter ?? 210),
+        colorHueWidth: Number(entry?.color?.hueWidth ?? entry?.colorMaskHueWidth ?? 90),
+        colorFeather: Number(entry?.color?.feather ?? entry?.colorMaskFeather ?? 35) / 100,
+        colorChromaMin: Number(entry?.color?.chromaMin ?? entry?.colorMaskChromaMin ?? 0) / 100,
+        colorChromaMax: Number(entry?.color?.chromaMax ?? entry?.colorMaskChromaMax ?? 100) / 100,
+        depthMin: Number(entry?.depth?.min ?? entry?.depthMaskMin ?? 0) / 100,
+        depthMax: Number(entry?.depth?.max ?? entry?.depthMaskMax ?? 100) / 100,
+        depthFeather: Number(entry?.depth?.feather ?? entry?.depthMaskFeather ?? 35) / 100,
+        blend: String(entry?.blend ?? entry?.localMaskBlend ?? 'normal'),
+        ...(mode === 'depth'
+          ? {
+              depthProxyBuffer:
+                entry?.depthProxyBuffer instanceof Float32Array ? entry.depthProxyBuffer : null,
+            }
+          : {}),
+      };
+    })
+    .filter(Boolean);
+
+  const graphOpNorm = normalizeLocalMaskGraphOp(adjustments?.localMaskGraphOp);
+  let graphCombineActive = false;
+  let graphIdxA = 0;
+  let graphIdxB = 1;
+  if (Boolean(adjustments?.localMaskGraphEnabled) && brushMaskEnabled && localMaskStack.length >= 2) {
+    graphIdxA = Math.max(
+      0,
+      Math.min(localMaskStack.length - 1, Math.round(Number(adjustments?.localMaskGraphIndexA ?? 0)))
+    );
+    graphIdxB = Math.max(
+      0,
+      Math.min(localMaskStack.length - 1, Math.round(Number(adjustments?.localMaskGraphIndexB ?? 1)))
+    );
+    graphCombineActive = graphIdxA !== graphIdxB;
+    if (graphCombineActive && (!localMaskStack[graphIdxA] || !localMaskStack[graphIdxB])) {
+      graphCombineActive = false;
+    }
+  }
+
+  return {
+    localMaskStack,
+    graphCombineActive,
+    graphIdxA,
+    graphIdxB,
+    graphOpNorm,
+    brushMaskEnabled,
+  };
+}
+
+/**
+ * Grayscale ImageData of local mask weights at export resolution (source-aligned).
+ * Uses source luminance / hue for luma / color masks (approximates graded preview weights).
+ * When mask graph combine is active, exports combined A/B weights × driver opacity (matches preview intent).
+ */
+function buildExportMaskGrayscaleImageData(width, height, transformedSource, adjustments, maskCache) {
+  if (!adjustments?.brushMaskEnabled) {
+    return null;
+  }
+
+  const snap = buildLocalMaskStackSnapshot(width, height, adjustments, maskCache);
+  if (!snap.localMaskStack.length) {
+    return null;
+  }
+
+  const data = transformedSource.data;
+
+  if (snap.graphCombineActive) {
+    const entryA = snap.localMaskStack[snap.graphIdxA];
+    const entryB = snap.localMaskStack[snap.graphIdxB];
+    const driverIdx = Math.max(
+      0,
+      Math.min(snap.localMaskStack.length - 1, Number(adjustments?.activeLocalMaskIndex ?? 0))
+    );
+    const driver = snap.localMaskStack[driverIdx];
+    if (!entryA || !entryB || !driver) {
+      return null;
+    }
+    const out = new ImageData(width, height);
+    const od = out.data;
+    for (let pIdx = 0; pIdx < width * height; pIdx += 1) {
+      const i = pIdx * 4;
+      const wA = computeLocalMaskWeightAtPixel(entryA, pIdx, data[i], data[i + 1], data[i + 2]);
+      const wB = computeLocalMaskWeightAtPixel(entryB, pIdx, data[i], data[i + 1], data[i + 2]);
+      const combined = combineLocalMaskGraphWeights(wA, wB, snap.graphOpNorm);
+      const v = Math.round(Math.max(0, Math.min(255, combined * driver.opacity * 255)));
+      const j = pIdx * 4;
+      od[j] = v;
+      od[j + 1] = v;
+      od[j + 2] = v;
+      od[j + 3] = 255;
+    }
+    return out;
+  }
+
+  const mode = String(adjustments?.localMaskMode ?? 'brush');
+  const opacity = Math.max(0, Math.min(1, Number(adjustments?.localMaskOpacity ?? 100) / 100));
+  let buffer = null;
+  if (mode === 'linear') {
+    buffer = buildLinearMaskBuffer(width, height, adjustments);
+  } else if (mode === 'radial') {
+    buffer = buildRadialMaskBuffer(width, height, adjustments);
+  } else if (mode === 'brush') {
+    buffer = buildBrushMaskBuffer(width, height, adjustments?.brushMaskStrokes ?? []);
+  } else if (mode === 'luma') {
+    buffer = new Float32Array(width * height);
+    const data = transformedSource.data;
+    const maskEntry = {
+      buffer: null,
+      mode: 'luma',
+      lumaMin: Number(adjustments?.lumaMaskMin ?? 0) / 100,
+      lumaMax: Number(adjustments?.lumaMaskMax ?? 100) / 100,
+      lumaFeather: Number(adjustments?.lumaMaskFeather ?? 35) / 100,
+    };
+    for (let pIdx = 0; pIdx < width * height; pIdx += 1) {
+      const i = pIdx * 4;
+      buffer[pIdx] = computeLocalMaskWeightAtPixel(
+        maskEntry,
+        pIdx,
+        data[i],
+        data[i + 1],
+        data[i + 2]
+      );
+    }
+  } else if (mode === 'color') {
+    buffer = new Float32Array(width * height);
+    const data = transformedSource.data;
+    const maskEntry = {
+      buffer: null,
+      mode: 'color',
+      colorHueCenter: Number(adjustments?.colorMaskHueCenter ?? 210),
+      colorHueWidth: Number(adjustments?.colorMaskHueWidth ?? 90),
+      colorFeather: Number(adjustments?.colorMaskFeather ?? 35) / 100,
+      colorChromaMin: Number(adjustments?.colorMaskChromaMin ?? 0) / 100,
+      colorChromaMax: Number(adjustments?.colorMaskChromaMax ?? 100) / 100,
+    };
+    for (let pIdx = 0; pIdx < width * height; pIdx += 1) {
+      const i = pIdx * 4;
+      buffer[pIdx] = computeLocalMaskWeightAtPixel(
+        maskEntry,
+        pIdx,
+        data[i],
+        data[i + 1],
+        data[i + 2]
+      );
+    }
+  } else if (mode === 'depth') {
+    const brushBuf = buildBrushMaskBuffer(width, height, adjustments?.brushMaskStrokes ?? []);
+    buffer = new Float32Array(width * height);
+    const data = transformedSource.data;
+    const useLumaProxy =
+      String(adjustments?.depthMapSource ?? 'luminance') === 'luminance';
+    const depthProxyBuf = useLumaProxy ? new Float32Array(width * height) : null;
+    const maskEntry = {
+      buffer: brushBuf,
+      mode: 'depth',
+      depthMin: Number(adjustments?.depthMaskMin ?? 0) / 100,
+      depthMax: Number(adjustments?.depthMaskMax ?? 100) / 100,
+      depthFeather: Number(adjustments?.depthMaskFeather ?? 35) / 100,
+      depthProxyBuffer: depthProxyBuf,
+    };
+    for (let pIdx = 0; pIdx < width * height; pIdx += 1) {
+      const i = pIdx * 4;
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+      if (depthProxyBuf) {
+        depthProxyBuf[pIdx] = rgbRec709LumaUnit(r, g, b);
+      }
+      buffer[pIdx] = computeLocalMaskWeightAtPixel(maskEntry, pIdx, r, g, b);
+    }
+  }
+
+  if (!(buffer instanceof Float32Array) || buffer.length !== width * height) {
+    return null;
+  }
+
+  let maxW = 0;
+  for (let i = 0; i < buffer.length; i += 1) {
+    if (buffer[i] > maxW) maxW = buffer[i];
+  }
+  if (maxW <= 0.00001 && (mode === 'brush' || mode === 'depth')) {
+    return null;
+  }
+
+  const out = new ImageData(width, height);
+  const od = out.data;
+  for (let pIdx = 0; pIdx < width * height; pIdx += 1) {
+    const v = Math.round(Math.max(0, Math.min(255, buffer[pIdx] * opacity * 255)));
+    const i = pIdx * 4;
+    od[i] = v;
+    od[i + 1] = v;
+    od[i + 2] = v;
+    od[i + 3] = 255;
+  }
+  return out;
+}
+
+function buildExportRecipeSnapshot({
+  activeFilm,
+  adjustments,
+  renderDebugInfo,
+  rawBackendPreference,
+  pipelineKind = null,
+  exportSessionId = null,
+  sizeProfile,
+  fileFormat,
+  lossyQuality = undefined,
+  sourceName = null,
+  variant = 'after',
+  artifactName = null,
+  artifactMimeType = null,
+}) {
+  const runtimeTier = resolveRuntimeTier(renderDebugInfo);
+  const recipeDocument = encodeFlatSnapshotToRecipeDocument({
+    adjustments: adjustments && typeof adjustments === 'object' ? adjustments : {},
+    activeFilmIndex: 0,
+    userCurves: {},
+    colorMixer: {},
+    colorGrading: {},
+    colorCalibration: {},
+    zoom: 1,
+    panOffset: { x: 0, y: 0 },
+  });
+  const recipeFingerprint = fingerprintRecipeDocumentStable(recipeDocument);
+  const lossyQ = manifestLossyQualityForFilmLabExport(fileFormat, lossyQuality);
+  const exportBlock = {
+    sizeProfile,
+    fileFormat,
+    variant,
+    artifactName,
+    artifactMimeType,
+  };
+  if (lossyQ !== undefined) {
+    exportBlock.lossyQuality = lossyQ;
+  }
+  return {
+    schema: 'filmLab.recipe.export.v1',
+    exportedAt: new Date().toISOString(),
+    sourceName,
+    export: exportBlock,
+    film: {
+      id: activeFilm?.id ?? null,
+      name: activeFilm?.name ?? null,
+    },
+    runtime: {
+      tier: runtimeTier?.tier ?? 'C',
+      source: runtimeTier?.source ?? 'default-cpu',
+      rawBackendPreference: rawBackendPreference ?? null,
+      pipelineKind,
+    },
+    exportSessionId,
+    recipeFingerprint: {
+      algorithm: 'djb2-stable-v1',
+      stable: recipeFingerprint,
+    },
+    recipeDocument,
+    adjustments,
+  };
+}
+
+async function sha256HexFromBytes(bytes) {
+  const cryptoApi = globalThis?.crypto;
+  if (!cryptoApi?.subtle || !(bytes instanceof Uint8Array)) {
+    return null;
+  }
+  try {
+    const digest = await cryptoApi.subtle.digest('SHA-256', bytes);
+    const view = new Uint8Array(digest);
+    return Array.from(view)
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('');
+  } catch {
+    return null;
+  }
 }
 
 function applyFrame(context, canvas, type, seed = 1, variantIndex = null) {
@@ -3299,11 +3855,29 @@ export function useFilmLabEngine(
   const cpuRenderInFlightRef = useRef(false);
   const fastRenderInFlightRef = useRef(false);
   const previewRerunRequestedRef = useRef(false);
+  const brushMaskCacheRef = useRef(new Map());
+  /** Per-frame scratch: Rec.709 luma 0–1 dla trybu maski depth + depthMapSource=luminance (proxy ONNX-ready). */
+  const depthLumaMaterializeRef = useRef(null);
+  /** Wynik async `inferDepthProxyBufferFromImageData` (Float32 W×H, digest) — `depthMapSource === 'onnx'`. */
+  const depthOnnxExternalRef = useRef({
+    buffer: null,
+    digest: '',
+    width: 0,
+    height: 0,
+  });
+  const depthOnnxInferTimerRef = useRef(null);
+  /** Anulowanie `scheduleDepthOnnxInferOnIdle` (np. nowy debounce zanim wykona się idle). */
+  const depthOnnxIdleCancelRef = useRef(null);
+  /** Sekwencja inferencji depth ONNX — odrzuca `.then` po nowszym zaplanowaniu. */
+  const depthOnnxInferSeqRef = useRef(0);
+  /** Ostatni `toneAdj` z pętli CPU preview — walidacja async ONNX po zmianie źródła mapy. */
+  const latestToneAdjForDepthOnnxRef = useRef(null);
   const scheduleProgressiveRenderRef = useRef(null);
   const previewHydrationFrameRef = useRef(null);
   const deferredRenderRef = useRef(null);
   const fullResPrewarmIdleRef = useRef(null);
   const renderTokenRef = useRef(0);
+  const batchAdjustmentsOverrideRef = useRef({ active: false, value: null });
   const effectSeedRef = useRef({
     dust: Math.floor(Math.random() * 1_000_000_000),
     leak: Math.floor(Math.random() * 1_000_000_000),
@@ -3325,6 +3899,11 @@ export function useFilmLabEngine(
   isAdjustingSnapshotRef.current = Boolean(adjustments?.isAdjusting);
   isPanningSnapshotRef.current = Boolean(options?.e2eIsPanning);
 
+  const [depthOnnxInferenceUi, setDepthOnnxInferenceUi] = useState(() => ({
+    phase: 'idle',
+    reason: null,
+    via: null,
+  }));
   const [isProcessing, setIsProcessing] = useState(false);
   const [imageMeta, setImageMeta] = useState(null);
   const [renderVersion, setRenderVersion] = useState(0);
@@ -3545,6 +4124,12 @@ export function useFilmLabEngine(
   const clearRenderPipelineAlert = useCallback(() => {
     setRenderPipelineAlert(null);
   }, []);
+
+  useEffect(() => {
+    if (String(adjustments?.depthMapSource ?? 'luminance') !== 'onnx') {
+      setDepthOnnxInferenceUi({ phase: 'idle', reason: null, via: null });
+    }
+  }, [adjustments?.depthMapSource]);
 
   useEffect(() => {
     let cancelled = false;
@@ -4513,6 +5098,15 @@ export function useFilmLabEngine(
           rotation,
           flipped
         );
+        if (adjustments?.cmykSoftProofEnabled && !adjustments?.compareMode) {
+          try {
+            const cmykId = context.getImageData(0, 0, presentation.width, presentation.height);
+            applyCmykSoftProofApproxToRgba(cmykId.data);
+            context.putImageData(cmykId, 0, 0);
+          } catch {
+            /* ignore readback failures */
+          }
+        }
       } catch (presentationError) {
         const errorMessage =
           presentationError instanceof Error
@@ -4897,15 +5491,29 @@ export function useFilmLabEngine(
   }, []);
 
   const renderToContext = useCallback(
-    ({ canvas, context, source, includeCompare, quality = 'full', renderToken = null, showClipping = false }) => {
+    ({
+      canvas,
+      context,
+      source,
+      includeCompare,
+      quality = 'full',
+      renderToken = null,
+      showClipping = false,
+      displayPreviewApproximations = false,
+    }) => {
+      const batchOv = batchAdjustmentsOverrideRef.current;
+      const adjustmentsForRender =
+        batchOv?.active && batchOv?.value != null && typeof batchOv.value === 'object'
+          ? batchOv.value
+          : adjustments;
       const film = activeFilm ?? {};
       const isRawPipeline = pipelineInfo?.pipelineKind === PIPELINE_KIND.RAW;
-      const userCurves = adjustments?.userCurves ?? IDENTITY_CURVES;
-      const curveLumaMix = resolveCurveLumaMix(adjustments?.curveLumaMix);
+      const userCurves = adjustmentsForRender?.userCurves ?? IDENTITY_CURVES;
+      const curveLumaMix = resolveCurveLumaMix(adjustmentsForRender?.curveLumaMix);
       let transformedSource = transformSourceImageData(
         source,
-        adjustments?.rotation ?? 0,
-        adjustments?.flipped
+        adjustmentsForRender?.rotation ?? 0,
+        adjustmentsForRender?.flipped
       );
       const isPreviewQuality = quality === 'preview';
       let width = transformedSource.width;
@@ -4913,8 +5521,8 @@ export function useFilmLabEngine(
 
       if (isPreviewQuality) {
         const baseProxyMax = getWorkerProxyMaxDimension(width, height);
-        const rawProxyMax = adjustments?.isAdjusting
-          ? getInteractiveWorkerProxyMaxDimension(baseProxyMax, adjustments?.interactionKind)
+        const rawProxyMax = adjustmentsForRender?.isAdjusting
+          ? getInteractiveWorkerProxyMaxDimension(baseProxyMax, adjustmentsForRender?.interactionKind)
           : baseProxyMax;
         const par = getNominalProxyRenderSize(width, height, rawProxyMax, {
           matchPreviewBuffer: PROXY_MATCH_PREVIEW_BUFFER,
@@ -4978,8 +5586,10 @@ export function useFilmLabEngine(
 
       const imageData = new ImageData(sourceData, width, height);
       const data = imageData.data;
-      const isInteractivePreview = isPreviewQuality && Boolean(adjustments?.isAdjusting);
-      const strength = (adjustments?.strength ?? 100) / 100;
+      const isInteractivePreview = isPreviewQuality && Boolean(adjustmentsForRender?.isAdjusting);
+      const strength = (adjustmentsForRender?.strength ?? 100) / 100;
+      const toneAdj = applyAdjustmentBindingsForTonePipeline(adjustmentsForRender);
+      latestToneAdjForDepthOnnxRef.current = toneAdj;
       const lutStrength = Math.min(1, strength * 0.66);
       const effectiveProfileStrength = strength;
       // RAW preview stabilization:
@@ -5003,36 +5613,36 @@ export function useFilmLabEngine(
       const profileToneStrength = effectiveProfileStrength * 0.28 * profileNoLutBoost;
       const profileDetailStrength = effectiveProfileStrength * 0.4 * profileNoLutBoost;
       const userExposure =
-        mapSignedSliderForResponse(adjustments?.exposure ?? 0, 'exposure') *
+        mapSignedSliderForResponse(toneAdj?.exposure ?? 0, 'exposure') *
         USER_RESPONSE_SCALE.exposure;
       const userContrast =
-        mapSignedSliderForResponse(adjustments?.contrast ?? 0, 'contrast') *
+        mapSignedSliderForResponse(adjustmentsForRender?.contrast ?? 0, 'contrast') *
         USER_RESPONSE_SCALE.contrast;
       const userSaturation =
-        mapSignedSliderForResponse(adjustments?.saturation ?? 0, 'saturation') *
+        mapSignedSliderForResponse(adjustmentsForRender?.saturation ?? 0, 'saturation') *
         USER_RESPONSE_SCALE.saturation;
       const userVibrance =
-        mapSignedSliderForResponse(adjustments?.vibrance ?? 0, 'vibrance') *
+        mapSignedSliderForResponse(adjustmentsForRender?.vibrance ?? 0, 'vibrance') *
         USER_RESPONSE_SCALE.vibrance;
-      const userTemperature = Number(adjustments?.temp ?? 0);
-      const userTint = Number(adjustments?.tint ?? 0);
+      const userTemperature = Number(adjustmentsForRender?.temp ?? 0);
+      const userTint = Number(adjustmentsForRender?.tint ?? 0);
       const userHighlights =
-        mapSignedSliderForResponse(adjustments?.highlights ?? 0, 'highlights') *
+        mapSignedSliderForResponse(adjustmentsForRender?.highlights ?? 0, 'highlights') *
         USER_RESPONSE_SCALE.highlights;
       const userShadows =
-        mapSignedSliderForResponse(adjustments?.shadows ?? 0, 'shadows') *
+        mapSignedSliderForResponse(adjustmentsForRender?.shadows ?? 0, 'shadows') *
         USER_RESPONSE_SCALE.shadows;
       const userWhites =
-        mapSignedSliderForResponse(adjustments?.whites ?? 0, 'whites') *
+        mapSignedSliderForResponse(adjustmentsForRender?.whites ?? 0, 'whites') *
         USER_RESPONSE_SCALE.whites;
       const userBlacks =
-        mapSignedSliderForResponse(adjustments?.blacks ?? 0, 'blacks') *
+        mapSignedSliderForResponse(adjustmentsForRender?.blacks ?? 0, 'blacks') *
         USER_RESPONSE_SCALE.blacks;
       const userDehaze =
-        mapSignedSliderForResponse(adjustments?.dehaze ?? 0, 'dehaze') *
+        mapSignedSliderForResponse(adjustmentsForRender?.dehaze ?? 0, 'dehaze') *
         USER_RESPONSE_SCALE.dehaze;
       const userClarity =
-        mapSignedSliderForResponse(adjustments?.clarity ?? 0, 'clarity') *
+        mapSignedSliderForResponse(adjustmentsForRender?.clarity ?? 0, 'clarity') *
         USER_RESPONSE_SCALE.clarity;
       const profileExposure =
         shouldBypassProfileCpuColor
@@ -5066,7 +5676,7 @@ export function useFilmLabEngine(
       const wbG = wb.g;
       const wbB = wb.b;
       const fadeAmount =
-        (mapUnsignedSliderForResponse(adjustments?.fade ?? 0, 'fade') *
+        (mapUnsignedSliderForResponse(adjustmentsForRender?.fade ?? 0, 'fade') *
           USER_RESPONSE_SCALE.fade) /
         100;
       const profileHighlights =
@@ -5104,12 +5714,12 @@ export function useFilmLabEngine(
           70);
       const isBlackAndWhite = !activeFilm?.previewLutFile && Boolean(film.bw);
       const grayMixer = film.grayMixer ?? null;
-      const mappedUserHsl = mapHslStateForResponse(adjustments?.userHsl ?? null);
+      const mappedUserHsl = mapHslStateForResponse(adjustmentsForRender?.userHsl ?? null);
       const mappedUserColorGrade = mapColorGradeStateForResponse(
-        adjustments?.userColorGrade ?? null
+        adjustmentsForRender?.userColorGrade ?? null
       );
       const mappedUserCalibration = mapCalibrationStateForResponse(
-        adjustments?.userCalibration ?? null
+        adjustmentsForRender?.userCalibration ?? null
       );
       const profileRegionalAdjustments = createRegionalAdjustments(
         shouldBypassProfileCpuColor ? null : film.hsl ?? null,
@@ -5149,8 +5759,8 @@ export function useFilmLabEngine(
       const sourceStatsForBlackGuard = isRawPipeline
         ? computeSampledRgbaStats(originalSourceData, width, height)
         : null;
-      const clippingHighlightThreshold = resolveHighlightClippingThreshold(adjustments);
-      const clippingShadowThreshold = resolveShadowClippingThreshold(adjustments);
+      const clippingHighlightThreshold = resolveHighlightClippingThreshold(adjustmentsForRender);
+      const clippingShadowThreshold = resolveShadowClippingThreshold(adjustmentsForRender);
       const clippingShadowLumaGate = Math.max(
         CLIPPING_SHADOW_LUMA_FLOOR,
         clippingShadowThreshold * 2.2
@@ -5183,6 +5793,75 @@ export function useFilmLabEngine(
                 Math.max(0, totalBlacksPre + totalBlacksPost) * 0.72
             )
           : 0;
+      if (String(toneAdj?.depthMapSource ?? 'luminance') !== 'onnx') {
+        depthOnnxExternalRef.current = {
+          buffer: null,
+          digest: '',
+          width: 0,
+          height: 0,
+        };
+      }
+
+      const toneAdjForMask =
+        String(toneAdj?.depthMapSource ?? 'luminance') === 'onnx' &&
+        depthOnnxExternalRef.current?.digest
+          ? {
+              ...toneAdj,
+              depthProxyDigest: depthOnnxExternalRef.current.digest,
+            }
+          : toneAdj;
+
+      const maskSnap = buildLocalMaskStackSnapshot(
+        width,
+        height,
+        toneAdjForMask,
+        brushMaskCacheRef.current
+      );
+      const brushMaskEnabled = maskSnap.brushMaskEnabled;
+      const localMaskStack = maskSnap.localMaskStack;
+      const graphOpNorm = maskSnap.graphOpNorm;
+      const graphCombineActive = maskSnap.graphCombineActive;
+      const graphIdxA = maskSnap.graphIdxA;
+      const graphIdxB = maskSnap.graphIdxB;
+
+      const onnxPack = depthOnnxExternalRef.current;
+      const onnxBufReady =
+        String(toneAdj?.depthMapSource ?? 'luminance') === 'onnx' &&
+        onnxPack.buffer instanceof Float32Array &&
+        onnxPack.width === width &&
+        onnxPack.height === height &&
+        onnxPack.buffer.length === width * height;
+
+      let depthLumaScratch = null;
+      if (brushMaskEnabled && localMaskStack.some((m) => m.mode === 'depth')) {
+        if (onnxBufReady) {
+          for (const m of localMaskStack) {
+            if (m.mode === 'depth') {
+              m.depthProxyBuffer = onnxPack.buffer;
+            }
+          }
+        } else {
+          const px = width * height;
+          let buf = depthLumaMaterializeRef.current;
+          if (!(buf instanceof Float32Array) || buf.length !== px) {
+            buf = new Float32Array(px);
+            depthLumaMaterializeRef.current = buf;
+          }
+          depthLumaScratch = buf;
+          for (const m of localMaskStack) {
+            if (m.mode === 'depth') {
+              m.depthProxyBuffer = depthLumaScratch;
+            }
+          }
+        }
+      } else {
+        for (const m of localMaskStack) {
+          if (m.mode === 'depth') {
+            m.depthProxyBuffer = null;
+          }
+        }
+      }
+
       const pixelCount = Math.max(1, width * height);
       let highlightClipCount = 0;
       let shadowClipCount = 0;
@@ -5427,6 +6106,69 @@ export function useFilmLabEngine(
           blue += fadeLevel - blue * fadeAmount * 0.15;
         }
 
+        const pIdx = index >> 2;
+        if (depthLumaScratch && !onnxBufReady) {
+          depthLumaScratch[pIdx] = rgbRec709LumaUnit(red, green, blue);
+        }
+        if (graphCombineActive) {
+          const entryA = localMaskStack[graphIdxA];
+          const entryB = localMaskStack[graphIdxB];
+          const driverIdx = Math.max(
+            0,
+            Math.min(localMaskStack.length - 1, Number(adjustmentsForRender?.activeLocalMaskIndex ?? 0))
+          );
+          const maskEntry = localMaskStack[driverIdx];
+          if (entryA && entryB && maskEntry) {
+            const wA = computeLocalMaskWeightAtPixel(entryA, pIdx, red, green, blue);
+            const wB = computeLocalMaskWeightAtPixel(entryB, pIdx, red, green, blue);
+            const combined = combineLocalMaskGraphWeights(wA, wB, graphOpNorm);
+            if (combined > 0.0001) {
+              const blendScale =
+                maskEntry.blend === 'add' ? 1.35 : maskEntry.blend === 'subtract' ? -1 : 1;
+              const localGain = Math.pow(
+                2,
+                (maskEntry.exposure / 100) * combined * maskEntry.opacity * 0.75 * blendScale
+              );
+              [red, green, blue] = applyExposureGainWithShoulder(red, green, blue, localGain);
+            }
+          }
+        } else if (localMaskStack.length > 0) {
+          for (const maskEntry of localMaskStack) {
+            const maskWeight = computeLocalMaskWeightAtPixel(maskEntry, pIdx, red, green, blue);
+            if (maskWeight <= 0.0001) continue;
+            const blendScale =
+              maskEntry.blend === 'add' ? 1.35 : maskEntry.blend === 'subtract' ? -1 : 1;
+            const localGain = Math.pow(
+              2,
+              (maskEntry.exposure / 100) * maskWeight * maskEntry.opacity * 0.75 * blendScale
+            );
+            [red, green, blue] = applyExposureGainWithShoulder(red, green, blue, localGain);
+          }
+        }
+
+        if (
+          brushMaskEnabled &&
+          localMaskStack.length > 0 &&
+          Array.isArray(adjustmentsForRender?.recipeLayersV0) &&
+          adjustmentsForRender.recipeLayersV0.length > 0
+        ) {
+          for (const layer of adjustmentsForRender.recipeLayersV0) {
+            if (layer?.enabled === false) continue;
+            const mi = Math.max(
+              0,
+              Math.min(localMaskStack.length - 1, Math.round(Number(layer.maskIndex ?? 0)))
+            );
+            const maskEntry = localMaskStack[mi];
+            if (!maskEntry) continue;
+            const exp = Number(layer.exposure ?? 0);
+            const layerOpacity = Math.max(0, Math.min(1, Number(layer.opacity ?? 100) / 100));
+            if (Math.abs(exp) < 0.01 || layerOpacity <= 0.0001) continue;
+            const w = computeLocalMaskWeightAtPixel(maskEntry, pIdx, red, green, blue);
+            if (w <= 0.0001) continue;
+            [red, green, blue] = applyRecipeLayerToneRgb(red, green, blue, w, layer);
+          }
+        }
+
         const finalRed = clamp(Math.round(red));
         const finalGreen = clamp(Math.round(green));
         const finalBlue = clamp(Math.round(blue));
@@ -5471,12 +6213,30 @@ export function useFilmLabEngine(
         data[index + 3] = 255;
       }
 
+      if (depthLumaScratch || onnxBufReady) {
+        for (const m of localMaskStack) {
+          if (m.mode === 'depth') {
+            m.depthProxyBuffer = null;
+          }
+        }
+      }
+
       if (shouldAbortRender()) {
         return false;
       }
 
       if (isPreviewQuality) {
         applyOrderedPreviewDither(data, width, height, 0.9);
+      }
+
+      const retouchToolNorm = String(adjustmentsForRender?.retouchTool ?? 'none').toLowerCase();
+      if (retouchToolNorm === 'heal') {
+        const scopeRaw = String(adjustmentsForRender?.retouchScope ?? 'masked').toLowerCase();
+        const scope = scopeRaw === 'global' ? 'global' : 'masked';
+        const healStr = Number(adjustmentsForRender?.retouchHealStrength ?? 40);
+        applyRetouchHealBoxBlurPass(data, width, height, healStr, (pIdx, r, g, b) =>
+          computeRetouchMaskWeightAtPixel(maskSnap, pIdx, r, g, b, scope, adjustmentsForRender)
+        );
       }
 
       let blackOutputGuardTriggered = false;
@@ -5508,6 +6268,13 @@ export function useFilmLabEngine(
         }
       }
 
+      if (
+        displayPreviewApproximations &&
+        adjustmentsForRender?.cmykSoftProofEnabled
+      ) {
+        applyCmykSoftProofApproxToRgba(data);
+      }
+
       latestFrameQualityRef.current = {
         quality,
         pixelCount,
@@ -5516,6 +6283,79 @@ export function useFilmLabEngine(
         blackOutputGuardTriggered,
       };
 
+      if (
+        brushMaskEnabled &&
+        localMaskStack.some((m) => m.mode === 'depth') &&
+        String(toneAdj?.depthMapSource ?? 'luminance') === 'onnx'
+      ) {
+        depthOnnxIdleCancelRef.current?.();
+        depthOnnxIdleCancelRef.current = null;
+        clearTimeout(depthOnnxInferTimerRef.current);
+        depthOnnxInferTimerRef.current = globalThis.setTimeout(() => {
+          depthOnnxInferSeqRef.current += 1;
+          const inferSeq = depthOnnxInferSeqRef.current;
+          depthOnnxIdleCancelRef.current?.();
+          depthOnnxIdleCancelRef.current = scheduleDepthOnnxInferOnIdle(() => {
+            const snap = previewSourceRef.current;
+            if (!snap?.data || snap.width < 2 || snap.height < 2) {
+              return;
+            }
+            if (String(latestToneAdjForDepthOnnxRef.current?.depthMapSource ?? 'luminance') !== 'onnx') {
+              return;
+            }
+            setDepthOnnxInferenceUi({ phase: 'running', reason: null, via: null });
+            inferDepthProxyBufferFromImageData(snap).then((out) => {
+              if (inferSeq !== depthOnnxInferSeqRef.current) {
+                return;
+              }
+              const latest = previewSourceRef.current;
+              if (!latest?.data || latest.width !== snap.width || latest.height !== snap.height) {
+                return;
+              }
+              if (String(latestToneAdjForDepthOnnxRef.current?.depthMapSource ?? 'luminance') !== 'onnx') {
+                setDepthOnnxInferenceUi({ phase: 'idle', reason: null, via: null });
+                return;
+              }
+              if (out.ok && out.buffer instanceof Float32Array && out.buffer.length === latest.width * latest.height) {
+                depthOnnxExternalRef.current = {
+                  buffer: out.buffer,
+                  digest: out.digest,
+                  width: latest.width,
+                  height: latest.height,
+                };
+                setDepthOnnxInferenceUi({
+                  phase: 'ready',
+                  reason: null,
+                  via: out.via ?? 'onnx',
+                });
+                scheduleProgressiveRenderRef.current?.();
+                return;
+              }
+              if (depthOnnxExternalRef.current.buffer || depthOnnxExternalRef.current.digest) {
+                depthOnnxExternalRef.current = {
+                  buffer: null,
+                  digest: '',
+                  width: 0,
+                  height: 0,
+                };
+                scheduleProgressiveRenderRef.current?.();
+              }
+              const reason = out.ok === false ? out.reason : 'wrong_output_length';
+              setDepthOnnxInferenceUi({
+                phase: 'fallback',
+                reason,
+                via: null,
+              });
+            });
+          }, { timeoutMs: getDepthOnnxIdleCallbackTimeoutMs() });
+        }, 200);
+      } else {
+        depthOnnxIdleCancelRef.current?.();
+        depthOnnxIdleCancelRef.current = null;
+        clearTimeout(depthOnnxInferTimerRef.current);
+        depthOnnxInferTimerRef.current = null;
+      }
+
       if (canvas.width !== width) {
         canvas.width = width;
       }
@@ -5523,7 +6363,7 @@ export function useFilmLabEngine(
         canvas.height = height;
       }
       context.putImageData(imageData, 0, 0);
-      applyLevelAndCropTransform(context, canvas, fxCanvasRef, adjustments);
+      applyLevelAndCropTransform(context, canvas, fxCanvasRef, adjustmentsForRender);
 
       if (blackOutputGuardTriggered) {
         return true;
@@ -5549,67 +6389,67 @@ export function useFilmLabEngine(
             });
           }
 
-          if ((adjustments?.halation ?? 0) > 0) {
+          if ((adjustmentsForRender?.halation ?? 0) > 0) {
             applyHalation(
               context,
               canvas,
               fxCanvasRef,
-              ((adjustments.halation ?? 0) / 100) * 0.72,
-              Math.max(5, (adjustments?.halRadius ?? 30) * 0.68),
-              mapHalationThreshold(adjustments?.halThresh ?? 200),
-              adjustments?.halHue ?? 0
+              ((adjustmentsForRender.halation ?? 0) / 100) * 0.72,
+              Math.max(5, (adjustmentsForRender?.halRadius ?? 30) * 0.68),
+              mapHalationThreshold(adjustmentsForRender?.halThresh ?? 200),
+              adjustmentsForRender?.halHue ?? 0
             );
           }
 
-          if ((adjustments?.anamorph ?? 0) > 0) {
+          if ((adjustmentsForRender?.anamorph ?? 0) > 0) {
             applyAnamorph(
               context,
               canvas,
               fxCanvasRef,
-              ((adjustments.anamorph ?? 0) / 100) * 0.72,
-              Math.max(10, (adjustments?.streakLen ?? 50) * 0.74)
+              ((adjustmentsForRender.anamorph ?? 0) / 100) * 0.72,
+              Math.max(10, (adjustmentsForRender?.streakLen ?? 50) * 0.74)
             );
           }
 
           const previewVignette =
             (Math.abs(
               ((shouldBypassProfileCpuColor ? 0 : film.vignette ?? 0) * strength * 0.12)
-            ) + (adjustments?.userVignette ?? 0)) /
+            ) + (adjustmentsForRender?.userVignette ?? 0)) /
             100;
 
           if (previewVignette > 0) {
             applyVignette(context, canvas, previewVignette);
           }
 
-          if (adjustments?.leak && adjustments.leak !== 'none') {
+          if (adjustmentsForRender?.leak && adjustmentsForRender.leak !== 'none') {
             applyLightLeak(
               context,
               canvas,
-              adjustments.leak,
+              adjustmentsForRender.leak,
               effectSeedRef.current.leak,
-              adjustments?.leak === 'raw-leakedge'
-                ? adjustments?.rawLeakVariant ?? null
+              adjustmentsForRender?.leak === 'raw-leakedge'
+                ? adjustmentsForRender?.rawLeakVariant ?? null
                 : null
             );
           }
 
-          if ((adjustments?.chromAb ?? 0) > 0) {
-            applyChromAb(context, canvas, Math.min(1, (adjustments.chromAb ?? 0) / 100));
+          if ((adjustmentsForRender?.chromAb ?? 0) > 0) {
+            applyChromAb(context, canvas, Math.min(1, (adjustmentsForRender.chromAb ?? 0) / 100));
           }
 
-          if ((adjustments?.bloom ?? 0) > 0) {
+          if ((adjustmentsForRender?.bloom ?? 0) > 0) {
             applyBloom(
               context,
               canvas,
               fxCanvasRef,
-              Math.min(1, (adjustments.bloom ?? 0) / 100)
+              Math.min(1, (adjustmentsForRender.bloom ?? 0) / 100)
             );
           }
 
-          const previewGrainAmount = (adjustments?.userGrain ?? 0) / 100;
+          const previewGrainAmount = (adjustmentsForRender?.userGrain ?? 0) / 100;
 
           if (previewGrainAmount > 0) {
-            const previewGrainSize = Math.max(0.1, (adjustments?.userGrainSize ?? 10) / 100);
+            const previewGrainSize = Math.max(0.1, (adjustmentsForRender?.userGrainSize ?? 10) / 100);
             const previewGrainFrequency = Math.max(
               10,
               Number(film?.defaultGrainFrequency ?? film?.grainFrequency ?? 50)
@@ -5624,34 +6464,34 @@ export function useFilmLabEngine(
             );
           }
 
-          if ((adjustments?.dust ?? 0) > 0) {
+          if ((adjustmentsForRender?.dust ?? 0) > 0) {
             applyDust(
               context,
               canvas,
-              (adjustments.dust ?? 0) / 100,
+              (adjustmentsForRender.dust ?? 0) / 100,
               effectSeedRef.current.dust,
-              adjustments?.dustVariant ?? null
+              adjustmentsForRender?.dustVariant ?? null
             );
           }
 
           if (
-            adjustments?.frame &&
-            adjustments.frame !== 'none' &&
-            adjustments.frame !== 'raw-sprocket'
+            adjustmentsForRender?.frame &&
+            adjustmentsForRender.frame !== 'none' &&
+            adjustmentsForRender.frame !== 'raw-sprocket'
           ) {
             applyFrame(
               context,
               canvas,
-              adjustments.frame,
+              adjustmentsForRender.frame,
               effectSeedRef.current.frame,
-              adjustments.frame === 'filmstrip' ? adjustments?.frameVariant ?? null : null
+              adjustmentsForRender.frame === 'filmstrip' ? adjustmentsForRender?.frameVariant ?? null : null
             );
           }
         }
 
-        if (includeCompare && adjustments?.compareMode) {
+        if (includeCompare && adjustmentsForRender?.compareMode) {
           applyCompare(context, canvas, { data: originalSourceData, width, height });
-          applyLevelAndCropTransform(context, canvas, fxCanvasRef, adjustments);
+          applyLevelAndCropTransform(context, canvas, fxCanvasRef, adjustmentsForRender);
         }
 
         return true;
@@ -5679,10 +6519,10 @@ export function useFilmLabEngine(
         });
       }
 
-      const totalGrain = (adjustments?.userGrain ?? 0) / 100;
+      const totalGrain = (adjustmentsForRender?.userGrain ?? 0) / 100;
 
       if (totalGrain > 0) {
-        const totalGrainSize = Math.max(0.1, (adjustments?.userGrainSize ?? 10) / 100);
+        const totalGrainSize = Math.max(0.1, (adjustmentsForRender?.userGrainSize ?? 10) / 100);
         const totalGrainFrequency = Math.max(
           10,
           Number(film?.defaultGrainFrequency ?? film?.grainFrequency ?? 50)
@@ -5693,82 +6533,82 @@ export function useFilmLabEngine(
 
       const totalVignette =
         (Math.abs(((shouldBypassProfileCpuColor ? 0 : film.vignette ?? 0) * strength * 0.12)) +
-          (adjustments?.userVignette ?? 0)) /
+          (adjustmentsForRender?.userVignette ?? 0)) /
         100;
 
       if (totalVignette > 0) {
         applyVignette(context, canvas, totalVignette);
       }
 
-      if (adjustments?.leak && adjustments.leak !== 'none') {
+      if (adjustmentsForRender?.leak && adjustmentsForRender.leak !== 'none') {
         applyLightLeak(
           context,
           canvas,
-          adjustments.leak,
+          adjustmentsForRender.leak,
           effectSeedRef.current.leak,
-          adjustments?.leak === 'raw-leakedge'
-            ? adjustments?.rawLeakVariant ?? null
+          adjustmentsForRender?.leak === 'raw-leakedge'
+            ? adjustmentsForRender?.rawLeakVariant ?? null
             : null
         );
       }
 
-      if ((adjustments?.chromAb ?? 0) > 0) {
-        applyChromAb(context, canvas, (adjustments.chromAb ?? 0) / 100);
+      if ((adjustmentsForRender?.chromAb ?? 0) > 0) {
+        applyChromAb(context, canvas, (adjustmentsForRender.chromAb ?? 0) / 100);
       }
 
-      if ((adjustments?.bloom ?? 0) > 0) {
-        applyBloom(context, canvas, fxCanvasRef, (adjustments.bloom ?? 0) / 100);
+      if ((adjustmentsForRender?.bloom ?? 0) > 0) {
+        applyBloom(context, canvas, fxCanvasRef, (adjustmentsForRender.bloom ?? 0) / 100);
       }
 
-      if ((adjustments?.dust ?? 0) > 0) {
+      if ((adjustmentsForRender?.dust ?? 0) > 0) {
         applyDust(
           context,
           canvas,
-          (adjustments.dust ?? 0) / 100,
+          (adjustmentsForRender.dust ?? 0) / 100,
           effectSeedRef.current.dust,
-          adjustments?.dustVariant ?? null
+          adjustmentsForRender?.dustVariant ?? null
         );
       }
 
-      if ((adjustments?.halation ?? 0) > 0) {
+      if ((adjustmentsForRender?.halation ?? 0) > 0) {
         applyHalation(
           context,
           canvas,
           fxCanvasRef,
-          (adjustments.halation ?? 0) / 100,
-          adjustments?.halRadius ?? 30,
-          mapHalationThreshold(adjustments?.halThresh ?? 200),
-          adjustments?.halHue ?? 0
+          (adjustmentsForRender.halation ?? 0) / 100,
+          adjustmentsForRender?.halRadius ?? 30,
+          mapHalationThreshold(adjustmentsForRender?.halThresh ?? 200),
+          adjustmentsForRender?.halHue ?? 0
         );
       }
 
-      if ((adjustments?.anamorph ?? 0) > 0) {
+      if ((adjustmentsForRender?.anamorph ?? 0) > 0) {
         applyAnamorph(
           context,
           canvas,
           fxCanvasRef,
-          (adjustments.anamorph ?? 0) / 100,
-          adjustments?.streakLen ?? 50
+          (adjustmentsForRender.anamorph ?? 0) / 100,
+          adjustmentsForRender?.streakLen ?? 50
         );
       }
 
       if (
-        adjustments?.frame &&
-        adjustments.frame !== 'none' &&
-        adjustments.frame !== 'raw-sprocket'
+        adjustmentsForRender?.frame &&
+        adjustmentsForRender.frame !== 'none' &&
+        adjustmentsForRender.frame !== 'raw-sprocket'
       ) {
         applyFrame(
           context,
           canvas,
-          adjustments?.frame ?? null,
+          adjustmentsForRender?.frame ?? null,
           effectSeedRef.current.frame,
-          adjustments?.frame === 'filmstrip' ? adjustments?.frameVariant ?? null : null
+          adjustmentsForRender?.frame === 'filmstrip' ? adjustmentsForRender?.frameVariant ?? null : null
         );
       }
 
-      if (includeCompare && adjustments?.compareMode) {
+      if (includeCompare && adjustmentsForRender?.compareMode) {
         applyCompare(context, canvas, { data: originalSourceData, width, height });
-        applyLevelAndCropTransform(context, canvas, fxCanvasRef, adjustments);
+        applyLevelAndCropTransform(context, canvas, fxCanvasRef, adjustmentsForRender);
       }
 
       return true;
@@ -6126,6 +6966,19 @@ export function useFilmLabEngine(
                 adjustments?.rotation ?? 0,
                 adjustments?.flipped
               );
+            } else if (adjustments?.cmykSoftProofEnabled) {
+              try {
+                const cmykId = visibleContext.getImageData(
+                  0,
+                  0,
+                  presentation.width,
+                  presentation.height
+                );
+                applyCmykSoftProofApproxToRgba(cmykId.data);
+                visibleContext.putImageData(cmykId, 0, 0);
+              } catch {
+                /* ignore readback failures */
+              }
             }
 
         if ((adjustments?.dust ?? 0) > 0) {
@@ -6354,6 +7207,7 @@ export function useFilmLabEngine(
           quality,
           renderToken: allowTokenAbort ? renderToken : null,
           showClipping: Boolean(adjustments?.showClipping),
+          displayPreviewApproximations: true,
         });
       } finally {
         cpuRenderInFlightRef.current = false;
@@ -6756,6 +7610,17 @@ export function useFilmLabEngine(
       cancelIdleCallbackSafe(fullResPrewarmIdleRef.current);
       fullResPrewarmIdleRef.current = null;
       previewSourceRef.current = null;
+      depthOnnxIdleCancelRef.current?.();
+      depthOnnxIdleCancelRef.current = null;
+      clearTimeout(depthOnnxInferTimerRef.current);
+      depthOnnxInferTimerRef.current = null;
+      setDepthOnnxInferenceUi({ phase: 'idle', reason: null, via: null });
+      depthOnnxExternalRef.current = {
+        buffer: null,
+        digest: '',
+        width: 0,
+        height: 0,
+      };
       sourceCanvasRef.current = null;
       proxyWorkerSourceReadyRef.current = false;
       proxySourceIdRef.current = 0;
@@ -7326,143 +8191,351 @@ export function useFilmLabEngine(
     [buildFullResolutionSource, renderToContext]
   );
 
-  const exportImage = useCallback(async ({ sizeProfile = 'full' } = {}) => {
-    try {
-      setIsProcessing(true);
-      let source =
-        fullSourceRef.current ??
-        (await buildFullResolutionSource()) ??
-        previewSourceRef.current;
-
-      if (!source) {
-        setIsProcessing(false);
-        return;
-      }
-
-      let maxEdge = null;
-      if (sizeProfile === 'social') maxEdge = 1080;
-      if (sizeProfile === 'web') maxEdge = 2048;
-
-      if (maxEdge && (source.width > maxEdge || source.height > maxEdge)) {
-        const ratio = Math.min(maxEdge / source.width, maxEdge / source.height);
-        const w = Math.round(source.width * ratio);
-        const h = Math.round(source.height * ratio);
-        
-        const scaledCanvas = document.createElement('canvas');
-        scaledCanvas.width = w;
-        scaledCanvas.height = h;
-        const ctx = scaledCanvas.getContext('2d', { colorSpace: 'srgb', willReadFrequently: true })
-          || scaledCanvas.getContext('2d', { willReadFrequently: true });
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
-
-        // source is ImageData — draw it via a temporary canvas first
-        const tmpCanvas = document.createElement('canvas');
-        tmpCanvas.width = source.width;
-        tmpCanvas.height = source.height;
-        const tmpCtx = tmpCanvas.getContext('2d');
-        tmpCtx.putImageData(source, 0, 0);
-        ctx.drawImage(tmpCanvas, 0, 0, w, h);
-
-        // Convert back to ImageData (renderToContext expects ImageData, not Canvas)
-        source = ctx.getImageData(0, 0, w, h);
-
-        // Cleanup temp canvases
-        tmpCanvas.width = 1;
-        tmpCanvas.height = 1;
-        scaledCanvas.width = 1;
-        scaledCanvas.height = 1;
-      }
-
-      const exportCanvas = document.createElement('canvas');
-      const exportContext = getCanvasContext(exportCanvas, { willReadFrequently: true });
-
-      if (!exportContext) {
-        setIsProcessing(false);
-        return;
-      }
-
-      renderToContext({
-        canvas: exportCanvas,
-        context: exportContext,
-        source,
-        includeCompare: false,
-        showClipping: Boolean(adjustments?.showClipping),
-      });
-
-      // --- Output Sharpening (Unsharp Mask, post-render) ---
-      const { applyOutputSharpening } = await import('./outputSharpening.js');
-      let sharpeningStrength = 0.3; // full
-      if (sizeProfile === 'web') sharpeningStrength = 0.45;
-      if (sizeProfile === 'social') sharpeningStrength = 0.6;
-      
-      applyOutputSharpening(
-        exportContext,
-        exportCanvas.width,
-        exportCanvas.height,
-        sharpeningStrength
-      );
-
-      // --- EXIF Metadata Injection ---
-      const filmName = activeFilm?.name ?? 'Analog Signature';
-      const safeFilmName = filmName.replace(/\s+/g, '_');
-      const jpegDataUrl = exportCanvas.toDataURL('image/jpeg', 1.0);
-
-      let finalDataUrl = jpegDataUrl;
+  const exportImage = useCallback(
+    async ({
+      sizeProfile = 'full',
+      fileFormat = 'jpeg',
+      includeLocalMaskPng = false,
+      includeBeforeAfter = false,
+      includeRecipeJson = false,
+      lossyQuality = undefined,
+    } = {}) => {
       try {
-        const { default: piexif } = await import('piexifjs');
-        const zeroth = {};
-        const exifIfd = {};
-        zeroth[piexif.ImageIFD.Make] = 'MindfulLens';
-        zeroth[piexif.ImageIFD.Model] = 'Film-Lab Web Engine';
-        zeroth[piexif.ImageIFD.Software] = 'MindfulLens Film-Lab v1.0';
-        zeroth[piexif.ImageIFD.ImageDescription] = `Film profile: ${filmName}`;
-        zeroth[piexif.ImageIFD.Copyright] = 'Processed with MindfulLens Film-Lab';
-        zeroth[piexif.ImageIFD.Artist] = 'MindfulLens User';
-        zeroth[piexif.ImageIFD.Orientation] = 1;
-        exifIfd[piexif.ExifIFD.DateTimeOriginal] = new Date().toISOString().replace('T', ' ').slice(0, 19);
-        exifIfd[piexif.ExifIFD.UserComment] = `Exported from Film-Lab | Profile: ${filmName}`;
+        setIsProcessing(true);
+        const exportSessionId =
+          typeof globalThis?.crypto?.randomUUID === 'function'
+            ? globalThis.crypto.randomUUID()
+            : `exp_${Date.now()}_${Math.round(Math.random() * 1e9)}`;
+        const pipelineKind = pipelineInfo?.pipelineKind ?? null;
+        let source =
+          fullSourceRef.current ??
+          (await buildFullResolutionSource()) ??
+          previewSourceRef.current;
 
-        const exifObj = {
-          '0th': zeroth,
-          Exif: exifIfd,
-        };
-        const exifBytes = piexif.dump(exifObj);
-        finalDataUrl = piexif.insert(exifBytes, jpegDataUrl);
-      } catch (exifError) {
-        console.warn('[Film-Lab] EXIF injection skipped:', exifError);
-        // Fall back to the original dataUrl without EXIF
-      }
-
-      // --- Download ---
-      try {
-        const byteString = atob(finalDataUrl.split(',')[1]);
-        const arrayBuffer = new ArrayBuffer(byteString.length);
-        const uint8Array = new Uint8Array(arrayBuffer);
-        for (let i = 0; i < byteString.length; i++) {
-          uint8Array[i] = byteString.charCodeAt(i);
+        if (!source) {
+          setIsProcessing(false);
+          return;
         }
-        const blob = new Blob([arrayBuffer], { type: 'image/jpeg' });
 
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = `mindfullens_${safeFilmName}.jpg`;
-        document.body.appendChild(link);
-        link.click();
-        setTimeout(() => {
-          document.body.removeChild(link);
-          URL.revokeObjectURL(link.href);
-        }, 100);
-      } catch (downloadError) {
-        console.error('[Film-Lab] Download failed:', downloadError);
+        let maxEdge = null;
+        if (sizeProfile === 'social') maxEdge = 1080;
+        if (sizeProfile === 'web') maxEdge = 2048;
+
+        if (maxEdge && (source.width > maxEdge || source.height > maxEdge)) {
+          const ratio = Math.min(maxEdge / source.width, maxEdge / source.height);
+          const w = Math.round(source.width * ratio);
+          const h = Math.round(source.height * ratio);
+
+          const scaledCanvas = document.createElement('canvas');
+          scaledCanvas.width = w;
+          scaledCanvas.height = h;
+          const ctx =
+            scaledCanvas.getContext('2d', { colorSpace: 'srgb', willReadFrequently: true }) ||
+            scaledCanvas.getContext('2d', { willReadFrequently: true });
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+
+          const tmpCanvas = document.createElement('canvas');
+          tmpCanvas.width = source.width;
+          tmpCanvas.height = source.height;
+          const tmpCtx = tmpCanvas.getContext('2d');
+          tmpCtx.putImageData(source, 0, 0);
+          ctx.drawImage(tmpCanvas, 0, 0, w, h);
+
+          source = ctx.getImageData(0, 0, w, h);
+
+          tmpCanvas.width = 1;
+          tmpCanvas.height = 1;
+          scaledCanvas.width = 1;
+          scaledCanvas.height = 1;
+        }
+
+        const exportCanvas = document.createElement('canvas');
+        const exportContext = getCanvasContext(exportCanvas, { willReadFrequently: true });
+
+        if (!exportContext) {
+          setIsProcessing(false);
+          return;
+        }
+
+        renderToContext({
+          canvas: exportCanvas,
+          context: exportContext,
+          source,
+          includeCompare: false,
+          showClipping: Boolean(adjustments?.showClipping),
+        });
+
+        let sharpeningStrength = 0.3;
+        if (sizeProfile === 'web') sharpeningStrength = 0.45;
+        if (sizeProfile === 'social') sharpeningStrength = 0.6;
+
+        const filmName = activeFilm?.name ?? 'Analog Signature';
+        const safeFilmName = filmName.replace(/\s+/g, '_');
+        const requestedFf =
+          typeof fileFormat === 'string' ? fileFormat.trim().toLowerCase() : '';
+        const exportAsPsd = requestedFf === 'psd';
+
+        const manifestArtifacts = [];
+
+        const exportEnc = await import('./filmLabExportEncode.js');
+
+        let encoded;
+        let ff;
+
+        if (exportAsPsd) {
+          applyOutputSharpening(exportContext, exportCanvas.width, exportCanvas.height, sharpeningStrength);
+          const { encodeFilmLabExportPsdFromCanvas } = await import('./filmLabExportPsdFromCanvas.js');
+          encoded = encodeFilmLabExportPsdFromCanvas(exportCanvas, {
+            layerName: `${filmName} export`,
+          });
+          ff = 'psd';
+        } else {
+          ff = normalizeFilmLabExportFileFormat(fileFormat);
+          encoded = await exportEnc.encodeFilmLabExportCanvas(exportCanvas, exportContext, {
+            filmName,
+            sizeProfile,
+            fileFormat: ff,
+            sharpeningStrength,
+            lossyQuality,
+          });
+        }
+
+        const rasterFf = exportAsPsd ? 'jpeg' : ff;
+
+        exportEnc.triggerBrowserDownload(
+          encoded.bytes,
+          encoded.mimeType,
+          `mindfullens_${safeFilmName}.${encoded.extension}`
+        );
+        const afterArtifactName = `mindfullens_${safeFilmName}.${encoded.extension}`;
+        manifestArtifacts.push(
+          await buildFilmLabExportManifestArtifactRow({
+            variant: 'after',
+            artifactRole: 'primary',
+            fileName: afterArtifactName,
+            mimeType: encoded.mimeType,
+            bytes: encoded.bytes,
+            exportSessionId,
+            pipelineKind,
+            sha256HexFromBytes,
+          })
+        );
+
+        if (includeBeforeAfter) {
+          const beforeData = transformSourceImageData(
+            source,
+            adjustments?.rotation ?? 0,
+            Boolean(adjustments?.flipped)
+          );
+          const beforeEncoded = await exportEnc.encodeFilmLabExportImageData(beforeData, {
+            fileFormat: rasterFf,
+            lossyQuality,
+          });
+          exportEnc.triggerBrowserDownload(
+            beforeEncoded.bytes,
+            beforeEncoded.mimeType,
+            `mindfullens_${safeFilmName}_before.${beforeEncoded.extension}`
+          );
+          manifestArtifacts.push(
+            await buildFilmLabExportManifestArtifactRow({
+              variant: 'before',
+              artifactRole: 'sidecar',
+              fileName: `mindfullens_${safeFilmName}_before.${beforeEncoded.extension}`,
+              mimeType: beforeEncoded.mimeType,
+              bytes: beforeEncoded.bytes,
+              exportSessionId,
+              pipelineKind,
+              sha256HexFromBytes,
+            })
+          );
+          if (includeRecipeJson) {
+            const beforeRecipePayload = buildExportRecipeSnapshot({
+              activeFilm,
+              adjustments,
+              renderDebugInfo,
+              rawBackendPreference,
+              pipelineKind,
+              exportSessionId,
+              sizeProfile,
+              fileFormat: rasterFf,
+              lossyQuality,
+              variant: 'before',
+              artifactName: `mindfullens_${safeFilmName}_before.${beforeEncoded.extension}`,
+              artifactMimeType: beforeEncoded.mimeType,
+            });
+            const beforeRecipeBytes = new TextEncoder().encode(JSON.stringify(beforeRecipePayload, null, 2));
+            exportEnc.triggerBrowserDownload(
+              beforeRecipeBytes,
+              'application/json',
+              `mindfullens_${safeFilmName}_before_recipe.json`
+            );
+            manifestArtifacts.push(
+              await buildFilmLabExportManifestArtifactRow({
+                variant: 'before_recipe',
+                artifactRole: 'sidecar',
+                fileName: `mindfullens_${safeFilmName}_before_recipe.json`,
+                mimeType: 'application/json',
+                bytes: beforeRecipeBytes,
+                exportSessionId,
+                pipelineKind,
+                sha256HexFromBytes,
+              })
+            );
+          }
+        }
+
+        if (includeLocalMaskPng) {
+          const transformedSource = transformSourceImageData(
+            source,
+            adjustments?.rotation ?? 0,
+            Boolean(adjustments?.flipped)
+          );
+          const maskData = buildExportMaskGrayscaleImageData(
+            transformedSource.width,
+            transformedSource.height,
+            transformedSource,
+            adjustments,
+            brushMaskCacheRef.current
+          );
+          if (maskData) {
+            const pngBytes = await exportEnc.imageDataToPngUint8Array(maskData);
+            exportEnc.triggerBrowserDownload(pngBytes, 'image/png', `mindfullens_${safeFilmName}_mask.png`);
+            manifestArtifacts.push(
+              await buildFilmLabExportManifestArtifactRow({
+                variant: 'mask',
+                artifactRole: 'aux-mask',
+                fileName: `mindfullens_${safeFilmName}_mask.png`,
+                mimeType: 'image/png',
+                bytes: pngBytes,
+                exportSessionId,
+                pipelineKind,
+                sha256HexFromBytes,
+              })
+            );
+            if (includeRecipeJson) {
+              const maskRecipePayload = buildExportRecipeSnapshot({
+                activeFilm,
+                adjustments,
+                renderDebugInfo,
+                rawBackendPreference,
+                pipelineKind,
+                exportSessionId,
+                sizeProfile,
+                fileFormat: rasterFf,
+                lossyQuality,
+                variant: 'mask',
+                artifactName: `mindfullens_${safeFilmName}_mask.png`,
+                artifactMimeType: 'image/png',
+              });
+              const maskRecipeBytes = new TextEncoder().encode(JSON.stringify(maskRecipePayload, null, 2));
+              exportEnc.triggerBrowserDownload(
+                maskRecipeBytes,
+                'application/json',
+                `mindfullens_${safeFilmName}_mask_recipe.json`
+              );
+              manifestArtifacts.push(
+                await buildFilmLabExportManifestArtifactRow({
+                  variant: 'mask_recipe',
+                  artifactRole: 'sidecar',
+                  fileName: `mindfullens_${safeFilmName}_mask_recipe.json`,
+                  mimeType: 'application/json',
+                  bytes: maskRecipeBytes,
+                  exportSessionId,
+                  pipelineKind,
+                  sha256HexFromBytes,
+                })
+              );
+            }
+          }
+        }
+
+        if (includeRecipeJson) {
+          const recipePayload = buildExportRecipeSnapshot({
+            activeFilm,
+            adjustments,
+            renderDebugInfo,
+            rawBackendPreference,
+            pipelineKind,
+            exportSessionId,
+            sizeProfile,
+            fileFormat: ff,
+            variant: 'after',
+            artifactName: afterArtifactName,
+            artifactMimeType: encoded.mimeType,
+          });
+          const recipeBytes = new TextEncoder().encode(JSON.stringify(recipePayload, null, 2));
+          exportEnc.triggerBrowserDownload(
+            recipeBytes,
+            'application/json',
+            `mindfullens_${safeFilmName}_after_recipe.json`
+          );
+          manifestArtifacts.push(
+            await buildFilmLabExportManifestArtifactRow({
+              variant: 'after_recipe',
+              artifactRole: 'sidecar',
+              fileName: `mindfullens_${safeFilmName}_after_recipe.json`,
+              mimeType: 'application/json',
+              bytes: recipeBytes,
+              exportSessionId,
+              pipelineKind,
+              sha256HexFromBytes,
+            })
+          );
+        }
+
+        const manifestLossyQ = manifestLossyQualityForFilmLabExport(ff, lossyQuality);
+        const manifestPayload = {
+          ...buildFilmLabExportManifestRootBase({
+            moduleName: 'useFilmLabEngine.exportImage',
+            mode: 'single',
+            exportSessionId,
+            artifactEntries: manifestArtifacts,
+            serviceBuildTag: SERVICE_BUILD_TAG,
+            serviceBuildLabel: SERVICE_BUILD_LABEL,
+            viewportBuildMarker: VIEWPORT_BUILD_MARKER,
+          }),
+          film: {
+            id: activeFilm?.id ?? null,
+            name: activeFilm?.name ?? null,
+          },
+          export: {
+            sizeProfile,
+            fileFormat: ff,
+            pipelineKind,
+            includeLocalMaskPng,
+            includeBeforeAfter,
+            includeRecipeJson,
+            ...(manifestLossyQ !== undefined ? { lossyQuality: manifestLossyQ } : {}),
+          },
+        };
+        await attachFilmLabExportManifestDigest(manifestPayload, { sha256HexFromBytes });
+        const manifestBytes = new TextEncoder().encode(JSON.stringify(manifestPayload, null, 2));
+        exportEnc.triggerBrowserDownload(
+          manifestBytes,
+          'application/json',
+          `mindfullens_${safeFilmName}_manifest.json`
+        );
+
+        exportCanvas.width = 1;
+        exportCanvas.height = 1;
+
+        setIsProcessing(false);
+      } catch (error) {
+        setIsProcessing(false);
+        console.error(error);
       }
-
-      setIsProcessing(false);
-    } catch (error) {
-      setIsProcessing(false);
-      console.error(error);
-    }
-  }, [activeFilm, buildFullResolutionSource, renderToContext]);
+    },
+    [
+      activeFilm,
+      adjustments,
+      buildFullResolutionSource,
+      renderToContext,
+      renderDebugInfo,
+      rawBackendPreference,
+      pipelineInfo?.pipelineKind,
+    ]
+  );
 
   const exportCubeLut = useCallback(async () => {
     const worker = proxyWorkerRef.current;
@@ -7519,10 +8592,24 @@ export function useFilmLabEngine(
   const batchAbortRef = useRef(null);
 
   const processBatch = useCallback(
-    async (files, sizeProfile = 'full') => {
+    async (files, sizeProfileOrOptions = 'full') => {
       if (!files || files.length === 0 || batchState.isRunning) {
         return;
       }
+
+      const legacy = typeof sizeProfileOrOptions === 'string';
+      const sizeProfile = legacy ? sizeProfileOrOptions : (sizeProfileOrOptions?.sizeProfile ?? 'full');
+      const fileFormat = legacy ? 'jpeg' : (sizeProfileOrOptions?.fileFormat ?? 'jpeg');
+      const includeLocalMaskPng = legacy ? false : Boolean(sizeProfileOrOptions?.includeLocalMaskPng);
+      const includeBeforeAfter = legacy ? false : Boolean(sizeProfileOrOptions?.includeBeforeAfter);
+      const includeRecipeJson = legacy ? false : Boolean(sizeProfileOrOptions?.includeRecipeJson);
+      const lossyQuality = legacy ? undefined : sizeProfileOrOptions?.lossyQuality;
+      const normalizedFormat = normalizeFilmLabExportFileFormat(fileFormat);
+      const exportSessionId =
+        typeof globalThis?.crypto?.randomUUID === 'function'
+          ? globalThis.crypto.randomUUID()
+          : `exp_${Date.now()}_${Math.round(Math.random() * 1e9)}`;
+      const pipelineKind = pipelineInfo?.pipelineKind ?? null;
 
       const abortController = new AbortController();
       batchAbortRef.current = abortController;
@@ -7543,6 +8630,61 @@ export function useFilmLabEngine(
         signal: abortController.signal,
         shuffleSeeds,
         sizeProfile,
+        fileFormat: normalizedFormat,
+        includeLocalMaskPng,
+        includeBeforeAfter,
+        includeRecipeJson,
+        lossyQuality,
+        exportSessionId,
+        pipelineKind,
+        buildMaskImageData: includeLocalMaskPng
+          ? (rawSource) => {
+              const transformedSource = transformSourceImageData(
+                rawSource,
+                adjustments?.rotation ?? 0,
+                Boolean(adjustments?.flipped)
+              );
+              return buildExportMaskGrayscaleImageData(
+                transformedSource.width,
+                transformedSource.height,
+                transformedSource,
+                adjustments
+              );
+            }
+          : null,
+        buildBeforeImageData: includeBeforeAfter
+          ? (rawSource) =>
+              transformSourceImageData(
+                rawSource,
+                adjustments?.rotation ?? 0,
+                Boolean(adjustments?.flipped)
+              )
+          : null,
+        buildRecipeObject: includeRecipeJson
+          ? ({
+              fileName,
+              sizeProfile: batchSizeProfile,
+              fileFormat: batchFileFormat,
+              variant = 'after',
+              artifactName = null,
+              artifactMimeType = null,
+            }) =>
+              buildExportRecipeSnapshot({
+                activeFilm,
+                adjustments,
+                renderDebugInfo,
+                rawBackendPreference,
+                pipelineKind,
+                exportSessionId,
+                sizeProfile: batchSizeProfile,
+                fileFormat: batchFileFormat,
+                lossyQuality,
+                sourceName: fileName,
+                variant,
+                artifactName,
+                artifactMimeType,
+              })
+          : null,
         rawBackendPreference,
         onProgress: (current, total, fileName) => {
           setBatchState({
@@ -7559,9 +8701,24 @@ export function useFilmLabEngine(
         onError: (fileName, error) => {
           console.warn(`[Film-Lab Batch] Error processing ${fileName}:`, error);
         },
+        prepareAdjustmentsForBatchFile: adjustments.batchRecomputeAiMasksHeuristic
+          ? () => {
+              const cropNorm = activeCropRectNormFromAdjustments(adjustments);
+              return recomputeAiAssistMasksHeuristic(adjustments, cropNorm);
+            }
+          : undefined,
+        batchAdjustmentsOverrideRef,
       });
     },
-    [activeFilm, renderToContext, batchState.isRunning, rawBackendPreference]
+    [
+      activeFilm,
+      adjustments,
+      renderToContext,
+      batchState.isRunning,
+      rawBackendPreference,
+      renderDebugInfo,
+      pipelineInfo?.pipelineKind,
+    ]
   );
 
   const cancelBatch = useCallback(() => {
@@ -7646,6 +8803,7 @@ export function useFilmLabEngine(
     processBatch,
     cancelBatch,
     batchState,
+    depthOnnxInferenceUi,
   };
 }
 

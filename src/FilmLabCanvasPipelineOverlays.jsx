@@ -9,6 +9,7 @@ import {
   parseRolloutGateFromRuntimeBadge,
   parseRolloutHealthFromRuntimeBadge,
 } from './filmLab/rolloutGate.js';
+import { useI18n } from './i18n';
 
 export default function FilmLabCanvasPipelineOverlays({
   renderPipelineAlert,
@@ -18,6 +19,7 @@ export default function FilmLabCanvasPipelineOverlays({
   qualityStatus,
   fallbackExplanation,
 }) {
+  const { t } = useI18n();
   const runtimeStatusTone =
     runtimeStatusBadge && String(runtimeStatusBadge).includes('E2E WARN') ? 'warn' : 'ok';
   const e2eWarnSummary = parseE2eWarnFromRuntimeBadge(runtimeStatusBadge)?.tooltipLabel ?? null;
@@ -26,14 +28,22 @@ export default function FilmLabCanvasPipelineOverlays({
   const rolloutGateSummary = parseRolloutGateFromRuntimeBadge(runtimeStatusBadge)?.tooltipLabel ?? null;
   const frameCostGateSummary = parseFrameCostGateFromRuntimeBadge(runtimeStatusBadge)?.tooltipLabel ?? null;
   const runtimeStatusTitle = [
-    fallbackExplanation || 'Status renderu',
-    'KPI E2E: mediana per ścieżka (okno 31 próbek), target 16 ms.',
-    e2eWarnSummary != null ? `E2E warn: ${e2eWarnSummary}` : null,
-    abDeltaSummary != null ? `A/B delta: ${abDeltaSummary}` : null,
-    rolloutHealthSummary != null ? `Rollout health: ${rolloutHealthSummary}` : null,
-    rolloutGateSummary != null ? `Rollout gate: ${rolloutGateSummary}` : null,
-    frameCostGateSummary != null ? `Koszt klatki (gate): ${frameCostGateSummary}` : null,
-    `Thresholds: ${getMainPreviewAbRolloutHealthThresholdsHint()} | ${getMainPreviewAbRolloutGateThresholdsHint()} | ${getPreviewE2eFrameCostGateThresholdsHint()}`,
+    fallbackExplanation || t('filmLab.pipelineOverlays.statusBase'),
+    t('filmLab.pipelineOverlays.e2eKpi'),
+    e2eWarnSummary != null ? t('filmLab.pipelineOverlays.e2eWarnLine', { summary: e2eWarnSummary }) : null,
+    abDeltaSummary != null ? t('filmLab.pipelineOverlays.abDeltaLine', { summary: abDeltaSummary }) : null,
+    rolloutHealthSummary != null
+      ? t('filmLab.pipelineOverlays.rolloutHealthLine', { summary: rolloutHealthSummary })
+      : null,
+    rolloutGateSummary != null ? t('filmLab.pipelineOverlays.rolloutGateLine', { summary: rolloutGateSummary }) : null,
+    frameCostGateSummary != null
+      ? t('filmLab.pipelineOverlays.frameCostGateLine', { summary: frameCostGateSummary })
+      : null,
+    t('filmLab.pipelineOverlays.thresholdsLine', {
+      health: getMainPreviewAbRolloutHealthThresholdsHint(),
+      gate: getMainPreviewAbRolloutGateThresholdsHint(),
+      frameCost: getPreviewE2eFrameCostGateThresholdsHint(),
+    }),
   ]
     .filter(Boolean)
     .join('\n');
@@ -42,13 +52,13 @@ export default function FilmLabCanvasPipelineOverlays({
       {renderPipelineAlert ? (
         <div className="render-pipeline-alert" role="alert" aria-live="assertive">
           <div className="render-pipeline-alert-head">
-            <strong>Render Error: {renderPipelineAlert.code}</strong>
+            <strong>{t('filmLab.pipelineOverlays.renderError', { code: renderPipelineAlert.code })}</strong>
             <button
               type="button"
               className="render-pipeline-alert-close"
               onClick={clearRenderPipelineAlert}
             >
-              Zamknij
+              {t('filmLab.pipelineOverlays.close')}
             </button>
           </div>
           <div className="render-pipeline-alert-body">{renderPipelineAlert.message}</div>
@@ -67,15 +77,15 @@ export default function FilmLabCanvasPipelineOverlays({
           {qualityStatus ? (
             <div
               className={`quality-status-badge tone-${qualityStatus.tone}`}
-              title="Alerty jakościowe podglądu"
+              title={t('filmLab.pipelineOverlays.qualityPreviewTitle')}
             >
               {qualityStatus.text}
             </div>
           ) : null}
           <div
             className="service-build-badge-stack"
-            aria-label="Wersja serwisowa"
-            title="Wersja serwisowa (build)"
+            aria-label={t('filmLab.pipelineOverlays.serviceBuildAria')}
+            title={t('filmLab.pipelineOverlays.serviceBuildTitle')}
           >
             {SERVICE_BUILD_LABEL}
           </div>

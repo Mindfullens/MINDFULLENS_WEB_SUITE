@@ -6,10 +6,11 @@ export const SERVICE_BUILD_TAG = `sv-${SERVICE_BUILD_DATE}-${String(SERVICE_BUIL
 const _serviceBuildLabelBase = `wersja serwisowa · ${SERVICE_BUILD_TAG}`;
 
 function serviceBuildLabelDevSuffix() {
-  if (!import.meta.env.DEV) {
+  const env = import.meta.env;
+  if (!env?.DEV) {
     return '';
   }
-  const sha = String(import.meta.env.VITE_FILM_LAB_GIT_SHA || '').trim();
+  const sha = String(env.VITE_FILM_LAB_GIT_SHA || '').trim();
   const stamp = new Date().toLocaleString('pl-PL', {
     hour12: false,
     dateStyle: 'short',

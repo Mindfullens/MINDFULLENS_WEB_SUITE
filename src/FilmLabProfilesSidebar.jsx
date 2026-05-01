@@ -1,3 +1,5 @@
+import { useI18n } from './i18n';
+
 export default function FilmLabProfilesSidebar({
   sidebarRef,
   categoryTabs,
@@ -9,11 +11,14 @@ export default function FilmLabProfilesSidebar({
   onSearchQueryChange,
   onSelectFilm,
 }) {
+  const { t } = useI18n();
+
   return (
     <aside className="sidebar-left" ref={sidebarRef}>
       <div className="sb-header">
         <div className="sb-title">
-          Profile filmowe <span className="sb-count">{visibleFilms.length} profili</span>
+          {t('filmLab.profilesSidebar.title')}{' '}
+          <span className="sb-count">{t('filmLab.profilesSidebar.profileCount', { count: visibleFilms.length })}</span>
         </div>
         <div className="film-tabs">
           {categoryTabs.map((tab) => (
@@ -34,7 +39,7 @@ export default function FilmLabProfilesSidebar({
           id="filmSearchInput"
           name="filmSearchInput"
           type="text"
-          placeholder="Szukaj profilu..."
+          placeholder={t('filmLab.profilesSidebar.searchPlaceholder')}
           value={searchQuery}
           onChange={(event) => onSearchQueryChange(event.target.value)}
         />
@@ -56,8 +61,8 @@ export default function FilmLabProfilesSidebar({
           </button>
         ))}
       </div>
-      <div className="profiles-footer-note" aria-label="Informacja o renderze">
-        <div className="profiles-footer-copy">© 2026 Mindfullens.</div>
+      <div className="profiles-footer-note" aria-label={t('filmLab.profilesSidebar.footerAria')}>
+        <div className="profiles-footer-copy">{t('filmLab.profilesSidebar.footerCopy')}</div>
       </div>
     </aside>
   );

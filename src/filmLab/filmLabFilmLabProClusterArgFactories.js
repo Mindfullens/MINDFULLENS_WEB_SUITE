@@ -61,6 +61,7 @@ export const filmLabFilmLabProClusterArgFactories = {
           setMetadataViewMode: w.setMetadataViewMode,
           exifMeta: w.exifMeta,
           zoom: w.zoom,
+          panOffset: w.panOffset,
           adjustments: w.adjustments,
           colorCalibration: w.colorCalibration,
           colorGrading: w.colorGrading,
@@ -194,6 +195,8 @@ export const filmLabFilmLabProClusterArgFactories = {
         colorMixer: b.colorMixer,
         colorGrading: b.colorGrading,
         colorCalibration: b.colorCalibration,
+        zoom: b.zoom,
+        panOffset: b.panOffset,
         filmStocks,
         setAdjustments: b.setAdjustments,
         setUserCurves: b.setUserCurves,
@@ -237,6 +240,7 @@ export const filmLabFilmLabProClusterArgFactories = {
         hasImage: b.hasImage,
       },
     },
+    recipeDebugKeyboardArgs: { showRenderDebugPanel: b.showRenderDebugPanel },
   }),
   buildFilmViewCropStraightenPanelArgs: (c) => ({
     filmViewCropRectApplyAndDragLayoutArgs: {
@@ -313,6 +317,13 @@ export const filmLabFilmLabProClusterArgFactories = {
         activePanel: c.activePanel,
         lastNonCropPanelRef: c.lastNonCropPanelRef,
         setActivePanel: c.setActivePanel,
+      },
+      studioWorkspaceArgs: {
+        setStudioWorkspace: c.setStudioWorkspace,
+        setActivePanel: c.setActivePanel,
+        setIsExportModalOpen: c.setIsExportModalOpen,
+        studioWorkspace: c.studioWorkspace,
+        uiMode: c.adjustments?.uiMode,
       },
     },
   }),

@@ -1,5 +1,10 @@
 import { useEffect } from 'react';
 import {
+  clearFilmLabCatalogDocument,
+  loadFilmLabCatalogDocument,
+  normalizeLoadedFilmLabCatalogDocument,
+} from '../engine/filmLabCatalogProPersist.js';
+import {
   clearFilmLabSession,
   loadFilmLabSession,
   normalizeLoadedSession,
@@ -23,6 +28,14 @@ export function useFilmLabSessionPersistenceEffects({
 
     (async () => {
       try {
+        const rawCatalog = await loadFilmLabCatalogDocument({ sessionId: 'active-session' });
+        if (!cancelled && rawCatalog) {
+          const normalizedCatalog = normalizeLoadedFilmLabCatalogDocument(rawCatalog);
+          if (!normalizedCatalog) {
+            await clearFilmLabCatalogDocument({ sessionId: 'active-session' });
+          }
+        }
+
         const raw = await loadFilmLabSession();
         if (cancelled || !raw) {
           return;

@@ -2,6 +2,8 @@ import { CROP_ASPECT_PRESETS, CROP_OVERLAY_MODES } from './crop/cropConstants.js
 import { CATEGORY_TABS } from './categoryTabs.js';
 import { MIXER_COLORS, MIXER_GROUPS } from './mixerConstants.js';
 import { GRADE_ZONES, PANEL_TABS } from './panelAndGradeTabs.js';
+import { STUDIO_WORKSPACE_TABS } from './studioWorkspaceTabs.js';
+import { filterStudioWorkspaceTabsForUiMode } from './useFilmLabUiMode.js';
 import {
   buildFilmLabCanvasAreaProps,
   buildFilmLabExportModalProps,
@@ -15,6 +17,19 @@ import { METADATA_VIEW_MODE_LABEL, SLIDER_DEFS } from './workbenchConstants.js';
 
 export function buildFilmLabShellPropBundle(ctx) {
   return {
+    studioWorkspace: ctx.studioWorkspace,
+    studioNavProps: {
+      tabs: filterStudioWorkspaceTabsForUiMode(STUDIO_WORKSPACE_TABS, ctx.adjustments?.uiMode),
+      activeId: ctx.studioWorkspace,
+      onChange: ctx.handleStudioWorkspaceChange,
+    },
+    libraryWorkspaceProps: {
+      collections: ctx.libraryWorkspace?.collections ?? [],
+      assets: ctx.libraryWorkspace?.assets ?? [],
+      activeCollectionId: ctx.libraryWorkspace?.activeCollectionId ?? 'inbox',
+      onCollectionChange: ctx.libraryWorkspace?.setActiveCollectionId,
+    },
+
     toolbarProps: buildFilmLabToolbarProps({
       toolbarRef: ctx.toolbarRef,
       sessionRestoreNotice: ctx.sessionRestoreNotice,
@@ -48,6 +63,7 @@ export function buildFilmLabShellPropBundle(ctx) {
       copyToClipboard: ctx.copyToClipboard,
       pasteFromClipboard: ctx.pasteFromClipboard,
       clipboardFeedback: ctx.clipboardFeedback,
+      updateAdjustment: ctx.updateAdjustment,
       exportCubeLut: ctx.exportCubeLut,
       exportDebugReport: ctx.exportDebugReport,
       hasActiveSource: ctx.hasActiveSource,
@@ -74,6 +90,7 @@ export function buildFilmLabShellPropBundle(ctx) {
     }),
 
     canvasAreaProps: buildFilmLabCanvasAreaProps({
+      studioWorkspace: ctx.studioWorkspace,
       canvasAreaRef: ctx.canvasAreaRef,
       hasImage: ctx.hasImage,
       histogramCanvasRef: ctx.histogramCanvasRef,
@@ -89,6 +106,9 @@ export function buildFilmLabShellPropBundle(ctx) {
       isZoomBeyondFit: ctx.isZoomBeyondFit,
       isPanning: ctx.isPanning,
       canvasViewportSize: ctx.canvasViewportSize,
+      adjustments: ctx.adjustments,
+      setAdjustments: ctx.setAdjustments,
+      saveUndo: ctx.saveUndo,
       handleCanvasPointerDown: ctx.handleCanvasPointerDown,
       handleCanvasPointerMove: ctx.handleCanvasPointerMove,
       handleCanvasPointerUp: ctx.handleCanvasPointerUp,
@@ -118,7 +138,33 @@ export function buildFilmLabShellPropBundle(ctx) {
       handleFileUpload: ctx.handleFileUpload,
     }),
 
+    maskStudioProps: {
+      maskWorkbench: ctx.maskWorkbench,
+    },
+
+    recipeLayersProps: {
+      adjustments: ctx.adjustments,
+      updateAdjustment: ctx.updateAdjustment,
+      maskWorkbench: ctx.maskWorkbench,
+    },
+
+    retouchProps: {
+      adjustments: ctx.adjustments,
+      updateAdjustment: ctx.updateAdjustment,
+      maskWorkbench: ctx.maskWorkbench,
+    },
+
+    aiAutomationProps: {
+      adjustments: ctx.adjustments,
+      updateAdjustment: ctx.updateAdjustment,
+      setAdjustments: ctx.setAdjustments,
+      activeCropRectNorm: ctx.activeCropRectNorm,
+      batchFileInputRef: ctx.batchFileInputRef,
+      setIsExportModalOpen: ctx.setIsExportModalOpen,
+    },
+
     rightPanelProps: buildFilmLabRightPanelProps({
+      maskWorkbench: ctx.maskWorkbench,
       rightSidebarRef: ctx.rightSidebarRef,
       panelTabs: PANEL_TABS,
       activePanel: ctx.activePanel,
@@ -212,5 +258,14 @@ export function buildFilmLabShellPropBundle(ctx) {
       processBatch: ctx.processBatch,
       exportImage: ctx.exportImage,
     }),
+
+    bottomStatusBarProps: {
+      studioWorkspace: ctx.studioWorkspace,
+      hasActiveSource: ctx.hasActiveSource,
+      runtimeStatusBadge: ctx.runtimeStatusBadge,
+      previewPathLabel: ctx.previewPathLabel,
+      batchState: ctx.batchState,
+      adjustments: ctx.adjustments,
+    },
   };
 }

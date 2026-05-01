@@ -2,16 +2,48 @@
  * Batch Processor — Sequential multi-file rendering with ZIP output.
  *
  * Loads each file from a FileList, renders it through the full Film-Lab
- * pipeline (renderToContext → Output Sharpening → EXIF), collects every
- * resulting JPEG into a JSZip archive, and triggers a single browser
- * download when the batch is complete.
+ * pipeline (renderToContext → output sharpening → EXIF on JPEG path),
+ * encodes each frame with `encodeFilmLabExportCanvas` / `encodeFilmLabExportImageData`
+ * using the caller’s `fileFormat` (raster IDs or experimental `psd`; see `FILM_LAB_EXPORT_MODAL_FORMAT_IDS`), optionally adds
+ * before/mask/recipe sidecars, builds `mindfullens_batch_*_manifest.json` (with digest),
+ * and triggers a single browser download when the batch ZIP is ready.
  */
 
 // JSZip is loaded lazily to avoid blocking the render pipeline with ~256KB
-import piexif from 'piexifjs';
+import {
+  encodeFilmLabExportCanvas,
+  encodeFilmLabExportImageData,
+  imageDataToPngUint8Array,
+} from './filmLabExportEncode.js';
+import {
+  manifestLossyQualityForFilmLabExport,
+  normalizeFilmLabExportFileFormat,
+} from './filmLabExportFormats.js';
 import { applyOutputSharpening } from './outputSharpening.js';
 import { ingestUploadSource } from './pipeline/ingestSource.js';
 import { buildBatchPerfContext, logBatchPerfSummary, measureAsync, recordBatchPerfFile, IS_BATCH_PERF_ENABLED } from './batchPerf.js';
+import { SERVICE_BUILD_LABEL, SERVICE_BUILD_TAG, VIEWPORT_BUILD_MARKER } from '../filmLab/buildInfo.js';
+import { buildFilmLabExportManifestArtifactRow } from './filmLabExportManifestArtifact.js';
+import {
+  attachFilmLabExportManifestDigest,
+  buildFilmLabExportManifestRootBase,
+} from './filmLabExportManifestHelpers.js';
+
+async function sha256HexFromBytes(bytes) {
+  const cryptoApi = globalThis?.crypto;
+  if (!cryptoApi?.subtle || !(bytes instanceof Uint8Array)) {
+    return null;
+  }
+  try {
+    const digest = await cryptoApi.subtle.digest('SHA-256', bytes);
+    const view = new Uint8Array(digest);
+    return Array.from(view)
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('');
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Load file through the same ingest pipeline used by Film-Lab preview.
@@ -95,49 +127,6 @@ function imageToImageData(image, sizeProfile = 'full') {
 }
 
 /**
- * Convert a rendered canvas to a JPEG Blob with EXIF metadata
- */
-function canvasToExifJpeg(canvas, context, filmName, sharpeningStrength = 0.42, sizeProfile = 'full') {
-  // Output Sharpening
-  applyOutputSharpening(context, canvas.width, canvas.height, sharpeningStrength);
-
-  // Base64 JPEG
-  const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.95);
-
-  let finalDataUrl = jpegDataUrl;
-  try {
-    const zeroth = {};
-    const exifIfd = {};
-    zeroth[piexif.ImageIFD.Make] = 'MindfulLens';
-    zeroth[piexif.ImageIFD.Model] = 'Film-Lab Web Engine';
-    zeroth[piexif.ImageIFD.Software] = 'MindfulLens Film-Lab v1.0';
-    zeroth[piexif.ImageIFD.ImageDescription] = `Film profile: ${filmName} | Size: ${sizeProfile}`;
-    zeroth[piexif.ImageIFD.Copyright] = 'Processed with MindfulLens Film-Lab';
-    zeroth[piexif.ImageIFD.Artist] = 'MindfulLens User';
-    zeroth[piexif.ImageIFD.Orientation] = 1;
-    exifIfd[piexif.ExifIFD.DateTimeOriginal] = new Date()
-      .toISOString()
-      .replace('T', ' ')
-      .slice(0, 19);
-    exifIfd[piexif.ExifIFD.UserComment] = `Batch export | Profile: ${filmName} | Mode: ${sizeProfile}`;
-
-    const exifBytes = piexif.dump({ '0th': zeroth, Exif: exifIfd });
-    finalDataUrl = piexif.insert(exifBytes, jpegDataUrl);
-  } catch (error) {
-    console.warn('[Batch] EXIF insertion failed, using original JPEG:', error);
-  }
-
-  // Convert base64 → binary Uint8Array (JSZip handles this better than Blob in some cases)
-  const byteString = atob(finalDataUrl.split(',')[1]);
-  const buffer = new ArrayBuffer(byteString.length);
-  const view = new Uint8Array(buffer);
-  for (let i = 0; i < byteString.length; i++) {
-    view[i] = byteString.charCodeAt(i);
-  }
-  return view;
-}
-
-/**
  * Process a batch of files through the Film-Lab pipeline and download
  * the result as a single ZIP archive.
  */
@@ -152,6 +141,18 @@ export async function processBatch({
   shuffleSeeds,
   sizeProfile = 'full',
   rawBackendPreference = null,
+  fileFormat = 'jpeg',
+  includeLocalMaskPng = false,
+  includeBeforeAfter = false,
+  includeRecipeJson = false,
+  lossyQuality = undefined,
+  exportSessionId = null,
+  pipelineKind = null,
+  buildMaskImageData = null,
+  buildBeforeImageData = null,
+  buildRecipeObject = null,
+  prepareAdjustmentsForBatchFile = null,
+  batchAdjustmentsOverrideRef = null,
 }) {
   const total = files?.length ?? 0;
   if (total === 0) {
@@ -174,6 +175,12 @@ export async function processBatch({
   if (sizeProfile === 'social') sharpeningStrength = 0.6;
   if (sizeProfile === 'web') sharpeningStrength = 0.45;
 
+  const requestedFf = typeof fileFormat === 'string' ? fileFormat.trim().toLowerCase() : '';
+  const batchExportAsPsd = requestedFf === 'psd';
+  const normalizedFormat = batchExportAsPsd ? 'psd' : normalizeFilmLabExportFileFormat(fileFormat);
+  const rasterFormatForSidecars = batchExportAsPsd ? 'jpeg' : normalizedFormat;
+  const manifestEntries = [];
+
   let addedCount = 0;
 
   for (let i = 0; i < total; i++) {
@@ -183,7 +190,6 @@ export async function processBatch({
 
     const file = files[i];
     const baseName = file.name.replace(/\.[^.]+$/, '');
-    const outputName = `mindfullens_${baseName}_${sizeProfile}.jpg`;
     let renderable = null;
     let exportCanvas = null;
     const fileStartedAt = IS_BATCH_PERF_ENABLED && typeof performance?.now === 'function' ? performance.now() : null;
@@ -208,26 +214,207 @@ export async function processBatch({
       // Randomize analog effects for each image in the batch
       shuffleSeeds?.();
 
-      const renderTimed = await measureAsync(() =>
-        Promise.resolve(
-          renderToContext({
-            canvas: exportCanvas,
-            context: exportContext,
-            source,
-            includeCompare: false,
-            quality: 'full',
-          })
-        )
+      const preparedAdjustments =
+        typeof prepareAdjustmentsForBatchFile === 'function'
+          ? prepareAdjustmentsForBatchFile({
+              file,
+              fileIndex: i,
+              sourceWidth: source.width,
+              sourceHeight: source.height,
+            })
+          : null;
+      if (
+        batchAdjustmentsOverrideRef &&
+        preparedAdjustments != null &&
+        typeof preparedAdjustments === 'object'
+      ) {
+        batchAdjustmentsOverrideRef.current = { active: true, value: preparedAdjustments };
+      }
+
+      let renderTimed;
+      try {
+        renderTimed = await measureAsync(() =>
+          Promise.resolve(
+            renderToContext({
+              canvas: exportCanvas,
+              context: exportContext,
+              source,
+              includeCompare: false,
+              quality: 'full',
+            })
+          )
+        );
+      } finally {
+        if (batchAdjustmentsOverrideRef) {
+          batchAdjustmentsOverrideRef.current = { active: false, value: null };
+        }
+      }
+
+      // 4. Sharpen + encode (raster codecs or experimental PSD)
+      const encodeTimed = await measureAsync(async () => {
+        if (batchExportAsPsd) {
+          applyOutputSharpening(exportContext, exportCanvas.width, exportCanvas.height, sharpeningStrength);
+          const { encodeFilmLabExportPsdFromCanvas } = await import('./filmLabExportPsdFromCanvas.js');
+          return encodeFilmLabExportPsdFromCanvas(exportCanvas, { layerName: `${filmName} export` });
+        }
+        return encodeFilmLabExportCanvas(exportCanvas, exportContext, {
+          filmName,
+          sizeProfile,
+          fileFormat: normalizedFormat,
+          sharpeningStrength,
+          lossyQuality,
+        });
+      });
+      const encoded = encodeTimed.result;
+      const outputName = `mindfullens_${baseName}_${sizeProfile}.${encoded.extension}`;
+
+      zip.file(outputName, encoded.bytes, { binary: true });
+      manifestEntries.push(
+        await buildFilmLabExportManifestArtifactRow({
+          sourceName: file.name,
+          variant: 'after',
+          artifactRole: 'primary',
+          fileName: outputName,
+          mimeType: encoded.mimeType,
+          bytes: encoded.bytes,
+          exportSessionId,
+          pipelineKind,
+          sha256HexFromBytes,
+        })
       );
 
-      // 4. Sharpen + EXIF → JPEG binary
-      const encodeTimed = await measureAsync(() =>
-        Promise.resolve(canvasToExifJpeg(exportCanvas, exportContext, filmName, sharpeningStrength, sizeProfile))
-      );
-      const jpegBinary = encodeTimed.result;
+      if (includeBeforeAfter && typeof buildBeforeImageData === 'function') {
+        const beforeData = buildBeforeImageData(source);
+        if (beforeData) {
+          const beforeTimed = await measureAsync(() =>
+            encodeFilmLabExportImageData(beforeData, { fileFormat: rasterFormatForSidecars, lossyQuality })
+          );
+          const beforeArtifactName = `mindfullens_${baseName}_${sizeProfile}_before.${beforeTimed.result.extension}`;
+          zip.file(beforeArtifactName, beforeTimed.result.bytes, { binary: true });
+          manifestEntries.push(
+            await buildFilmLabExportManifestArtifactRow({
+              sourceName: file.name,
+              variant: 'before',
+              artifactRole: 'sidecar',
+              fileName: beforeArtifactName,
+              mimeType: beforeTimed.result.mimeType,
+              bytes: beforeTimed.result.bytes,
+              exportSessionId,
+              pipelineKind,
+              sha256HexFromBytes,
+            })
+          );
+          if (includeRecipeJson && typeof buildRecipeObject === 'function') {
+            const beforeRecipeObject = buildRecipeObject({
+              fileName: file.name,
+              sizeProfile,
+              fileFormat: rasterFormatForSidecars,
+              variant: 'before',
+              artifactName: beforeArtifactName,
+              artifactMimeType: beforeTimed.result.mimeType,
+            });
+            if (beforeRecipeObject && typeof beforeRecipeObject === 'object') {
+              const beforeRecipeBytes = new TextEncoder().encode(JSON.stringify(beforeRecipeObject, null, 2));
+              zip.file(`mindfullens_${baseName}_${sizeProfile}_before_recipe.json`, beforeRecipeBytes, {
+                binary: true,
+              });
+              manifestEntries.push(
+                await buildFilmLabExportManifestArtifactRow({
+                  sourceName: file.name,
+                  variant: 'before_recipe',
+                  artifactRole: 'sidecar',
+                  fileName: `mindfullens_${baseName}_${sizeProfile}_before_recipe.json`,
+                  mimeType: 'application/json',
+                  bytes: beforeRecipeBytes,
+                  exportSessionId,
+                  pipelineKind,
+                  sha256HexFromBytes,
+                })
+              );
+            }
+          }
+        }
+      }
 
-      // 5. Add to ZIP
-      zip.file(outputName, jpegBinary, { binary: true });
+      if (includeLocalMaskPng && typeof buildMaskImageData === 'function') {
+        const maskData = buildMaskImageData(source);
+        if (maskData) {
+          const maskTimed = await measureAsync(() => imageDataToPngUint8Array(maskData));
+          const maskArtifactName = `mindfullens_${baseName}_${sizeProfile}_mask.png`;
+          zip.file(maskArtifactName, maskTimed.result, { binary: true });
+          manifestEntries.push(
+            await buildFilmLabExportManifestArtifactRow({
+              sourceName: file.name,
+              variant: 'mask',
+              artifactRole: 'aux-mask',
+              fileName: maskArtifactName,
+              mimeType: 'image/png',
+              bytes: maskTimed.result,
+              exportSessionId,
+              pipelineKind,
+              sha256HexFromBytes,
+            })
+          );
+          if (includeRecipeJson && typeof buildRecipeObject === 'function') {
+            const maskRecipeObject = buildRecipeObject({
+              fileName: file.name,
+              sizeProfile,
+              fileFormat: rasterFormatForSidecars,
+              variant: 'mask',
+              artifactName: maskArtifactName,
+              artifactMimeType: 'image/png',
+            });
+            if (maskRecipeObject && typeof maskRecipeObject === 'object') {
+              const maskRecipeBytes = new TextEncoder().encode(JSON.stringify(maskRecipeObject, null, 2));
+              zip.file(`mindfullens_${baseName}_${sizeProfile}_mask_recipe.json`, maskRecipeBytes, {
+                binary: true,
+              });
+              manifestEntries.push(
+                await buildFilmLabExportManifestArtifactRow({
+                  sourceName: file.name,
+                  variant: 'mask_recipe',
+                  artifactRole: 'sidecar',
+                  fileName: `mindfullens_${baseName}_${sizeProfile}_mask_recipe.json`,
+                  mimeType: 'application/json',
+                  bytes: maskRecipeBytes,
+                  exportSessionId,
+                  pipelineKind,
+                  sha256HexFromBytes,
+                })
+              );
+            }
+          }
+        }
+      }
+
+      if (includeRecipeJson && typeof buildRecipeObject === 'function') {
+        const recipeObject = buildRecipeObject({
+          fileName: file.name,
+          sizeProfile,
+          fileFormat: normalizedFormat,
+          variant: 'after',
+          artifactName: outputName,
+          artifactMimeType: encoded.mimeType,
+        });
+        if (recipeObject && typeof recipeObject === 'object') {
+          const recipeBytes = new TextEncoder().encode(JSON.stringify(recipeObject, null, 2));
+          zip.file(`mindfullens_${baseName}_${sizeProfile}_after_recipe.json`, recipeBytes, { binary: true });
+          manifestEntries.push(
+            await buildFilmLabExportManifestArtifactRow({
+              sourceName: file.name,
+              variant: 'after_recipe',
+              artifactRole: 'sidecar',
+              fileName: `mindfullens_${baseName}_${sizeProfile}_after_recipe.json`,
+              mimeType: 'application/json',
+              bytes: recipeBytes,
+              exportSessionId,
+              pipelineKind,
+              sha256HexFromBytes,
+            })
+          );
+        }
+      }
+
       addedCount++;
 
       if (perfCtx) {
@@ -240,7 +427,7 @@ export async function processBatch({
             ingestLoad: loadTimed.ms,
             toImageData: convertTimed.ms,
             render: renderTimed.ms,
-            encodeJpeg: encodeTimed.ms,
+            encodeExport: encodeTimed.ms,
             total: fileStartedAt == null || fileEndedAt == null ? null : Math.max(0, fileEndedAt - fileStartedAt),
           },
         });
@@ -278,6 +465,36 @@ export async function processBatch({
     onComplete?.();
     return;
   }
+
+  const batchManifestLossyQ = manifestLossyQualityForFilmLabExport(normalizedFormat, lossyQuality);
+  const batchManifest = {
+    ...buildFilmLabExportManifestRootBase({
+      moduleName: 'batchProcessor.processBatch',
+      mode: 'batch',
+      exportSessionId,
+      artifactEntries: manifestEntries,
+      serviceBuildTag: SERVICE_BUILD_TAG,
+      serviceBuildLabel: SERVICE_BUILD_LABEL,
+      viewportBuildMarker: VIEWPORT_BUILD_MARKER,
+    }),
+    export: {
+      sizeProfile,
+      fileFormat: normalizedFormat,
+      pipelineKind,
+      includeLocalMaskPng,
+      includeBeforeAfter,
+      includeRecipeJson,
+      totalSources: total,
+      exportedSources: addedCount,
+      ...(batchManifestLossyQ !== undefined ? { lossyQuality: batchManifestLossyQ } : {}),
+    },
+  };
+  await attachFilmLabExportManifestDigest(batchManifest, { sha256HexFromBytes });
+  zip.file(
+    `mindfullens_batch_${sizeProfile}_manifest.json`,
+    new TextEncoder().encode(JSON.stringify(batchManifest, null, 2)),
+    { binary: true }
+  );
 
   // Generate ZIP and trigger download
   onProgress?.(total, total, 'Pakowanie ZIP...');

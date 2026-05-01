@@ -1,8 +1,34 @@
 import { useCallback, useMemo } from 'react';
+import { useI18n } from '../i18n';
+import {
+  clearFilmLabCatalogDocument,
+  saveFilmLabCatalogDocument,
+} from '../engine/filmLabCatalogProPersist.js';
 import { clearFilmLabSession, saveFilmLabSession } from '../engine/filmLabSessionPersist.js';
 import { PANEL_TABS } from './panelAndGradeTabs.js';
+import {
+  buildCatalogProDocument,
+  withCatalogProFingerprint,
+} from './catalogPro/filmLabCatalogProDocument.js';
+import {
+  decodeRecipeToFlatSnapshot,
+  encodeFlatSnapshotToRecipeDocument,
+} from './recipe/filmLabRecipeCodec.js';
 import { RAW_BACKEND_MODES, RAW_LINEAR_STAGE_MODES } from './workbenchConstants.js';
 import { cloneSnapshotSafe } from './sessionSnapshot.js';
+
+function buildCatalogSessionId(fileMeta) {
+  if (!fileMeta || typeof fileMeta !== 'object') {
+    return 'active-session';
+  }
+  const name = typeof fileMeta.name === 'string' ? fileMeta.name : '';
+  const size = Number.isFinite(Number(fileMeta.size)) ? Number(fileMeta.size) : 0;
+  const lastModified = Number.isFinite(Number(fileMeta.lastModified)) ? Number(fileMeta.lastModified) : 0;
+  if (name.trim() === '') {
+    return 'active-session';
+  }
+  return `${name}:${size}:${lastModified}`;
+}
 
 export function useFilmLabSessionPersistenceBundle({
   skipNextPersistRef,
@@ -38,6 +64,8 @@ export function useFilmLabSessionPersistenceBundle({
   uploadedFile,
   hasImage,
 }) {
+  const { t } = useI18n();
+
   const applySessionFromNormalized = useCallback(
     (normalized) => {
       if (!normalized) {
@@ -50,8 +78,13 @@ export function useFilmLabSessionPersistenceBundle({
         lastModified: normalized.fileMeta.lastModified,
       });
 
+      const flatFromRecipe = decodeRecipeToFlatSnapshot(normalized.recipe);
+      if (!flatFromRecipe) {
+        return;
+      }
+
       const snapshot = cloneSnapshotSafe({
-        ...normalized.recipe,
+        ...flatFromRecipe,
         sourceRestoreFile: file,
       });
 
@@ -95,11 +128,25 @@ export function useFilmLabSessionPersistenceBundle({
       }
 
       setSessionRestoreNotice(
-        `Przywrócono auto-zapis (${new Date(normalized.savedAt).toLocaleString(undefined, {
-          dateStyle: 'short',
-          timeStyle: 'short',
-        })})`
+        t('session.notice.restored', {
+          when: new Date(normalized.savedAt).toLocaleString(undefined, {
+            dateStyle: 'short',
+            timeStyle: 'short',
+          }),
+        })
       );
+
+      const restoredCatalog = withCatalogProFingerprint(
+        buildCatalogProDocument({
+          sessionId: buildCatalogSessionId(normalized.fileMeta),
+          sourceFileMeta: normalized.fileMeta,
+          hasDecodedFrame: true,
+          activeCollectionId: 'inbox',
+        })
+      );
+      void saveFilmLabCatalogDocument(restoredCatalog, {
+        sessionId: buildCatalogSessionId(normalized.fileMeta),
+      });
     },
     [
       cropLiveRectRef,
@@ -113,6 +160,7 @@ export function useFilmLabSessionPersistenceBundle({
       setSessionRestoreNotice,
       setStraightenGuide,
       skipNextPersistRef,
+      t,
     ]
   );
 
@@ -126,10 +174,14 @@ export function useFilmLabSessionPersistenceBundle({
   }, [applySessionFromNormalized, pendingAutosavePayloadRef, setSessionRestorePrompt]);
 
   const declineSessionRestore = useCallback(async () => {
+    const pending = pendingAutosavePayloadRef.current;
     pendingAutosavePayloadRef.current = null;
     setSessionRestorePrompt(null);
     try {
       await clearFilmLabSession();
+      await clearFilmLabCatalogDocument({
+        sessionId: buildCatalogSessionId(pending?.fileMeta),
+      });
     } catch {
       // noop
     }
@@ -191,8 +243,7 @@ export function useFilmLabSessionPersistenceBundle({
         return;
       }
 
-      const recipe = { ...snap };
-      delete recipe.sourceRestoreFile;
+      const recipe = encodeFlatSnapshotToRecipeDocument(snap);
       const buffer = await uploadedFile.arrayBuffer();
 
       await saveFilmLabSession({
@@ -215,6 +266,26 @@ export function useFilmLabSessionPersistenceBundle({
           rawLinearStageMode,
         },
       });
+
+      const sessionId = buildCatalogSessionId({
+        name: uploadedFile.name,
+        size: uploadedFile.size,
+        lastModified: uploadedFile.lastModified,
+      });
+      const catalogDocument = withCatalogProFingerprint(
+        buildCatalogProDocument({
+          sessionId,
+          sourceFileMeta: {
+            name: uploadedFile.name,
+            type: uploadedFile.type,
+            size: uploadedFile.size,
+            lastModified: uploadedFile.lastModified,
+          },
+          hasDecodedFrame: true,
+          activeCollectionId: 'inbox',
+        })
+      );
+      await saveFilmLabCatalogDocument(catalogDocument, { sessionId });
     } catch (error) {
       console.warn('[FilmLab] Session flush failed', error);
     }

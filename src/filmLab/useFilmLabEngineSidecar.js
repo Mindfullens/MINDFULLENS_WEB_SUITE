@@ -4,6 +4,7 @@ import { useFilmLabExportDebugReport } from './useFilmLabExportDebugReport.js';
 import { useFilmLabMetadataClipboard } from './useFilmLabMetadataClipboard.js';
 import { useFilmLabMetadataItems } from './useFilmLabMetadataItems.js';
 import { useFilmLabPersistenceEcho } from './useFilmLabPersistenceEcho.js';
+import { useFilmLabRecipeFingerprintEcho } from './useFilmLabRecipeFingerprintEcho.js';
 import { useFilmLabRawQualitySummaries } from './useFilmLabRawQualitySummaries.js';
 import { useFilmLabRenderDebugStatusLabels } from './useFilmLabRenderDebugStatusLabels.js';
 
@@ -22,6 +23,7 @@ export function useFilmLabEngineSidecar({
   setMetadataViewMode,
   exifMeta,
   zoom,
+  panOffset,
   adjustments,
   isInputProfile,
   colorCalibration,
@@ -48,6 +50,7 @@ export function useFilmLabEngineSidecar({
     renderDebugInfo,
     renderVersion,
     setPreferFullResPreview,
+    depthOnnxInferenceUi,
   } = useFilmLabEngine(imageUrl, uploadedFile, activeFilm, engineAdjustments, {
     rawBackendPreference,
     rawLinearStageOverride,
@@ -61,6 +64,17 @@ export function useFilmLabEngineSidecar({
   const showRenderDebugPanel = SHOW_RENDER_DEBUG_PANEL && hasActiveSource;
 
   useFilmLabPersistenceEcho({ rawBackendMode, rawLinearStageMode, zoomMode });
+
+  useFilmLabRecipeFingerprintEcho({
+    activeFilmIndex,
+    adjustments,
+    userCurves,
+    colorMixer,
+    colorGrading,
+    colorCalibration,
+    zoom,
+    panOffset,
+  });
 
   const { previewPathLabel, fallbackExplanation, runtimeStatusBadge } = useFilmLabRenderDebugStatusLabels({
     renderDebugInfo,
@@ -99,9 +113,18 @@ export function useFilmLabEngineSidecar({
     metadataItems,
   });
 
-  const { exportDebugReport, debugExportFeedback } = useFilmLabExportDebugReport({
+  const {
+    exportDebugReport,
+    debugExportFeedback,
+    exportRecipeSidecar,
+    recipeExportFeedback,
+    copyRecipeDocumentJson,
+    recipeClipboardFeedback,
+  } = useFilmLabExportDebugReport({
     activeFilm,
     activeFilmIndex,
+    zoom,
+    panOffset,
     adjustments,
     batchState,
     colorCalibration,
@@ -164,5 +187,10 @@ export function useFilmLabEngineSidecar({
     copyMetadataToClipboard,
     exportDebugReport,
     debugExportFeedback,
+    exportRecipeSidecar,
+    recipeExportFeedback,
+    copyRecipeDocumentJson,
+    recipeClipboardFeedback,
+    depthOnnxInferenceUi,
   };
 }
