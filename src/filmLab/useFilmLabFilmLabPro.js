@@ -51,20 +51,27 @@ export function useFilmLabFilmLabPro() {
   const developCatalogLoadGenRef = useRef(0);
   /** Ostatni `requestId` dla `scheduleOpfsDamPreviewDecode` w Develop — anulowany przy nowym lotcie / invalidacji. */
   const developFastPreviewRequestIdRef = useRef('');
+  /** Ostatni `requestId` dla `scheduleOpfsCatalogSourceRead` (duży RAW z OPFS). */
+  const developCatalogSourceRequestIdRef = useRef('');
 
-  const bumpCatalogLoadGenAndCancelDevelopFastPreview = useCallback(() => {
+  const bumpDevelopCatalogLoadInvalidation = useCallback(() => {
     developCatalogLoadGenRef.current += 1;
-    const rid = developFastPreviewRequestIdRef.current;
-    if (rid) {
-      cancelImageWorkerRequest(rid);
+    const ridFast = developFastPreviewRequestIdRef.current;
+    if (ridFast) {
+      cancelImageWorkerRequest(ridFast);
       developFastPreviewRequestIdRef.current = '';
+    }
+    const ridSrc = developCatalogSourceRequestIdRef.current;
+    if (ridSrc) {
+      cancelImageWorkerRequest(ridSrc);
+      developCatalogSourceRequestIdRef.current = '';
     }
   }, []);
 
   useLayoutEffect(() => {
-    setFilmLabProDevelopCatalogLoadBump(bumpCatalogLoadGenAndCancelDevelopFastPreview);
+    setFilmLabProDevelopCatalogLoadBump(bumpDevelopCatalogLoadInvalidation);
     return () => setFilmLabProDevelopCatalogLoadBump(null);
-  }, [bumpCatalogLoadGenAndCancelDevelopFastPreview]);
+  }, [bumpDevelopCatalogLoadInvalidation]);
 
   useEffect(() => {
     if (s.studioWorkspace !== 'develop') {
@@ -89,6 +96,11 @@ export function useFilmLabFilmLabPro() {
         cancelImageWorkerRequest(ridStale);
         developFastPreviewRequestIdRef.current = '';
       }
+      const ridSrcStale = developCatalogSourceRequestIdRef.current;
+      if (ridSrcStale) {
+        cancelImageWorkerRequest(ridSrcStale);
+        developCatalogSourceRequestIdRef.current = '';
+      }
       /** Oddaj wątek po kliknięciu — unik „Violation: click handler took …ms”. */
       await Promise.resolve();
       if (!fromAutoHandoff) {
@@ -107,13 +119,18 @@ export function useFilmLabFilmLabPro() {
       }
       const fastReq = nextImageWorkerRequestId();
       developFastPreviewRequestIdRef.current = fastReq;
+      const sourceReq = nextImageWorkerRequestId();
+      developCatalogSourceRequestIdRef.current = sourceReq;
       const previewP = scheduleOpfsDamPreviewDecode({
         sessionId: sid,
         assetId: aid,
         priority: getDevelopFastPreviewPriority(),
         requestId: fastReq,
       }).catch(() => null);
-      const fileP = resolveAssetFile(assetId).catch((err) => {
+      const fileP = resolveAssetFile(assetId, { requestId: sourceReq }).catch((err) => {
+        if (err && typeof err === 'object' && err.name === 'AbortError') {
+          return null;
+        }
         console.warn('[FilmLab] resolveAssetFile', err);
         return null;
       });
@@ -147,6 +164,9 @@ export function useFilmLabFilmLabPro() {
       } finally {
         if (developFastPreviewRequestIdRef.current === fastReq) {
           developFastPreviewRequestIdRef.current = '';
+        }
+        if (developCatalogSourceRequestIdRef.current === sourceReq) {
+          developCatalogSourceRequestIdRef.current = '';
         }
       }
     },
@@ -203,7 +223,7 @@ export function useFilmLabFilmLabPro() {
   );
 
   const revokeAndClearImage = useCallback(() => {
-    bumpCatalogLoadGenAndCancelDevelopFastPreview();
+    bumpDevelopCatalogLoadInvalidation();
     setDevelopOpfsCaptureAssetId(null);
     s.setDevelopFastPreviewBitmap((prev) => {
       prev?.close?.();
@@ -221,7 +241,7 @@ export function useFilmLabFilmLabPro() {
       return null;
     });
   }, [
-    bumpCatalogLoadGenAndCancelDevelopFastPreview,
+    bumpDevelopCatalogLoadInvalidation,
     s.setDevelopFastPreviewBitmap,
     s.setDevelopSmartPreviewBitmap,
     s.setUploadedFile,
