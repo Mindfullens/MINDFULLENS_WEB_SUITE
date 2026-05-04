@@ -18,4 +18,7 @@ export default async function globalSetup() {
   ctx.fillStyle = '#00ff00';
   ctx.fillRect(64, 0, 64, 128);
   fs.writeFileSync(out, c.toBuffer('image/png'));
+  /** Drugi plik (ta sama zawartość, inna nazwa) — dwa assety w katalogu bez drugiego generatora kanvasu. */
+  const outCopy = path.join(path.dirname(out), 'e2e-two-tone-copy.png');
+  fs.writeFileSync(outCopy, fs.readFileSync(out));
 }
