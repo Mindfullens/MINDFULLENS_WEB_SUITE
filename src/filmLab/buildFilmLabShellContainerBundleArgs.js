@@ -3,6 +3,7 @@
  */
 export function buildFilmLabShellContainerBundleArgs(s) {
   return {
+    maskWorkbench: s.maskWorkbench ?? null,
     toolbarRef: s.toolbarRef,
     sessionRestoreNotice: s.sessionRestoreNotice,
     setSessionRestoreNotice: s.setSessionRestoreNotice,
@@ -96,6 +97,10 @@ export function buildFilmLabShellContainerBundleArgs(s) {
     metadataFeedback: s.metadataFeedback,
     displayedMetadataItems: s.displayedMetadataItems,
     handleFileUpload: s.handleFileUpload,
+    developFastPreviewBitmap: s.developFastPreviewBitmap,
+    developSmartPreviewBitmap: s.developSmartPreviewBitmap,
+    isAdjusting: s.isAdjusting,
+    onFilmstripPickAsset: s.onFilmstripPickAsset,
     rightSidebarRef: s.rightSidebarRef,
     activePanel: s.activePanel,
     studioWorkspace: s.studioWorkspace,
@@ -107,7 +112,6 @@ export function buildFilmLabShellContainerBundleArgs(s) {
     undoStackRef: s.undoStackRef,
     fullHistoryTimeline: s.fullHistoryTimeline,
     renderSlider: s.renderSlider,
-    maskWorkbench: s.maskWorkbench,
     renderCustomSlider: s.renderCustomSlider,
     isInputProfile: s.isInputProfile,
     resetAdjustments: s.resetAdjustments,

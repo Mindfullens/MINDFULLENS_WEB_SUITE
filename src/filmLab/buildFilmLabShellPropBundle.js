@@ -17,6 +17,7 @@ import { METADATA_VIEW_MODE_LABEL, SLIDER_DEFS } from './workbenchConstants.js';
 
 export function buildFilmLabShellPropBundle(ctx) {
   return {
+    maskWorkbench: ctx.maskWorkbench ?? null,
     studioWorkspace: ctx.studioWorkspace,
     studioNavProps: {
       tabs: filterStudioWorkspaceTabsForUiMode(STUDIO_WORKSPACE_TABS, ctx.adjustments?.uiMode),
@@ -28,7 +29,66 @@ export function buildFilmLabShellPropBundle(ctx) {
       assets: ctx.libraryWorkspace?.assets ?? [],
       activeCollectionId: ctx.libraryWorkspace?.activeCollectionId ?? 'inbox',
       onCollectionChange: ctx.libraryWorkspace?.setActiveCollectionId,
+      studioWorkspace: ctx.studioWorkspace,
+      sessionId: ctx.libraryWorkspace?.sessionId ?? 'active-session',
+      previewEpoch: ctx.libraryWorkspace?.previewEpoch ?? 0,
+      updateCatalogAsset: ctx.libraryWorkspace?.updateCatalogAsset,
+      libraryFilterQuery: ctx.libraryWorkspace?.libraryFilterQuery ?? '',
+      setLibraryFilterQuery: ctx.libraryWorkspace?.setLibraryFilterQuery,
+      filteredAssets: ctx.libraryWorkspace?.filteredAssets ?? [],
+      primaryAssetId: ctx.libraryWorkspace?.primaryAssetId,
+      selectedAssetIds: ctx.libraryWorkspace?.selectedAssetIds ?? [],
+      pickAsset: ctx.libraryWorkspace?.pickAsset,
+      selectionAnchorRef: ctx.libraryWorkspace?.selectionAnchorRef,
+      fileInputRef: ctx.fileInputRef,
+      onOpenAssetInDevelop: ctx.libraryWorkspace?.onOpenAssetInDevelop,
+      isMetadataPanelOpen: ctx.isMetadataPanelOpen ?? false,
+      onClearLibrary: ctx.libraryWorkspace?.onClearLibrary,
+      onRemoveSelectedFromLibrary: ctx.libraryWorkspace?.onRemoveSelectedFromLibrary,
+      /** Jak globalny filmstrip w zakładce Biblioteka — wybór + podgląd Develop (FilmLabShell korzysta z ctx). */
+      onFilmstripPickAsset: ctx.onFilmstripPickAsset,
     },
+
+    sourceFileInputProps: {
+      fileInputRef: ctx.fileInputRef,
+      handleFileUpload: ctx.handleFileUpload,
+    },
+
+    developFilmstripProps: ctx.libraryWorkspace
+      ? (() => {
+          /**
+           * Ta sama kolejność co siatka stykówek: `filteredAssets` → kolekcja (`stripAssets`) → pełny katalog (`assets`).
+           * Bez osobnego fallbacku na sam `catalogDocument` — unikamy jednoklatkowych „zombie” po czyszczeniu.
+           */
+          const lw = ctx.libraryWorkspace;
+          const fromFiltered = Array.isArray(lw?.filteredAssets) ? lw.filteredAssets : [];
+          const fromStrip = Array.isArray(lw?.stripAssets) ? lw.stripAssets : [];
+          const fromHookAssets = Array.isArray(lw?.assets) ? lw.assets : [];
+          const filmstripAssets =
+            fromFiltered.length > 0
+              ? fromFiltered
+              : fromStrip.length > 0
+                ? fromStrip
+                : fromHookAssets;
+          return {
+            assets: filmstripAssets,
+            sessionId: ctx.libraryWorkspace.sessionId ?? 'active-session',
+            previewEpoch: ctx.libraryWorkspace.previewEpoch ?? 0,
+            primaryAssetId: ctx.libraryWorkspace.primaryAssetId,
+            selectedAssetIds: ctx.libraryWorkspace.selectedAssetIds ?? [],
+            onPickAsset: (assetId, modifiers) => {
+              const order = filmstripAssets
+                .map((a) => String(a?.id ?? ''))
+                .filter(Boolean);
+              if (typeof ctx.onFilmstripPickAsset === 'function') {
+                void ctx.onFilmstripPickAsset(assetId, modifiers, order);
+                return;
+              }
+              ctx.libraryWorkspace.pickAsset?.(assetId, modifiers, order);
+            },
+          };
+        })()
+      : null,
 
     toolbarProps: buildFilmLabToolbarProps({
       toolbarRef: ctx.toolbarRef,
@@ -136,35 +196,12 @@ export function buildFilmLabShellPropBundle(ctx) {
       metadataFeedback: ctx.metadataFeedback,
       displayedMetadataItems: ctx.displayedMetadataItems,
       handleFileUpload: ctx.handleFileUpload,
+      developFastPreviewBitmap: ctx.developFastPreviewBitmap ?? null,
+      developSmartPreviewBitmap: ctx.developSmartPreviewBitmap ?? null,
+      isAdjusting: ctx.isAdjusting ?? false,
     }),
 
-    maskStudioProps: {
-      maskWorkbench: ctx.maskWorkbench,
-    },
-
-    recipeLayersProps: {
-      adjustments: ctx.adjustments,
-      updateAdjustment: ctx.updateAdjustment,
-      maskWorkbench: ctx.maskWorkbench,
-    },
-
-    retouchProps: {
-      adjustments: ctx.adjustments,
-      updateAdjustment: ctx.updateAdjustment,
-      maskWorkbench: ctx.maskWorkbench,
-    },
-
-    aiAutomationProps: {
-      adjustments: ctx.adjustments,
-      updateAdjustment: ctx.updateAdjustment,
-      setAdjustments: ctx.setAdjustments,
-      activeCropRectNorm: ctx.activeCropRectNorm,
-      batchFileInputRef: ctx.batchFileInputRef,
-      setIsExportModalOpen: ctx.setIsExportModalOpen,
-    },
-
     rightPanelProps: buildFilmLabRightPanelProps({
-      maskWorkbench: ctx.maskWorkbench,
       rightSidebarRef: ctx.rightSidebarRef,
       panelTabs: PANEL_TABS,
       activePanel: ctx.activePanel,

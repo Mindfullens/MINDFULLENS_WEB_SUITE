@@ -20,13 +20,12 @@ export default function FilmLabShellContainer({ shellRef, viewMode, isPreviewFul
     studioWorkspace,
     studioNavProps,
     libraryWorkspaceProps,
+    sourceFileInputProps,
+    developFilmstripProps,
     toolbarProps,
     profilesSidebarProps,
+    maskWorkbench,
     canvasAreaProps,
-    maskStudioProps,
-    recipeLayersProps,
-    retouchProps,
-    aiAutomationProps,
     rightPanelProps,
     shortcutHelpProps,
     sessionRestorePromptProps,
@@ -34,8 +33,11 @@ export default function FilmLabShellContainer({ shellRef, viewMode, isPreviewFul
     bottomStatusBarProps,
   } = useMemo(() => {
     const raw = buildFilmLabShellPropBundle(bundleArgs);
+    const { developFilmstripProps, maskWorkbench, ...shellRest } = raw;
     return {
-      ...raw,
+      ...shellRest,
+      maskWorkbench,
+      developFilmstripProps,
       studioNavProps: {
         ...raw.studioNavProps,
         tabs: studioWorkspaceTabsFromTranslator(t),
@@ -68,13 +70,12 @@ export default function FilmLabShellContainer({ shellRef, viewMode, isPreviewFul
       studioWorkspace={studioWorkspace}
       studioNavProps={studioNavProps}
       libraryWorkspaceProps={libraryWorkspaceProps}
+      developFilmstripProps={developFilmstripProps}
+      sourceFileInputProps={sourceFileInputProps}
       toolbarProps={toolbarProps}
       profilesSidebarProps={profilesSidebarProps}
+      maskWorkbench={maskWorkbench}
       canvasAreaProps={canvasAreaProps}
-      maskStudioProps={maskStudioProps}
-      recipeLayersProps={recipeLayersProps}
-      retouchProps={retouchProps}
-      aiAutomationProps={aiAutomationProps}
       rightPanelProps={rightPanelProps}
       shortcutHelpProps={shortcutHelpProps}
       sessionRestorePromptProps={sessionRestorePromptProps}

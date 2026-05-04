@@ -1,3 +1,4 @@
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineConfig, devices } from '@playwright/test';
@@ -6,6 +7,7 @@ const _dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   testDir: path.join(_dirname, 'e2e'),
+  outputDir: path.join(os.tmpdir(), 'mindfullens-playwright-output'),
   globalSetup: path.join(_dirname, 'e2e', 'global-setup.mjs'),
   testIgnore: ['**/._*', '**/.DS_Store'],
   fullyParallel: true,

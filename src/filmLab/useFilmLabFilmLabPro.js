@@ -13,8 +13,10 @@ import {
 import { useFilmLabCatalogProLibraryWorkspace } from './useFilmLabCatalogProLibraryWorkspace.js';
 import { useFilmLabDevelopOpfsThumbnailCapture } from './useFilmLabDevelopOpfsThumbnailCapture.js';
 import { useFilmLabDevelopSmartPreviewBitmap } from './useFilmLabDevelopSmartPreviewBitmap.js';
+import { useFilmLabLocalMaskWorkbench } from './useFilmLabLocalMaskWorkbench.js';
 import { useFilmLabWorkbenchChromeCaptureFilmCropStraightenPanelAndCanvasViewportDebugCurveShellCluster } from './useFilmLabWorkbenchChromeCaptureFilmCropStraightenPanelAndCanvasViewportDebugCurveShellCluster.js';
 import { resolveFilmLabDevelopTargetAssetId } from './resolveFilmLabDevelopTargetAssetId.js';
+import { SLIDER_DEFS } from './workbenchConstants.js';
 
 /**
  * Full Film Lab Pro workbench + shell bundle wiring (invoked from FilmLabPro.jsx).
@@ -22,6 +24,19 @@ import { resolveFilmLabDevelopTargetAssetId } from './resolveFilmLabDevelopTarge
 export function useFilmLabFilmLabPro() {
   const s = useFilmLabWorkbenchChromeCaptureFilmCropStraightenPanelAndCanvasViewportDebugCurveShellCluster({
     ...filmLabFilmLabProClusterArgFactories,
+  });
+
+  const maskWorkbench = useFilmLabLocalMaskWorkbench({
+    adjustments: s.adjustments,
+    updateAdjustment: s.updateAdjustment,
+    resetAdjustments: s.resetAdjustments,
+    resetSingleAdjustment: s.resetSingleAdjustment,
+    hasImage: s.hasImage,
+    activeCropRectNorm: s.activeCropRectNorm,
+    renderSlider: s.renderSlider,
+    renderCustomSlider: s.renderCustomSlider,
+    sliderDefs: SLIDER_DEFS,
+    depthOnnxInferenceUi: s.depthOnnxInferenceUi,
   });
 
   const libraryWorkspace = useFilmLabCatalogProLibraryWorkspace({
@@ -405,6 +420,7 @@ export function useFilmLabFilmLabPro() {
     isPreviewFullMode: s.isPreviewFullMode,
     bundleArgs: buildFilmLabShellContainerBundleArgs({
       ...s,
+      maskWorkbench,
       handleFileUpload,
       onFilmstripPickAsset: handleFilmstripPickAsset,
       libraryWorkspace: {

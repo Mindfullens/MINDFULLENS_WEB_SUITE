@@ -8,19 +8,19 @@ import FilmLabShortcutHelp from './FilmLabShortcutHelp.jsx';
 import FilmLabExportModal from './FilmLabExportModal.jsx';
 import FilmLabSessionRestorePrompt from './FilmLabSessionRestorePrompt.jsx';
 import FilmLabStudioNav from './FilmLabStudioNav.jsx';
-import FilmLabLibraryWorkspace from './FilmLabLibraryWorkspace.jsx';
-import FilmLabRetouchWorkspace from './FilmLabRetouchWorkspace.jsx';
-import FilmLabAiAutomationWorkspace from './FilmLabAiAutomationWorkspace.jsx';
+import { FILE_INPUT_ACCEPT } from './engine/pipeline/constants.js';
+import FilmLabFilmstripCanvas from './filmLab/FilmLabFilmstripCanvas.jsx';
 import {
   FilmLabLocalMaskWorkbenchListRail,
   FilmLabLocalMaskWorkbenchToolsRail,
 } from './FilmLabLocalMaskWorkbench.jsx';
-import {
-  FilmLabRecipeLayersEditorRail,
-  FilmLabRecipeLayersListRail,
-} from './FilmLabRecipeLayersStudio.jsx';
+import FilmLabLibraryWorkspace from './FilmLabLibraryWorkspace.jsx';
 
 const noop = () => {};
+
+function workspaceRouteLayerClass(isActive) {
+  return `film-lab-route-layer ${isActive ? 'is-route-active' : 'is-route-hidden'}`;
+}
 
 export default function FilmLabShell({
   shellRef,
@@ -33,27 +33,22 @@ export default function FilmLabShell({
     assets: [],
     activeCollectionId: 'inbox',
     onCollectionChange: noop,
+    isMetadataPanelOpen: false,
   },
+  developFilmstripProps = null,
+  sourceFileInputProps = null,
   toolbarProps,
   profilesSidebarProps,
+  maskWorkbench = null,
   canvasAreaProps,
-  maskStudioProps = { maskWorkbench: null },
-  recipeLayersProps = { adjustments: null, updateAdjustment: noop, maskWorkbench: null },
-  retouchProps = { adjustments: null, updateAdjustment: noop, maskWorkbench: null },
-  aiAutomationProps = {
-    adjustments: null,
-    updateAdjustment: noop,
-    setAdjustments: noop,
-    activeCropRectNorm: null,
-    batchFileInputRef: null,
-    setIsExportModalOpen: noop,
-  },
   rightPanelProps,
   shortcutHelpProps,
   sessionRestorePromptProps,
   exportModalProps,
   bottomStatusBarProps = {},
 }) {
+  const isLibraryWorkspace = studioWorkspace === 'library';
+
   return (
     <>
       <FilmLabAppFrame
@@ -67,40 +62,55 @@ export default function FilmLabShell({
       >
         <FilmLabToolbar {...toolbarProps} />
 
+        {sourceFileInputProps ? (
+          <input
+            ref={sourceFileInputProps.fileInputRef}
+            id="sourceFileInput"
+            data-testid="film-lab-source-file-input"
+            name="sourceFileInput"
+            type="file"
+            multiple
+            accept={FILE_INPUT_ACCEPT}
+            onChange={sourceFileInputProps.handleFileUpload}
+            style={{ display: 'none' }}
+          />
+        ) : null}
+
         <FilmLabStudioNav {...studioNavProps} />
 
-        {studioWorkspace === 'library' ? (
+        <div className="film-lab-workspace-route-stack">
+          <div
+            className={`film-lab-route-layer film-lab-route-layer--library ${workspaceRouteLayerClass(isLibraryWorkspace)}`}
+            aria-hidden={!isLibraryWorkspace}
+          >
             <FilmLabLibraryWorkspace {...libraryWorkspaceProps} />
-          ) : studioWorkspace === 'masks' ? (
-            <>
-              <FilmLabLocalMaskWorkbenchListRail wb={maskStudioProps.maskWorkbench} />
-
+          </div>
+          <div
+            className={`film-lab-route-layer film-lab-route-layer--develop ${workspaceRouteLayerClass(!isLibraryWorkspace)}`}
+            aria-hidden={isLibraryWorkspace}
+          >
+            <div className="film-lab-develop-route-columns">
+              <div className="film-lab-develop-left-stack">
+                {maskWorkbench ? <FilmLabLocalMaskWorkbenchListRail wb={maskWorkbench} /> : null}
+                <FilmLabProfilesSidebar {...profilesSidebarProps} />
+              </div>
               <FilmLabCanvasArea {...canvasAreaProps} />
+              <div className="film-lab-develop-right-stack">
+                {maskWorkbench ? <FilmLabLocalMaskWorkbenchToolsRail wb={maskWorkbench} /> : null}
+                <FilmLabRightPanel {...rightPanelProps} />
+              </div>
+            </div>
+          </div>
+        </div>
 
-              <FilmLabLocalMaskWorkbenchToolsRail wb={maskStudioProps.maskWorkbench} />
-            </>
-          ) : studioWorkspace === 'layers' ? (
-            <>
-              <FilmLabRecipeLayersListRail {...recipeLayersProps} />
-
-              <FilmLabCanvasArea {...canvasAreaProps} />
-
-              <FilmLabRecipeLayersEditorRail {...recipeLayersProps} />
-            </>
-          ) : studioWorkspace === 'retouch' ? (
-            <FilmLabRetouchWorkspace {...retouchProps} canvasAreaProps={canvasAreaProps} />
-          ) : studioWorkspace === 'ai' ? (
-            <FilmLabAiAutomationWorkspace {...aiAutomationProps} canvasAreaProps={canvasAreaProps} />
-          ) : (
-            <>
-              {/* Develop / Eksport / pozostałe: profil + podgląd + panel (Etap 7 — układ RAW/globalny) */}
-              <FilmLabProfilesSidebar {...profilesSidebarProps} />
-
-              <FilmLabCanvasArea {...canvasAreaProps} />
-
-              <FilmLabRightPanel {...rightPanelProps} />
-            </>
-          )}
+        {developFilmstripProps != null && studioWorkspace !== 'library' ? (
+          <div className="film-lab-global-filmstrip-slot">
+            <FilmLabFilmstripCanvas
+              {...developFilmstripProps}
+              workspaceTabKey={studioWorkspace}
+            />
+          </div>
+        ) : null}
       </FilmLabAppFrame>
 
       <FilmLabShortcutHelp {...shortcutHelpProps} />

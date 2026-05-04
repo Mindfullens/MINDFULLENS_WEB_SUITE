@@ -14,23 +14,24 @@ async function readHueCenter(page) {
 
 test.describe('Film Lab — maska Hue (Shift+klik)', () => {
   test('Shift+klik ustawia Hue center z piksela podglądu', async ({ page }) => {
-    await page.goto('/film-lab?workspace=masks&maskSection=geometry');
+    await page.goto('/film-lab?workspace=develop');
 
     await page.locator('[data-testid="film-lab-source-file-input"]').setInputFiles(fixturePng);
 
     const canvasHost = page.locator('[data-testid="film-lab-canvas-wrapper"]');
     await expect(canvasHost).toBeVisible({ timeout: 30_000 });
-    const canvas = canvasHost.locator('canvas');
+    const canvas = canvasHost.locator('canvas:not(.brush-mask-rubylith)');
     await expect(canvas).toBeVisible();
 
-    const brushToggle = page.getByTestId('film-lab-brush-toggle');
-    await expect(brushToggle).toBeVisible();
-    await brushToggle.click();
-    await expect(brushToggle).toHaveClass(/active/);
+    await page.getByTestId('film-lab-mask-picker-manual-brush').click();
+    await expect(page.locator('.mask-layer-card')).toHaveCount(1, { timeout: 15_000 });
 
-    await page.getByTestId('film-lab-mask-section-range').click();
-
-    await page.getByTestId('film-lab-mask-mode-color').first().click();
+    await page
+      .locator('summary.mask-studio-range-summary')
+      .filter({ hasText: /Filtr zakresu|Range filters/i })
+      .click();
+    await expect(page.getByTestId('film-lab-mask-mode-color')).toBeVisible();
+    await page.getByTestId('film-lab-mask-mode-color').click();
 
     const before = await readHueCenter(page);
 
