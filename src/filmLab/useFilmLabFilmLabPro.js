@@ -5,6 +5,7 @@ import {
 } from './filmLabDevelopCatalogLoadCooperation.js';
 import { filmLabFilmLabProClusterArgFactories } from './filmLabFilmLabProClusterArgFactories.js';
 import {
+  cancelImageWorkerRequest,
   getDevelopFastPreviewPriority,
   nextImageWorkerRequestId,
   scheduleOpfsDamPreviewDecode,
@@ -48,13 +49,22 @@ export function useFilmLabFilmLabPro() {
   const developHandoffTargetTidRef = useRef(null);
   /** HotDrink-lite: każde wywołanie `loadDevelopAssetFromCatalog` podbija — po `await` tylko najnowsze gen stosuje UI. */
   const developCatalogLoadGenRef = useRef(0);
+  /** Ostatni `requestId` dla `scheduleOpfsDamPreviewDecode` w Develop — anulowany przy nowym lotcie / invalidacji. */
+  const developFastPreviewRequestIdRef = useRef('');
+
+  const bumpCatalogLoadGenAndCancelDevelopFastPreview = useCallback(() => {
+    developCatalogLoadGenRef.current += 1;
+    const rid = developFastPreviewRequestIdRef.current;
+    if (rid) {
+      cancelImageWorkerRequest(rid);
+      developFastPreviewRequestIdRef.current = '';
+    }
+  }, []);
 
   useLayoutEffect(() => {
-    setFilmLabProDevelopCatalogLoadBump(() => {
-      developCatalogLoadGenRef.current += 1;
-    });
+    setFilmLabProDevelopCatalogLoadBump(bumpCatalogLoadGenAndCancelDevelopFastPreview);
     return () => setFilmLabProDevelopCatalogLoadBump(null);
-  }, []);
+  }, [bumpCatalogLoadGenAndCancelDevelopFastPreview]);
 
   useEffect(() => {
     if (s.studioWorkspace !== 'develop') {
@@ -74,6 +84,11 @@ export function useFilmLabFilmLabPro() {
   const loadDevelopAssetFromCatalog = useCallback(
     async (assetId, { alsoSwitchToDevelop = false, fromAutoHandoff = false } = {}) => {
       const loadGen = (developCatalogLoadGenRef.current += 1);
+      const ridStale = developFastPreviewRequestIdRef.current;
+      if (ridStale) {
+        cancelImageWorkerRequest(ridStale);
+        developFastPreviewRequestIdRef.current = '';
+      }
       /** Oddaj wątek po kliknięciu — unik „Violation: click handler took …ms”. */
       await Promise.resolve();
       if (!fromAutoHandoff) {
@@ -91,6 +106,7 @@ export function useFilmLabFilmLabPro() {
         return;
       }
       const fastReq = nextImageWorkerRequestId();
+      developFastPreviewRequestIdRef.current = fastReq;
       const previewP = scheduleOpfsDamPreviewDecode({
         sessionId: sid,
         assetId: aid,
@@ -101,31 +117,37 @@ export function useFilmLabFilmLabPro() {
         console.warn('[FilmLab] resolveAssetFile', err);
         return null;
       });
-      const [fast, file] = await Promise.all([previewP, fileP]);
-      if (loadGen !== developCatalogLoadGenRef.current) {
-        const b = fast?.bitmap;
-        if (b && typeof b.close === 'function') {
-          b.close();
-        }
-        return;
-      }
-      if (fast?.bitmap) {
-        s.setDevelopFastPreviewBitmap(fast.bitmap);
-      }
-      if (file instanceof File) {
-        s.setDevelopFastPreviewBitmap((prev) => {
-          prev?.close?.();
-          return null;
-        });
-        queueMicrotask(() => {
-          if (loadGen === developCatalogLoadGenRef.current) {
-            s.applyUploadedSource(file, {
-              targetPanel: 'basic',
-              preserveLook: false,
-              skipDevelopCatalogLoadGen: true,
-            });
+      try {
+        const [fast, file] = await Promise.all([previewP, fileP]);
+        if (loadGen !== developCatalogLoadGenRef.current) {
+          const b = fast?.bitmap;
+          if (b && typeof b.close === 'function') {
+            b.close();
           }
-        });
+          return;
+        }
+        if (fast?.bitmap) {
+          s.setDevelopFastPreviewBitmap(fast.bitmap);
+        }
+        if (file instanceof File) {
+          s.setDevelopFastPreviewBitmap((prev) => {
+            prev?.close?.();
+            return null;
+          });
+          queueMicrotask(() => {
+            if (loadGen === developCatalogLoadGenRef.current) {
+              s.applyUploadedSource(file, {
+                targetPanel: 'basic',
+                preserveLook: false,
+                skipDevelopCatalogLoadGen: true,
+              });
+            }
+          });
+        }
+      } finally {
+        if (developFastPreviewRequestIdRef.current === fastReq) {
+          developFastPreviewRequestIdRef.current = '';
+        }
       }
     },
     [
@@ -181,7 +203,7 @@ export function useFilmLabFilmLabPro() {
   );
 
   const revokeAndClearImage = useCallback(() => {
-    developCatalogLoadGenRef.current += 1;
+    bumpCatalogLoadGenAndCancelDevelopFastPreview();
     setDevelopOpfsCaptureAssetId(null);
     s.setDevelopFastPreviewBitmap((prev) => {
       prev?.close?.();
@@ -198,7 +220,13 @@ export function useFilmLabFilmLabPro() {
       }
       return null;
     });
-  }, [s.setDevelopFastPreviewBitmap, s.setDevelopSmartPreviewBitmap, s.setUploadedFile, s.setImageUrl]);
+  }, [
+    bumpCatalogLoadGenAndCancelDevelopFastPreview,
+    s.setDevelopFastPreviewBitmap,
+    s.setDevelopSmartPreviewBitmap,
+    s.setUploadedFile,
+    s.setImageUrl,
+  ]);
 
   const currentUploadedAssetId = useMemo(() => {
     const uf = s.uploadedFile;
