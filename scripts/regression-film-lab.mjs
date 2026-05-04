@@ -12,6 +12,10 @@ import {
 } from '../src/engine/previewGeometry.js';
 import { resolveShortcutAction, SHORTCUT_KEYS } from '../src/engine/shortcutActions.js';
 import { __FILMLAB_INTERNALS } from '../src/engine/useFilmLabEngine.js';
+import {
+  bumpDevelopCatalogLoadFromNonCatalogSource,
+  setFilmLabProDevelopCatalogLoadBump,
+} from '../src/filmLab/filmLabDevelopCatalogLoadCooperation.js';
 
 const {
   buildWorkerAdjustmentsPayload,
@@ -1255,8 +1259,8 @@ function runKeyboardShortcutGuard() {
   );
   assert.match(
     toolbarBundle,
-    /Brush|Erase/,
-    'Toolbar should expose Brush and Erase controls for mask MVP'
+    /filmLab\.toolbar\.compare/,
+    'Toolbar should expose compare control'
   );
   assert.match(
     `${source}\n${exportDebugReportHookSource}`,
@@ -1365,13 +1369,13 @@ function runInteractiveEffectsGuard() {
 
   assert.match(
     source,
-    /PRESERVE_FULL_EFFECT_STACK_DURING_ADJUST\s*=\s*true/,
-    'Engine should enforce full effect stack preservation while adjusting'
+    /PRESERVE_FULL_EFFECT_STACK_DURING_ADJUST\s*=\s*readEnvFlag/,
+    'Engine should allow env override of CPU stack preservation on drag (max perf default)'
   );
   assert.match(
     source,
-    /hasDeferredPreviewEffects\(film,\s*adjustments\)/,
-    'Fast preview path should gate on deferred effects'
+    /hasCpuOnlyDeferredPreviewEffects/,
+    'Fast preview worker/WebGL should gate only CPU-only overlays when preserve mode is on'
   );
   assert.match(
     source,
@@ -1858,24 +1862,24 @@ function runShortcutActionChecks() {
     key: 'm',
     code: 'KeyM',
     hasImage: true,
-    studioWorkspace: 'masks',
+    studioWorkspace: 'develop',
   });
-  assert.equal(maskStudioM?.type, 'localMaskToggleOverlay');
+  assert.equal(maskStudioM?.type, 'cycleMetadataMode');
   const maskStudioShiftM = resolveShortcutAction({
     key: 'm',
     code: 'KeyM',
     hasImage: true,
     shiftKey: true,
-    studioWorkspace: 'masks',
+    studioWorkspace: 'develop',
   });
-  assert.equal(maskStudioShiftM?.type, 'localMaskStudioShiftM');
+  assert.equal(maskStudioShiftM?.type, 'cycleMetadataMode');
   const maskStudioX = resolveShortcutAction({
     key: 'x',
     code: 'KeyX',
     hasImage: true,
-    studioWorkspace: 'masks',
+    studioWorkspace: 'develop',
   });
-  assert.equal(maskStudioX?.type, 'localMaskStudioEraseToggle');
+  assert.equal(maskStudioX, null);
   const maskStudioMDevelop = resolveShortcutAction({
     key: SHORTCUT_KEYS.metadataMode,
     code: 'KeyM',
@@ -1938,7 +1942,7 @@ function runShortcutActionChecks() {
   const leak = resolveShortcutAction({ key: 'l', code: 'KeyL' });
   assert.equal(leak?.type, 'triggerRawLeakZip');
 
-  formatOk('Shortcut action checks (compare/full/clipping/fit/zoom/pan/effects/masks)');
+  formatOk('Shortcut action checks (compare/full/clipping/fit/zoom/pan/effects/metadata)');
 }
 
 function runPreviewGeometryChecks() {
@@ -2277,6 +2281,19 @@ function runProfileSweepChecks() {
   );
 }
 
+function runDevelopCatalogLoadCooperationChecks() {
+  let n = 0;
+  setFilmLabProDevelopCatalogLoadBump(() => {
+    n += 1;
+  });
+  bumpDevelopCatalogLoadFromNonCatalogSource();
+  assert.equal(n, 1);
+  setFilmLabProDevelopCatalogLoadBump(null);
+  bumpDevelopCatalogLoadFromNonCatalogSource();
+  assert.equal(n, 1);
+  formatOk('Develop catalog load cooperation (register + noop after clear)');
+}
+
 function main() {
   const referenceFilm = filmStocks.find((profile) => !profile?.isInputProfile) ?? filmStocks[0];
   assert.ok(referenceFilm, 'Could not resolve reference film profile');
@@ -2295,6 +2312,7 @@ function main() {
   runPreviewGeometryChecks();
   runPreviewGeometryScenarioSnapshots();
   runPreviewE2EFlowScenario();
+  runDevelopCatalogLoadCooperationChecks();
 
   console.log('PASS Film Lab regression checks');
 }

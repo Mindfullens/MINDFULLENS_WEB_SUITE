@@ -1,5 +1,6 @@
 import { filmStocks } from '../engine/filmProfiles.js';
 import { getPointerCoordinates } from './getPointerCoordinates.js';
+import { bumpDevelopCatalogLoadFromNonCatalogSource } from './filmLabDevelopCatalogLoadCooperation.js';
 import { buildCanvasViewportDebugAndCurveWorkbenchShellOverlayArgs } from './filmLabFilmLabProBuildCanvasViewportDebugCurveShellArgs.js';
 
 /**
@@ -70,6 +71,7 @@ export const filmLabFilmLabProClusterArgFactories = {
           isAdjusting: w.isAdjusting,
           isPanning: w.isPanning,
           userCurves: w.userCurves,
+          curveInteractionLiveRef: w.curveInteractionLiveRef,
         },
       },
     },
@@ -84,6 +86,7 @@ export const filmLabFilmLabProClusterArgFactories = {
       setIsPanning: w.setIsPanning,
       histogramCanvasRef: w.histogramCanvasRef,
       isAdjusting: w.isAdjusting,
+      interactionKind: w.interactionKind,
       curvesCanvasRef: w.curvesCanvasRef,
       userCurves: w.userCurves,
       activeCurveCh: w.activeCurveCh,
@@ -110,6 +113,7 @@ export const filmLabFilmLabProClusterArgFactories = {
       },
       uploadRestoreArgs: {
         restoreSnapshotRef: b.restoreSnapshotRef,
+        onBeforeApplyUploadedSource: bumpDevelopCatalogLoadFromNonCatalogSource,
         activePanel: b.activePanel,
         setUploadedFile: b.setUploadedFile,
         setImageUrl: b.setImageUrl,
