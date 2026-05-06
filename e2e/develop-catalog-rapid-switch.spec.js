@@ -48,6 +48,20 @@ test.describe('Film Lab — Develop z katalogu', () => {
       )
       .toBe('2');
 
+    /** Sloty z `data-asset-id` — potwierdzenie jak „Option 2”; virtual list może ustawić komórki nieco później niż atrybut. */
+    await expect
+      .poll(
+        async () =>
+          page.evaluate(
+            () =>
+              document.querySelectorAll(
+                '.film-lab-library-filmstrip-host .film-lab-filmstrip-cell[data-asset-id]'
+              ).length
+          ),
+        { timeout: 120_000, intervals: [200, 400, 800, 1600] }
+      )
+      .toBe(2);
+
     /** Ta sama sesja SPA — `goto` zrywał timing ładowania katalogu z OPFS w części środowisk. */
     await page.locator('.film-lab-studio-nav-inner button').nth(1).click();
     await expect(page.locator('.film-lab-route-layer--develop.is-route-active')).toBeVisible({
