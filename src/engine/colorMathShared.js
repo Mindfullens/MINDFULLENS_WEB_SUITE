@@ -17,6 +17,11 @@ export function clampUnit(value) {
   return clamp(value, 0, 1);
 }
 
+/** Rec.709 luma w zakresie 0–1 (maski luma / depth-proxy — jeden punkt podmiany na mapę głębi). */
+export function rgbRec709LumaUnit(red, green, blue) {
+  return clampUnit((0.299 * red + 0.587 * green + 0.114 * blue) / 255);
+}
+
 export function smoothstep(edge0, edge1, value) {
   if (Math.abs(edge1 - edge0) < 1e-5) {
     return value >= edge1 ? 1 : 0;

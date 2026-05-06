@@ -1,9 +1,12 @@
 import { useMemo } from 'react';
+import { useI18n } from '../i18n';
 import { PIPELINE_KIND } from '../engine/pipeline/constants.js';
 import { formatRatioPercent } from './displayFormat.js';
 import { RAW_QA_THRESHOLDS } from './workbenchConstants.js';
 
 export function useFilmLabRawQualitySummaries({ hasActiveSource, pipelineInfo, renderDebugInfo }) {
+  const { t } = useI18n();
+
   const rawDecodeSummary = useMemo(() => {
     if (pipelineInfo?.pipelineKind !== PIPELINE_KIND.RAW) {
       return null;
@@ -18,12 +21,12 @@ export function useFilmLabRawQualitySummaries({ hasActiveSource, pipelineInfo, r
     }
 
     if (capabilities?.rawDecodeAdapter) {
-      parts.push(`adapter ${String(capabilities.rawDecodeAdapter)}`);
+      parts.push(t('filmLab.rawQuality.adapterPrefix', { name: String(capabilities.rawDecodeAdapter) }));
     }
 
     const probeSnap = capabilities?.rawProbeSnapshot;
     if (probeSnap?.rawDecodeInlineWasm) {
-      parts.push('probe WASM');
+      parts.push(t('filmLab.rawQuality.probeWasm'));
     }
 
     const lr = capabilities?.librawMetadataSummary;
@@ -45,7 +48,7 @@ export function useFilmLabRawQualitySummaries({ hasActiveSource, pipelineInfo, r
     }
 
     if (capabilities?.fallbackReason) {
-      parts.push(`fallback ${String(capabilities.fallbackReason)}`);
+      parts.push(t('filmLab.rawQuality.fallbackReason', { reason: String(capabilities.fallbackReason) }));
     }
 
     const backendAbTest = capabilities?.backendAbTest ?? null;
@@ -57,31 +60,34 @@ export function useFilmLabRawQualitySummaries({ hasActiveSource, pipelineInfo, r
           : backendAbTest?.primary?.backend;
       const decisionReason = String(backendAbTest?.reason ?? '').trim();
       if (winnerBackend) {
-        parts.push(`A/B ${winnerBackend}${decisionReason ? ` (${decisionReason})` : ''}`);
+        parts.push(
+          t('filmLab.rawQuality.abWinner', {
+            winner: winnerBackend,
+            reasonPart: decisionReason ? ` (${decisionReason})` : '',
+          }),
+        );
       }
     }
 
     if (capabilities?.suspectedBlackFrame) {
-      parts.push('suspected black');
+      parts.push(t('filmLab.rawQuality.suspectedBlack'));
     }
     const recovery = capabilities?.rawRecovery2d;
     if (recovery?.enabled) {
       const changed = Number(recovery?.changedPixelRatio);
       const recH = Number(recovery?.recoveredHighlightRatio);
       const recS = Number(recovery?.recoveredShadowRatio);
-      const segment = [
-        'recovery2d on',
-        Number.isFinite(changed) ? `changed ${(changed * 100).toFixed(1)}%` : null,
-        Number.isFinite(recH) ? `h ${(recH * 100).toFixed(2)}%` : null,
-        Number.isFinite(recS) ? `s ${(recS * 100).toFixed(2)}%` : null,
-      ]
-        .filter(Boolean)
-        .join(' · ');
-      parts.push(segment);
+      const recoveryParts = [
+        t('filmLab.rawQuality.recovery2dOn'),
+        Number.isFinite(changed) ? t('filmLab.rawQuality.recoveryChanged', { p: (changed * 100).toFixed(1) }) : null,
+        Number.isFinite(recH) ? t('filmLab.rawQuality.recoveryH', { p: (recH * 100).toFixed(2) }) : null,
+        Number.isFinite(recS) ? t('filmLab.rawQuality.recoveryS', { p: (recS * 100).toFixed(2) }) : null,
+      ].filter(Boolean);
+      parts.push(recoveryParts.join(' · '));
     }
 
-    return parts.length ? parts.join(' · ') : 'brak danych';
-  }, [pipelineInfo]);
+    return parts.length ? parts.join(' · ') : t('filmLab.rawQuality.decodeEmpty');
+  }, [pipelineInfo, t]);
 
   const rawBackendAbSummary = useMemo(() => {
     if (pipelineInfo?.pipelineKind !== PIPELINE_KIND.RAW) {
@@ -182,51 +188,68 @@ export function useFilmLabRawQualitySummaries({ hasActiveSource, pipelineInfo, r
     let riskScore = 0;
 
     if (blackOutputGuardTriggered) {
-      issues.push('Black guard aktywny');
+      issues.push(t('filmLab.rawQuality.issueBlackGuard'));
       riskScore += 2;
     }
     if (suspectedBlackFrame) {
-      issues.push('Podejrzanie ciemna klatka RAW');
+      issues.push(t('filmLab.rawQuality.issueSuspectedDarkFrame'));
       riskScore += 2;
     }
     if (Number.isFinite(highlightClipRatio) && highlightClipRatio >= RAW_QA_THRESHOLDS.highlightFail) {
-      issues.push(`Mocne clipping świateł: ${formatRatioPercent(highlightClipRatio, 1)}`);
+      issues.push(
+        t('filmLab.rawQuality.issueHighlightClipStrong', { ratio: formatRatioPercent(highlightClipRatio, 1) }),
+      );
       riskScore += 2;
     } else if (
       Number.isFinite(highlightClipRatio) &&
       highlightClipRatio >= RAW_QA_THRESHOLDS.highlightWarn
     ) {
-      issues.push(`Clipping świateł: ${formatRatioPercent(highlightClipRatio, 1)}`);
+      issues.push(t('filmLab.rawQuality.issueHighlightClip', { ratio: formatRatioPercent(highlightClipRatio, 1) }));
       riskScore += 1;
     }
     if (Number.isFinite(shadowClipRatio) && shadowClipRatio >= RAW_QA_THRESHOLDS.shadowFail) {
-      issues.push(`Mocny crush cieni: ${formatRatioPercent(shadowClipRatio, 1)}`);
+      issues.push(
+        t('filmLab.rawQuality.issueShadowCrushStrong', { ratio: formatRatioPercent(shadowClipRatio, 1) }),
+      );
       riskScore += 2;
     } else if (Number.isFinite(shadowClipRatio) && shadowClipRatio >= RAW_QA_THRESHOLDS.shadowWarn) {
-      issues.push(`Crush cieni: ${formatRatioPercent(shadowClipRatio, 1)}`);
+      issues.push(t('filmLab.rawQuality.issueShadowCrush', { ratio: formatRatioPercent(shadowClipRatio, 1) }));
       riskScore += 1;
     }
     if (Number.isFinite(abMeanDelta) && abMeanDelta >= RAW_QA_THRESHOLDS.abMeanDeltaFail) {
-      issues.push(`Wysoka różnica A/B: ΔL ${abMeanDelta.toFixed(1)}`);
+      issues.push(t('filmLab.rawQuality.issueAbDeltaHigh', { delta: abMeanDelta.toFixed(1) }));
       riskScore += 2;
     } else if (Number.isFinite(abMeanDelta) && abMeanDelta >= RAW_QA_THRESHOLDS.abMeanDeltaWarn) {
-      issues.push(`Średnia różnica A/B: ΔL ${abMeanDelta.toFixed(1)}`);
+      issues.push(t('filmLab.rawQuality.issueAbDeltaMed', { delta: abMeanDelta.toFixed(1) }));
       riskScore += 1;
     }
     if (recovery?.enabled) {
       if (Number.isFinite(recoveryResidualHighlight) && recoveryResidualHighlight >= RAW_QA_THRESHOLDS.highlightWarn) {
-        issues.push(`Recovery residual highlights: ${formatRatioPercent(recoveryResidualHighlight, 1)}`);
+        issues.push(
+          t('filmLab.rawQuality.issueRecoveryHighlights', {
+            ratio: formatRatioPercent(recoveryResidualHighlight, 1),
+          }),
+        );
         riskScore += 1;
       }
       if (Number.isFinite(recoveryResidualShadow) && recoveryResidualShadow >= RAW_QA_THRESHOLDS.shadowWarn) {
-        issues.push(`Recovery residual shadows: ${formatRatioPercent(recoveryResidualShadow, 1)}`);
+        issues.push(
+          t('filmLab.rawQuality.issueRecoveryShadows', {
+            ratio: formatRatioPercent(recoveryResidualShadow, 1),
+          }),
+        );
         riskScore += 1;
       }
     }
 
     const tone = riskScore >= 3 ? 'risky' : riskScore >= 1 ? 'neutral' : 'good';
-    const label = tone === 'risky' ? 'RISKY' : tone === 'neutral' ? 'NEUTRAL' : 'GOOD';
-    const statusText = issues.length ? issues.join(' · ') : 'Brak anomalii w sygnałach RAW.';
+    const label =
+      tone === 'risky'
+        ? t('filmLab.rawQuality.toneRisky')
+        : tone === 'neutral'
+          ? t('filmLab.rawQuality.toneNeutral')
+          : t('filmLab.rawQuality.toneGood');
+    const statusText = issues.length ? issues.join(' · ') : t('filmLab.rawQuality.signalsOk');
 
     return {
       tone,
@@ -256,6 +279,7 @@ export function useFilmLabRawQualitySummaries({ hasActiveSource, pipelineInfo, r
       },
     };
   }, [
+    t,
     hasActiveSource,
     pipelineInfo?.capabilities?.decodeStats,
     pipelineInfo?.capabilities?.rawRecovery2d,
@@ -268,9 +292,14 @@ export function useFilmLabRawQualitySummaries({ hasActiveSource, pipelineInfo, r
     renderDebugInfo?.lastFrameShadowClipRatio,
   ]);
 
-  const isRawDecodeWarning = Boolean(
-    pipelineInfo?.pipelineKind === PIPELINE_KIND.RAW &&
-      (pipelineInfo?.capabilities?.suspectedBlackFrame || rawDecodeSummary === 'brak danych')
+  const isRawDecodeWarning = useMemo(
+    () =>
+      Boolean(
+        pipelineInfo?.pipelineKind === PIPELINE_KIND.RAW &&
+          (pipelineInfo?.capabilities?.suspectedBlackFrame ||
+            rawDecodeSummary === t('filmLab.rawQuality.decodeEmpty')),
+      ),
+    [pipelineInfo, rawDecodeSummary, t],
   );
 
   const qualityStatus = useMemo(() => {
@@ -284,28 +313,28 @@ export function useFilmLabRawQualitySummaries({ hasActiveSource, pipelineInfo, r
     const alerts = [];
 
     if (blackGuard) {
-      alerts.push('Black-guard aktywny');
+      alerts.push(t('filmLab.rawQuality.alertBlackGuard'));
     }
 
     if (Number.isFinite(highlightClipRatio) && highlightClipRatio >= 0.018) {
-      alerts.push(`Przepalenia ${(highlightClipRatio * 100).toFixed(1)}%`);
+      alerts.push(t('filmLab.rawQuality.alertHighlights', { percent: (highlightClipRatio * 100).toFixed(1) }));
     }
 
     if (Number.isFinite(shadowClipRatio) && shadowClipRatio >= 0.024) {
-      alerts.push(`Crush cieni ${(shadowClipRatio * 100).toFixed(1)}%`);
+      alerts.push(t('filmLab.rawQuality.alertShadowCrush', { percent: (shadowClipRatio * 100).toFixed(1) }));
     }
 
     if (
       pipelineInfo?.pipelineKind === PIPELINE_KIND.RAW &&
       pipelineInfo?.capabilities?.suspectedBlackFrame
     ) {
-      alerts.push('Podejrzanie ciemny dekod RAW');
+      alerts.push(t('filmLab.rawQuality.alertSuspectedDecode'));
     }
 
     if (!alerts.length) {
       return {
         tone: 'ok',
-        text: 'Jakość OK',
+        text: t('filmLab.rawQuality.qualityOk'),
       };
     }
 
@@ -314,6 +343,7 @@ export function useFilmLabRawQualitySummaries({ hasActiveSource, pipelineInfo, r
       text: alerts.join(' · '),
     };
   }, [
+    t,
     hasActiveSource,
     pipelineInfo?.capabilities?.suspectedBlackFrame,
     pipelineInfo?.pipelineKind,

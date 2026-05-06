@@ -1,5 +1,6 @@
 import { filmStocks } from '../engine/filmProfiles.js';
 import { getPointerCoordinates } from './getPointerCoordinates.js';
+import { bumpDevelopCatalogLoadFromNonCatalogSource } from './filmLabDevelopCatalogLoadCooperation.js';
 import { buildCanvasViewportDebugAndCurveWorkbenchShellOverlayArgs } from './filmLabFilmLabProBuildCanvasViewportDebugCurveShellArgs.js';
 
 /**
@@ -61,6 +62,7 @@ export const filmLabFilmLabProClusterArgFactories = {
           setMetadataViewMode: w.setMetadataViewMode,
           exifMeta: w.exifMeta,
           zoom: w.zoom,
+          panOffset: w.panOffset,
           adjustments: w.adjustments,
           colorCalibration: w.colorCalibration,
           colorGrading: w.colorGrading,
@@ -69,6 +71,7 @@ export const filmLabFilmLabProClusterArgFactories = {
           isAdjusting: w.isAdjusting,
           isPanning: w.isPanning,
           userCurves: w.userCurves,
+          curveInteractionLiveRef: w.curveInteractionLiveRef,
         },
       },
     },
@@ -83,6 +86,7 @@ export const filmLabFilmLabProClusterArgFactories = {
       setIsPanning: w.setIsPanning,
       histogramCanvasRef: w.histogramCanvasRef,
       isAdjusting: w.isAdjusting,
+      interactionKind: w.interactionKind,
       curvesCanvasRef: w.curvesCanvasRef,
       userCurves: w.userCurves,
       activeCurveCh: w.activeCurveCh,
@@ -109,6 +113,7 @@ export const filmLabFilmLabProClusterArgFactories = {
       },
       uploadRestoreArgs: {
         restoreSnapshotRef: b.restoreSnapshotRef,
+        onBeforeApplyUploadedSource: bumpDevelopCatalogLoadFromNonCatalogSource,
         activePanel: b.activePanel,
         setUploadedFile: b.setUploadedFile,
         setImageUrl: b.setImageUrl,
@@ -194,6 +199,8 @@ export const filmLabFilmLabProClusterArgFactories = {
         colorMixer: b.colorMixer,
         colorGrading: b.colorGrading,
         colorCalibration: b.colorCalibration,
+        zoom: b.zoom,
+        panOffset: b.panOffset,
         filmStocks,
         setAdjustments: b.setAdjustments,
         setUserCurves: b.setUserCurves,
@@ -237,6 +244,7 @@ export const filmLabFilmLabProClusterArgFactories = {
         hasImage: b.hasImage,
       },
     },
+    recipeDebugKeyboardArgs: { showRenderDebugPanel: b.showRenderDebugPanel },
   }),
   buildFilmViewCropStraightenPanelArgs: (c) => ({
     filmViewCropRectApplyAndDragLayoutArgs: {
@@ -313,6 +321,14 @@ export const filmLabFilmLabProClusterArgFactories = {
         activePanel: c.activePanel,
         lastNonCropPanelRef: c.lastNonCropPanelRef,
         setActivePanel: c.setActivePanel,
+      },
+      studioWorkspaceArgs: {
+        setStudioWorkspace: c.setStudioWorkspace,
+        setActivePanel: c.setActivePanel,
+        setIsExportModalOpen: c.setIsExportModalOpen,
+        studioWorkspace: c.studioWorkspace,
+        uiMode: c.adjustments?.uiMode,
+        hasActiveSource: c.hasActiveSource,
       },
     },
   }),

@@ -15,23 +15,23 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  e2e-playwright:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
-      - name: Cache ESLint
-        uses: actions/cache@v4
-        with:
-          path: .eslintcache
-          key: eslint-${{ runner.os }}-${{ hashFiles('eslint.config.mjs', 'package-lock.json', 'vite.config.js') }}
-          restore-keys: |
-            eslint-${{ runner.os }}-
+      - name: Debug — który commit i jaki spec E2E
+        run: |
+          echo "ref=${{ github.ref }} event=${{ github.event_name }}"
+          git rev-parse HEAD
+          grep '"test:e2e"' package.json || true
+          echo "--- fragment develop-catalog-rapid-switch.spec.js (ok. linii 20–42) ---"
+          sed -n '20,42p' e2e/develop-catalog-rapid-switch.spec.js
 
       - name: Use Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version-file: .nvmrc
           cache: npm
@@ -39,7 +39,69 @@ jobs:
       - name: Install
         run: npm ci
 
-      - name: CI (lint, tests, Vite build, audit)
+      - name: Install Playwright Chromium
+        run: npx playwright install chromium --with-deps
+
+      - name: E2E spec — wymagany wait na shell Film Lab
+        run: |
+          set -euo pipefail
+          f=e2e/develop-catalog-rapid-switch.spec.js
+          test -f "$f"
+          grep -q 'film-lab-studio-nav-inner' "$f" || {
+            echo "::error::Plik $f na tym refie jest przestarzały (brak oczekiwania na .film-lab-studio-nav-inner). Zmerguj main / zaktualizuj gałąź."
+            sed -n '1,30p' "$f" || true
+            exit 1
+          }
+          grep -q 'libraryListboxSel' "$f" && grep -E -q '\.poll\s*\(' "$f" \
+            && grep -Fq '.film-lab-filmstrip-cell[data-asset-id]' "$f" || {
+            echo "::error::Plik $f jest przestarzały (brak poll / libraryListboxSel / komórek filmstripu). Zmerguj main."
+            sed -n '20,70p' "$f" || true
+            exit 1
+          }
+
+      - name: E2E (Playwright)
+        run: npm run test:e2e
+
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Cache ESLint
+        uses: actions/cache@v5
+        with:
+          path: .eslintcache
+          key: eslint-${{ runner.os }}-${{ hashFiles('eslint.config.mjs', 'package-lock.json', 'vite.config.js') }}
+          restore-keys: |
+            eslint-${{ runner.os }}-
+
+      - name: Use Node
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Guard — react-window / filmstrip (Rollup „not exported”)
+        run: |
+          set -euo pipefail
+          fs=src/filmLab/FilmLabFilmstripCanvas.jsx
+          grep -q "import \* as ReactWindow from 'react-window'" "$fs" || {
+            echo "::error::$fs na tym refie jest przestarzały (named import FixedSizeList psuje vite build). Zmerguj origin/main z fixami react-window."
+            echo "--- pierwsze linie pliku na runnerze ---"
+            sed -n '1,12p' "$fs"
+            exit 1
+          }
+          grep -q "react-window" vite.config.js && grep -q "resolve:" vite.config.js || {
+            echo "::error::vite.config.js — brak resolve/alias dla react-window. Zmerguj main."
+            exit 1
+          }
+
+      - name: CI (lint, tests incl. RAW gate, Vite build, audit)
         run: npm run ci
 
       - name: Job summary
@@ -47,5 +109,5 @@ jobs:
         run: |
           cat <<'EOF' >> "$GITHUB_STEP_SUMMARY"
           ### mindfullens-film-lab — CI
-          - Wykonano pomyślnie: `npm run ci` (ESLint + `npm test` + **Vite 6** `build` + `npm audit`) — w `npm test` m.in. `test:gh-pages-base`, `test:static-deploy-assets` (m.in. `index.html` SEO/JSON-LD, `robots`+`sitemap`, spójność `public/_headers` z `vercel.json`), `test:env-example-parity`, `test:vite-toolchain` (Vite 6+). Po `vite build`: `postbuild` → `test:dist-outputs` (m.in. `dist/404`, pliki `public/` 1:1, `manifest.webmanifest` z PWA, `.well-known/security.txt`).
+          - Wykonano pomyślnie: `npm run ci` (ESLint + testy + **Vite 6** `build` + `npm audit`) — obejmuje też gate RAW reference (`npm run test:raw-reference`) oraz testy m.in. `test:gh-pages-base`, `test:static-deploy-assets` (m.in. `index.html` SEO/JSON-LD, `robots`+`sitemap`, spójność `public/_headers` z `vercel.json`), `test:env-example-parity`, `test:vite-toolchain` (Vite 6+). Po `vite build`: `postbuild` → `test:dist-outputs` (m.in. `dist/404`, pliki `public/` 1:1, `manifest.webmanifest` z PWA, `.well-known/security.txt`).
           EOF

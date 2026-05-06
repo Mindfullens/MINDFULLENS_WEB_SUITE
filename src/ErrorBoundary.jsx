@@ -1,4 +1,5 @@
 import React from 'react';
+import RuntimeErrorScreen from './RuntimeErrorScreen.jsx';
 
 export default class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -20,41 +21,7 @@ export default class ErrorBoundary extends React.Component {
 
   render() {
     if (this.state.hasError) {
-      return (
-        <div
-          role="alert"
-          style={{
-            minHeight: '100vh',
-            display: 'grid',
-            placeItems: 'center',
-            background: '#08070c',
-            color: '#ede8df',
-            fontFamily: 'Outfit, system-ui, sans-serif',
-            padding: '24px',
-          }}
-        >
-          <div style={{ maxWidth: '720px', width: '100%' }}>
-            <h1 style={{ fontSize: '22px', marginBottom: '12px' }}>Film Lab zatrzymał się na błędzie</h1>
-            <p style={{ opacity: 0.9, marginBottom: '8px' }}>
-              Odśwież stronę (Cmd+Shift+R). Jeśli błąd wraca, skopiuj komunikat poniżej.
-            </p>
-            <pre
-              style={{
-                marginTop: '12px',
-                padding: '12px',
-                borderRadius: '8px',
-                background: '#13111c',
-                border: '1px solid rgba(255,255,255,0.12)',
-                overflowX: 'auto',
-                whiteSpace: 'pre-wrap',
-                wordBreak: 'break-word',
-              }}
-            >
-              {this.state.message || 'Brak szczegółów błędu.'}
-            </pre>
-          </div>
-        </div>
-      );
+      return <RuntimeErrorScreen message={this.state.message} />;
     }
 
     return this.props.children;

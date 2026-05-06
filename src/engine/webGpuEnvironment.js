@@ -1,6 +1,8 @@
 /**
- * Synchroniczny odczyt, czy przeglądarka udostępnia WebGPU API (`navigator.gpu`).
- * Nie tworzy adaptera ani device — tylko sygnał do diagnostyki (plan v3.1 Etap 1, Sprint 1 telemetria).
+ * WebGPU: jeden `GPUAdapter` → jeden `requestDevice()` (adapter „consumed”).
+ * Sonda limitów (`getOrProbeWebGpuDevice`) i urządzenie renderu (`getOrCreatePersistentWebGpuDevice`) każde wołają **własny** `requestAdapter()`.
+ *
+ * Singleton `persistentRenderDevice` (na wątek) — współdzielony przez preview / proxy.
  */
 export function getWebGpuApiExposure() {
   if (typeof navigator === 'undefined') {
@@ -14,11 +16,12 @@ export function getWebGpuApiExposure() {
 
 let cachedAdapterProbe = null;
 let adapterProbeInFlight = null;
-/** Ostatni `GPUAdapter` z udanego `requestAdapter` — do jednorazowej sondy `requestDevice` (Etap 1). */
-let lastGpuAdapter = null;
 
 let cachedDeviceProbe = null;
 let deviceProbeInFlight = null;
+/** Jeden `GPUDevice` na kontekst JS (główny wątek / worker osobno) — `getOrCreatePersistentWebGpuDevice`. */
+let persistentRenderDevice = null;
+let persistentRenderInFlight = null;
 
 function pickAdapterInfo(i) {
   if (!i || typeof i !== 'object') {
@@ -60,7 +63,6 @@ export function getOrProbeWebGpuAdapter() {
   adapterProbeInFlight = (async () => {
     const api = getWebGpuApiExposure();
     if (!api.exposed) {
-      lastGpuAdapter = null;
       cachedAdapterProbe = {
         api,
         adapter: { status: 'unavailable', reason: api.detail },
@@ -73,7 +75,6 @@ export function getOrProbeWebGpuAdapter() {
       const gpu = navigator.gpu;
       const adapter = await gpu.requestAdapter();
       if (!adapter) {
-        lastGpuAdapter = null;
         cachedAdapterProbe = {
           api,
           adapter: { status: 'no-adapter' },
@@ -83,14 +84,12 @@ export function getOrProbeWebGpuAdapter() {
         return cachedAdapterProbe;
       }
       const adapterInfo = await readAdapterInfoObject(adapter);
-      lastGpuAdapter = adapter;
       cachedAdapterProbe = {
         api,
         adapter: { status: 'ok' },
         adapterInfo,
       };
     } catch (e) {
-      lastGpuAdapter = null;
       const msg = e instanceof Error ? e.message : String(e);
       cachedAdapterProbe = {
         api: getWebGpuApiExposure(),
@@ -104,42 +103,76 @@ export function getOrProbeWebGpuAdapter() {
   return adapterProbeInFlight;
 }
 
+function snapshotLimitsFromDevice(device) {
+  const { limits } = device;
+  return {
+    maxTextureDimension2D: limits.maxTextureDimension2D,
+    maxTextureDimension3D: limits.maxTextureDimension3D,
+    maxStorageBufferBindingSize: limits.maxStorageBufferBindingSize,
+    maxBufferSize: limits.maxBufferSize,
+  };
+}
+
 /**
- * Jednorazowa sonda `GPUAdapter.requestDevice()` + odczyt `limits`, potem `device.destroy()`.
- * Nie uruchamia renderu — pod Etap 1 (łańcuch WebGPU przed właściwym pipeline).
- * Wymaga wcześniejszego `getOrProbeWebGpuAdapter()`.
+ * Jednorazowa sonda limitów — osobny `requestAdapter()` + jednorazowy `requestDevice` tylko do limitów, potem `destroy`.
  */
 export function getOrProbeWebGpuDevice() {
   if (cachedDeviceProbe) {
+    return Promise.resolve(cachedDeviceProbe);
+  }
+  if (persistentRenderDevice) {
+    cachedDeviceProbe = {
+      status: 'ok',
+      limits: snapshotLimitsFromDevice(persistentRenderDevice),
+      source: 'persistent-singleton',
+    };
     return Promise.resolve(cachedDeviceProbe);
   }
   if (deviceProbeInFlight) {
     return deviceProbeInFlight;
   }
   deviceProbeInFlight = (async () => {
-    await getOrProbeWebGpuAdapter();
-    if (!lastGpuAdapter) {
+    const api = getWebGpuApiExposure();
+    if (!api.exposed || typeof navigator === 'undefined' || navigator.gpu == null) {
       cachedDeviceProbe = {
         status: 'unavailable',
-        reason: 'no-adapter',
+        reason: api.detail ?? 'no-gpu',
+        limits: null,
+      };
+      deviceProbeInFlight = null;
+      return cachedDeviceProbe;
+    }
+    /** Osobny adapter wyłącznie na sondę (nie ten od trwałego renderu). */
+    let probeAdapter = null;
+    try {
+      probeAdapter = await navigator.gpu.requestAdapter();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      cachedDeviceProbe = {
+        status: 'error',
+        reason: msg,
+        limits: null,
+      };
+      deviceProbeInFlight = null;
+      return cachedDeviceProbe;
+    }
+    if (!probeAdapter) {
+      cachedDeviceProbe = {
+        status: 'unavailable',
+        reason: 'no-adapter-for-probe',
         limits: null,
       };
       deviceProbeInFlight = null;
       return cachedDeviceProbe;
     }
     try {
-      const device = await lastGpuAdapter.requestDevice();
-      const { limits } = device;
-      const limitsSnapshot = {
-        maxTextureDimension2D: limits.maxTextureDimension2D,
-        maxTextureDimension3D: limits.maxTextureDimension3D,
-        maxStorageBufferBindingSize: limits.maxStorageBufferBindingSize,
-        maxBufferSize: limits.maxBufferSize,
-      };
+      const device = await probeAdapter.requestDevice();
+      const limitsSnapshot = snapshotLimitsFromDevice(device);
       device.destroy();
       cachedDeviceProbe = {
         status: 'ok',
         limits: limitsSnapshot,
+        source: 'disposable-probe-adapter',
       };
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
@@ -155,9 +188,6 @@ export function getOrProbeWebGpuDevice() {
   return deviceProbeInFlight;
 }
 
-let persistentRenderDevice = null;
-let persistentRenderInFlight = null;
-
 /**
  * Pojedynczy `requestDevice` **bez** `destroy` — do `proxyWebGpuRenderer` w workerze lub sondy podglądu w wątku głównym.
  * Osobne od sondy `getOrProbeWebGpuDevice` (ta niszczy device).
@@ -172,19 +202,83 @@ export function getOrCreatePersistentWebGpuDevice(options) {
     return persistentRenderInFlight;
   }
   persistentRenderInFlight = (async () => {
-    await getOrProbeWebGpuAdapter();
-    if (!lastGpuAdapter) {
+    const gpu = navigator.gpu;
+    /** Osobny `requestAdapter` niż sonda `getOrProbeWebGpuAdapter` — adapter jest jednorazowy („consumed” po `requestDevice`). */
+    let renderAdapter = await gpu.requestAdapter({ powerPreference: 'high-performance' });
+    if (!renderAdapter) {
+      renderAdapter = await gpu.requestAdapter();
+    }
+    if (!renderAdapter) {
+      const api = getWebGpuApiExposure();
+      console.warn('[FilmLab][WebGPU] getOrCreatePersistentWebGpuDevice: no adapter', {
+        api,
+        hint: api.exposed
+          ? 'requestAdapter() zwróciło null (brak GPU, zablokowane w ustawieniach, tryb headless?)'
+          : 'navigator.gpu niedostępny w tej przeglądarce / kontekście',
+      });
       persistentRenderInFlight = null;
       throw new Error('WebGPU: brak adaptera');
     }
-    const device = await lastGpuAdapter.requestDevice({
-      label: deviceLabel,
-      powerPreference: 'high-performance',
-    });
+    let adapterInfo = null;
+    try {
+      adapterInfo = await readAdapterInfoObject(renderAdapter);
+    } catch {
+      /* opcjonalne */
+    }
+    const tryRequest = async (label, init) => {
+      try {
+        return await renderAdapter.requestDevice(init);
+      } catch (e) {
+        const name = e instanceof Error ? e.name : 'Error';
+        const message = e instanceof Error ? e.message : String(e);
+        let featuresList;
+        try {
+          featuresList =
+            renderAdapter?.features != null ? Array.from(renderAdapter.features) : undefined;
+        } catch {
+          featuresList = undefined;
+        }
+        console.warn('[FilmLab][WebGPU] requestDevice failed', {
+          label,
+          name,
+          message,
+          requestInit: init,
+          adapterInfo,
+          features: featuresList,
+          limitsPreview:
+            typeof renderAdapter?.limits?.maxTextureDimension2D === 'number'
+              ? { maxTextureDimension2D: renderAdapter.limits.maxTextureDimension2D }
+              : undefined,
+        });
+        throw e;
+      }
+    };
+    let device;
+    try {
+      device = await tryRequest(deviceLabel, { label: deviceLabel });
+    } catch {
+      try {
+        console.warn('[FilmLab][WebGPU] ponawiam requestDevice (druga próba z minimalnym init)');
+        device = await tryRequest(`${deviceLabel}-fallback`, { label: deviceLabel });
+      } catch (e2) {
+        persistentRenderInFlight = null;
+        throw e2;
+      }
+    }
     persistentRenderDevice = device;
-    device.lost.then(() => {
+    if (import.meta.env?.DEV) {
+      console.info('[FilmLab][WebGPU] persistent singleton GPUDevice utworzone', {
+        label: deviceLabel,
+      });
+    }
+    device.lost.then((info) => {
+      console.warn('[FilmLab][WebGPU] device lost', {
+        reason: info?.reason ?? 'unknown',
+        message: info?.message ?? '',
+      });
       if (persistentRenderDevice === device) {
         persistentRenderDevice = null;
+        cachedDeviceProbe = null;
       }
     });
     persistentRenderInFlight = null;

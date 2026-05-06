@@ -1,3 +1,7 @@
+/**
+ * Dekodowanie RAW/DNG dla ingestu **wyłącznie** przez `rawDecode.worker.js` — główny wątek UI
+ * nie importuje LibRaw/WASM bezpośrednio (`decodeRawSource` → postMessage).
+ */
 let rawWorker = null;
 let nextRequestId = 1;
 const inflightRequests = new Map();
@@ -74,7 +78,7 @@ export function probeRawPipeline() {
   });
 }
 
-export function decodeRawSource(file, renderIntent = 'preview', backendPreference = null) {
+export function decodeRawSource(file, renderIntent = 'preview', backendPreference = null, decodeExtras = null) {
   return sendRawWorkerMessage('decode', {
     fileName: file?.name ?? '',
     fileSize: file?.size ?? 0,
@@ -83,6 +87,7 @@ export function decodeRawSource(file, renderIntent = 'preview', backendPreferenc
     backendPreference,
     baseUrl: BRIDGE_BASE_URL,
     file,
+    rawColorimetryPolicy: decodeExtras?.rawColorimetryPolicy ?? 'auto',
   });
 }
 

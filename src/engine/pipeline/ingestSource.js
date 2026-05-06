@@ -79,6 +79,7 @@ export async function ingestUploadSource({
   uploadedImage,
   renderIntent = 'preview',
   rawBackendPreference = null,
+  rawColorimetryPolicy = 'auto',
 }) {
   if (!uploadedFile && !uploadedImage) {
     return {
@@ -100,7 +101,9 @@ export async function ingestUploadSource({
     // Keep preview framing identical to export/full path:
     // request full decode for RAW, then scale down client-side for UI preview.
     const rawDecodeIntent = renderIntent === 'preview' ? 'full' : renderIntent;
-    const decode = await decodeRawSource(uploadedFile, rawDecodeIntent, rawBackendPreference);
+    const decode = await decodeRawSource(uploadedFile, rawDecodeIntent, rawBackendPreference, {
+      rawColorimetryPolicy,
+    });
 
     if (decode.ok && decode.payload?.buffer) {
       const { buffer: _decodedBuffer, ...decodeCapabilities } = decode.payload ?? {};
@@ -172,6 +175,7 @@ export async function ingestUploadSource({
       pipelineInfo: {
         sourceKind,
         pipelineKind: PIPELINE_KIND.RAW,
+        rawErrorCode: errCode ?? null,
         status:
           decode.error?.code === 'RAW_DECODER_MISSING'
             ? PIPELINE_STATUS.DECODER_MISSING

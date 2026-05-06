@@ -200,26 +200,85 @@ export function useFilmLabViewportZoomPan({
 
   const effectiveZoom = useMemo(() => resolveRenderScaleForZoom(zoom), [resolveRenderScaleForZoom, zoom]);
 
+  /**
+   * EXIF Orientation → CSS `rotate(deg)` na canvas, **wyłącznie** gdy bufor zdekodowany jest
+   * w surowej (sensor) orientacji — dotyczy RAW (LibRaw nie rotuje), NIE dotyczy JPEG przez
+   * `createImageBitmap({imageOrientation: 'from-image'})` (bitmap już jest w „natural").
+   *
+   * Detekcja: dla quarter-turn (90/270) porównaj zdekodowane W×H z EXIF `pixelWidth/pixelHeight`.
+   * Jeśli pasują do RAW (pre-rotation) → potrzebna CSS rotacja; jeśli pasują do natural → nie.
+   * Dla 180° dimensions są równe → zostaw spec'owi rotację 0 (bezpiecznie, nie podwajaj).
+   */
+  const exifCssRotationDegrees = useMemo(() => {
+    const raw = Number(exifMeta?.orientationTransform?.rotationDegrees);
+    if (!Number.isFinite(raw)) {
+      return 0;
+    }
+    const norm = ((raw % 360) + 360) % 360;
+    if (norm !== 90 && norm !== 270) {
+      return 0;
+    }
+    const exifPixelW = Number(exifMeta?.pixelWidth) || 0;
+    const exifPixelH = Number(exifMeta?.pixelHeight) || 0;
+    const decodedW =
+      Number(imageMeta?.sourceWidth ?? imageMeta?.width ?? imageMeta?.previewWidth) || 0;
+    const decodedH =
+      Number(imageMeta?.sourceHeight ?? imageMeta?.height ?? imageMeta?.previewHeight) || 0;
+    if (!exifPixelW || !exifPixelH || !decodedW || !decodedH) {
+      return 0;
+    }
+    const matchesRawPreRotation =
+      Math.abs(decodedW - exifPixelW) <= 4 && Math.abs(decodedH - exifPixelH) <= 4;
+    return matchesRawPreRotation ? norm : 0;
+  }, [
+    exifMeta?.orientationTransform?.rotationDegrees,
+    exifMeta?.pixelWidth,
+    exifMeta?.pixelHeight,
+    imageMeta?.sourceWidth,
+    imageMeta?.sourceHeight,
+    imageMeta?.width,
+    imageMeta?.height,
+    imageMeta?.previewWidth,
+    imageMeta?.previewHeight,
+  ]);
+
+  const exifCssMirrored = false;
+
   const canvasPresentationStyle = useMemo(
-    () => ({
-      position: 'absolute',
-      left: '50%',
-      top: '50%',
-      width:
-        fitCanvasRenderSize.width > 0
-          ? `${Math.round(fitCanvasRenderSize.width)}px`
-          : '100%',
-      height:
-        fitCanvasRenderSize.height > 0
-          ? `${Math.round(fitCanvasRenderSize.height)}px`
-          : '100%',
-      objectFit: 'fill',
-      objectPosition: 'center center',
-      transform: `translate(-50%, -50%) translate(${panOffset.x}px, ${panOffset.y}px) scale(${effectiveZoom})`,
-      transformOrigin: 'center center',
-      willChange: 'transform',
-    }),
-    [effectiveZoom, fitCanvasRenderSize.height, fitCanvasRenderSize.width, panOffset.x, panOffset.y]
+    () => {
+      const isQuarterTurn = exifCssRotationDegrees === 90 || exifCssRotationDegrees === 270;
+      /**
+       * `fitCanvasRenderSize` jest liczone z **portretowego** display (po EXIF) — np. 600×900.
+       * Bufor canvasu w silniku jest landscape (np. 6000×4000), więc w CSS dajemy LANDSCAPE
+       * box (900×600), a `rotate(90deg)` obraca go wizualnie do portretu w środku wrappera.
+       */
+      const cssWidthSource = isQuarterTurn ? fitCanvasRenderSize.height : fitCanvasRenderSize.width;
+      const cssHeightSource = isQuarterTurn ? fitCanvasRenderSize.width : fitCanvasRenderSize.height;
+      const mirrorScale = exifCssMirrored ? -1 : 1;
+      return {
+        position: 'absolute',
+        left: '50%',
+        top: '50%',
+        width:
+          cssWidthSource > 0 ? `${Math.round(cssWidthSource)}px` : '100%',
+        height:
+          cssHeightSource > 0 ? `${Math.round(cssHeightSource)}px` : '100%',
+        objectFit: 'fill',
+        objectPosition: 'center center',
+        transform: `translate(-50%, -50%) translate(${panOffset.x}px, ${panOffset.y}px) scale(${effectiveZoom * mirrorScale}, ${effectiveZoom}) rotate(${exifCssRotationDegrees}deg)`,
+        transformOrigin: 'center center',
+        willChange: 'transform',
+      };
+    },
+    [
+      effectiveZoom,
+      exifCssMirrored,
+      exifCssRotationDegrees,
+      fitCanvasRenderSize.height,
+      fitCanvasRenderSize.width,
+      panOffset.x,
+      panOffset.y,
+    ]
   );
 
   const canPanAtZoom = useCallback(
@@ -588,6 +647,7 @@ export function useFilmLabViewportZoomPan({
     fitZoom,
     zoom,
     hasImage,
+    isPixelPeepZoom,
     setPreferFullResPreview,
     panOffsetRef,
     setPanOffset,

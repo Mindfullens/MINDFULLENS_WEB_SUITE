@@ -1,7 +1,9 @@
 import { useCallback, useState } from 'react';
+import { useI18n } from '../i18n';
 import { getLastBatchPerfSnapshot, IS_BATCH_PERF_ENABLED } from '../engine/batchPerf.js';
 import { getPipelineLabel } from '../engine/pipeline/constants.js';
 import { getWebGpuApiExposure } from '../engine/webGpuEnvironment.js';
+import { detectFilmLabCatalogStorageRuntime } from '../engine/filmLabCatalogProPersist.js';
 import {
   getProxyWorkerOutputFitStatusLabel,
   getProxyWorkerOutputTileStatusLabel,
@@ -31,11 +33,203 @@ import {
   PREVIEW_E2E_FRAME_COST_GATE_MIN_SAMPLES,
   PREVIEW_E2E_FRAME_COST_TARGET_MS,
 } from './rolloutGate.js';
+import { resolveRuntimeTier } from './runtimeTier.js';
 import { SERVICE_BUILD_LABEL, SERVICE_BUILD_TAG, VIEWPORT_BUILD_MARKER } from './buildInfo.js';
+import { encodeFlatSnapshotToRecipeDocument } from './recipe/filmLabRecipeCodec.js';
+import { evaluateMaskGraphProjectionStub } from './recipe/filmLabMaskGraphEvaluate.js';
+import { fingerprintRecipeDocumentStable } from './recipe/filmLabRecipeFingerprint.js';
+import { buildMaskEngineWorkerPayload } from './recipe/filmLabRecipeWorkerPayload.js';
+import { downloadRecipeDocumentInBrowser, recipeDocumentToJsonString } from './recipe/filmLabRecipeSidecar.js';
+import {
+  buildCatalogProDocument,
+  withCatalogProFingerprint,
+} from './catalogPro/filmLabCatalogProDocument.js';
+
+function buildLocalMaskTelemetry(adjustments, t) {
+  const strokes = Array.isArray(adjustments?.brushMaskStrokes) ? adjustments.brushMaskStrokes : [];
+  const maskEntries = Array.isArray(adjustments?.localMasks) ? adjustments.localMasks : [];
+  const aiMasks = maskEntries.filter((entry) => entry?.source === 'ai-assist');
+  const aiConfidences = aiMasks
+    .map((entry) => Number(entry?.ai?.confidence))
+    .filter((value) => Number.isFinite(value))
+    .map((value) => Math.max(0, Math.min(1, value)));
+  const aiKinds = [...new Set(aiMasks.map((entry) => String(entry?.ai?.kind ?? '').toLowerCase()).filter(Boolean))];
+  const aiBackendsFromMasks = [
+    ...new Set(
+      aiMasks
+        .map((entry) => String(entry?.ai?.backend ?? '').trim())
+        .filter((value) => value.length > 0)
+    ),
+  ];
+  const aiLatencyLast = Number(adjustments?.aiAssistLastLatencyMs);
+  const aiLatencyRuns = Number(adjustments?.aiAssistRuns ?? 0);
+  const aiLatencyTotal = Number(adjustments?.aiAssistTotalLatencyMs);
+  let eraseStrokes = 0;
+  let paintStrokes = 0;
+  let weightedAreaNorm = 0;
+  for (const stroke of strokes) {
+    const radius = Number(stroke?.radius);
+    const feather = Number(stroke?.feather);
+    const safeRadius = Number.isFinite(radius) ? Math.max(0, Math.min(0.5, radius)) : 0;
+    const safeFeather = Number.isFinite(feather) ? Math.max(0, Math.min(1, feather)) : 0.65;
+    const area = Math.PI * safeRadius * safeRadius * (0.55 + safeFeather * 0.45);
+    if (stroke?.erase) {
+      eraseStrokes += 1;
+      weightedAreaNorm -= area;
+    } else {
+      paintStrokes += 1;
+      weightedAreaNorm += area;
+    }
+  }
+  return {
+    enabled: Boolean(adjustments?.brushMaskEnabled),
+    mode: String(adjustments?.localMaskMode ?? 'brush'),
+    activeMaskIndex: Number(adjustments?.activeLocalMaskIndex ?? 0),
+    soloMaskIndex: Number(adjustments?.localMaskSoloIndex ?? -1),
+    maskCount: Array.isArray(adjustments?.localMasks) ? adjustments.localMasks.length : 0,
+    activeMaskName: String(adjustments?.localMaskName ?? ''),
+    maskNames: Array.isArray(adjustments?.localMasks)
+      ? adjustments.localMasks.map((entry, index) =>
+          String(entry?.name ?? t('filmLab.localMask.defaultName', { n: index + 1 })),
+        )
+      : [],
+    maskEnabled: Array.isArray(adjustments?.localMasks)
+      ? adjustments.localMasks.map((entry) => entry?.enabled !== false)
+      : [],
+    aiMaskCount: Array.isArray(adjustments?.localMasks)
+      ? adjustments.localMasks.filter((entry) => entry?.source === 'ai-assist').length
+      : 0,
+    aiAssistBackend: String(adjustments?.aiAssistBackend ?? 'none'),
+    aiAssistRuns: Number(adjustments?.aiAssistRuns ?? 0),
+    aiAssistLatencyMs: {
+      last: Number.isFinite(aiLatencyLast)
+        ? Number(adjustments.aiAssistLastLatencyMs)
+        : null,
+      total: Number.isFinite(aiLatencyTotal)
+        ? Number(adjustments.aiAssistTotalLatencyMs)
+        : 0,
+      best: Number.isFinite(Number(adjustments?.aiAssistBestLatencyMs))
+        ? Number(adjustments.aiAssistBestLatencyMs)
+        : null,
+      worst: Number.isFinite(Number(adjustments?.aiAssistWorstLatencyMs))
+        ? Number(adjustments.aiAssistWorstLatencyMs)
+        : null,
+      avg:
+        aiLatencyRuns > 0 &&
+        Number.isFinite(aiLatencyTotal)
+          ? Number(
+              (
+                Number(adjustments.aiAssistTotalLatencyMs) /
+                aiLatencyRuns
+              ).toFixed(2)
+            )
+          : null,
+      kpi100MsState: Number.isFinite(aiLatencyLast)
+        ? aiLatencyLast <= 100
+          ? 'ok'
+          : 'warn'
+        : 'pending',
+    },
+    aiKinds,
+    aiBackendsFromMasks,
+    aiConfidence: {
+      avg:
+        aiConfidences.length > 0
+          ? Number((aiConfidences.reduce((sum, value) => sum + value, 0) / aiConfidences.length).toFixed(4))
+          : null,
+      max: aiConfidences.length > 0 ? Number(Math.max(...aiConfidences).toFixed(4)) : null,
+      min: aiConfidences.length > 0 ? Number(Math.min(...aiConfidences).toFixed(4)) : null,
+      sampleCount: aiConfidences.length,
+    },
+    eraseMode: Boolean(adjustments?.brushMaskErase),
+    radius: Number(adjustments?.brushMaskRadius ?? null),
+    feather: Number(adjustments?.brushMaskFeather ?? null),
+    exposure: Number(adjustments?.brushMaskExposure ?? null),
+    linear: {
+      angle: Number(adjustments?.linearMaskAngle ?? null),
+      feather: Number(adjustments?.linearMaskFeather ?? null),
+      offset: Number(adjustments?.linearMaskOffset ?? null),
+    },
+    radial: {
+      centerX: Number(adjustments?.radialMaskCenterX ?? null),
+      centerY: Number(adjustments?.radialMaskCenterY ?? null),
+      radius: Number(adjustments?.radialMaskRadius ?? null),
+      feather: Number(adjustments?.radialMaskFeather ?? null),
+    },
+    luma: {
+      min: Number(adjustments?.lumaMaskMin ?? null),
+      max: Number(adjustments?.lumaMaskMax ?? null),
+      feather: Number(adjustments?.lumaMaskFeather ?? null),
+    },
+    depthProxy: {
+      min: Number(adjustments?.depthMaskMin ?? null),
+      max: Number(adjustments?.depthMaskMax ?? null),
+      feather: Number(adjustments?.depthMaskFeather ?? null),
+    },
+    color: {
+      hueCenter: Number(adjustments?.colorMaskHueCenter ?? null),
+      hueWidth: Number(adjustments?.colorMaskHueWidth ?? null),
+      feather: Number(adjustments?.colorMaskFeather ?? null),
+    },
+    strokeCount: strokes.length,
+    paintStrokeCount: paintStrokes,
+    eraseStrokeCount: eraseStrokes,
+    approxWeightedCoverageNorm: Math.max(-1, Math.min(1, weightedAreaNorm)),
+  };
+}
+
+function buildWorkflowProTelemetry({ uploadedFile, imageMeta }) {
+  const hasSessionSource = typeof File !== 'undefined' && uploadedFile instanceof File;
+  const hasDecodedFrame = Boolean(imageMeta);
+  const sessionState = hasSessionSource && hasDecodedFrame ? 'ready' : hasSessionSource ? 'source-only' : 'idle';
+  const catalogDocument = withCatalogProFingerprint(
+    buildCatalogProDocument({
+      sessionId: 'active-session',
+      sourceFileMeta: hasSessionSource
+        ? {
+            name: uploadedFile.name,
+            type: uploadedFile.type,
+            size: uploadedFile.size,
+            lastModified: uploadedFile.lastModified,
+          }
+        : null,
+      hasDecodedFrame,
+      activeCollectionId: 'inbox',
+    })
+  );
+  const storageRuntime = detectFilmLabCatalogStorageRuntime();
+  return {
+    schema: 'mindfullens.workflow-pro.v1',
+    session: {
+      backend: 'indexeddb+recipe-envelope',
+      state: sessionState,
+      hasSessionSource,
+      hasDecodedFrame,
+      fileName: hasSessionSource ? uploadedFile.name : null,
+    },
+    catalog: {
+      backend: 'catalog-pro-document-v0',
+      sqliteOpfs: false,
+      xmpSidecarReadWrite: false,
+      fastCulling: false,
+      collections: true,
+      batchSync: false,
+      status: 'document-ready-runtime-pending',
+      storageRuntime,
+      document: catalogDocument,
+    },
+    readiness: {
+      now: sessionState === 'ready' ? 'session-ready-catalog-pending' : 'session-pending-catalog-pending',
+      target: 'session+catalog-pro',
+    },
+  };
+}
 
 export function useFilmLabExportDebugReport({
   activeFilm,
   activeFilmIndex,
+  zoom,
+  panOffset,
   adjustments,
   batchState,
   colorCalibration,
@@ -61,7 +255,79 @@ export function useFilmLabExportDebugReport({
   uploadedFile,
   userCurves,
 }) {
+  const { t } = useI18n();
   const [debugExportFeedback, setDebugExportFeedback] = useState(null);
+  const [recipeExportFeedback, setRecipeExportFeedback] = useState(null);
+  const [recipeClipboardFeedback, setRecipeClipboardFeedback] = useState(null);
+
+  const buildCurrentRecipeDocument = useCallback(
+    () =>
+      encodeFlatSnapshotToRecipeDocument({
+        activeFilmIndex,
+        adjustments,
+        userCurves,
+        colorMixer,
+        colorGrading,
+        colorCalibration,
+        zoom,
+        panOffset,
+      }),
+    [
+      activeFilmIndex,
+      adjustments,
+      colorCalibration,
+      colorGrading,
+      colorMixer,
+      panOffset,
+      userCurves,
+      zoom,
+    ]
+  );
+
+  const exportRecipeSidecar = useCallback(() => {
+    try {
+      const doc = buildCurrentRecipeDocument();
+      const rawName = activeFilm?.name ?? t('filmLab.exportDebug.recipeFallbackBaseName');
+      const safe = String(rawName)
+        .replace(/[^\w.-]+/g, '_')
+        .slice(0, 48);
+      const ok = downloadRecipeDocumentInBrowser(doc, `mindfullens_recipe_${safe}`);
+      setRecipeExportFeedback(ok ? 'saved' : 'error');
+      setTimeout(() => setRecipeExportFeedback(null), 1500);
+    } catch (error) {
+      console.error('[FilmLab] Recipe sidecar export failed', error);
+      setRecipeExportFeedback('error');
+      setTimeout(() => setRecipeExportFeedback(null), 1800);
+    }
+  }, [activeFilm?.name, buildCurrentRecipeDocument, t]);
+
+  const copyRecipeDocumentJson = useCallback(async () => {
+    try {
+      const doc = buildCurrentRecipeDocument();
+      const text = recipeDocumentToJsonString(doc);
+      if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+        setRecipeClipboardFeedback('copied');
+        setTimeout(() => setRecipeClipboardFeedback(null), 1200);
+        return;
+      }
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.left = '-9999px';
+      document.body.appendChild(ta);
+      ta.select();
+      const ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      setRecipeClipboardFeedback(ok ? 'copied' : 'error');
+      setTimeout(() => setRecipeClipboardFeedback(null), ok ? 1200 : 1500);
+    } catch (error) {
+      console.error('[FilmLab] Recipe JSON clipboard failed', error);
+      setRecipeClipboardFeedback('error');
+      setTimeout(() => setRecipeClipboardFeedback(null), 1500);
+    }
+  }, [buildCurrentRecipeDocument, t]);
 
   const exportDebugReport = useCallback(() => {
     const resolvedAppMode =
@@ -84,13 +350,13 @@ export function useFilmLabExportDebugReport({
         : null;
     const mainPreviewAbFallbackExplanation =
       mainPreviewAbFallbackCode === 'main-webgpu-runtime-error'
-        ? 'Main preview WebGPU: błąd runtime, użyto fallbacku WebGL.'
+        ? t('filmLab.exportDebug.mainPreviewAbRuntimeError')
         : mainPreviewAbFallbackCode === 'main-webgpu-runtime-fallback'
-          ? 'Main preview WebGPU: ścieżka runtime zwróciła fallback, użyto WebGL.'
+          ? t('filmLab.exportDebug.mainPreviewAbRuntimeFallback')
           : mainPreviewAbFallbackCode === 'main-webgpu-probe-fail'
-            ? 'Main preview WebGPU: sonda nie powiodła się, użyto fallbacku WebGL.'
+            ? t('filmLab.exportDebug.mainPreviewAbProbeFail')
             : mainPreviewAbFallbackCode === 'main-webgpu-fallback'
-              ? 'Main preview WebGPU: aktywny fallback do WebGL.'
+              ? t('filmLab.exportDebug.mainPreviewAbFallbackActive')
               : null;
     const rawAbTest = pipelineInfo?.capabilities?.backendAbTest ?? null;
     const rawAbWinner = String(rawAbTest?.winner ?? '').trim();
@@ -152,6 +418,22 @@ export function useFilmLabExportDebugReport({
         },
       };
     })();
+    const localMaskTelemetry = buildLocalMaskTelemetry(adjustments, t);
+    const workflowProTelemetry = buildWorkflowProTelemetry({ uploadedFile, imageMeta });
+    const runtimeTier = resolveRuntimeTier(renderDebugInfo);
+
+    const filmLabRecipeDocument = buildCurrentRecipeDocument();
+    const recipeFingerprintStable = fingerprintRecipeDocumentStable(filmLabRecipeDocument);
+    const metaW = Number(imageMeta?.width ?? imageMeta?.pixelWidth);
+    const metaH = Number(imageMeta?.height ?? imageMeta?.pixelHeight);
+    const maskGraphEvaluatorStub = evaluateMaskGraphProjectionStub({
+      maskGraphs: Array.isArray(filmLabRecipeDocument?.maskGraphs)
+        ? filmLabRecipeDocument.maskGraphs
+        : [],
+      width: Number.isFinite(metaW) && metaW > 0 ? metaW : 0,
+      height: Number.isFinite(metaH) && metaH > 0 ? metaH : 0,
+    });
+    const maskEngineWorkerPayload = buildMaskEngineWorkerPayload(filmLabRecipeDocument);
 
     const report = {
       schema: 'mindfullens.render-debug.v3',
@@ -182,6 +464,8 @@ export function useFilmLabExportDebugReport({
             : null,
         /** Jak w Render Debug / statusie — aktywny tor preview w chwili eksportu. */
         previewPathLabel: previewPathLabel != null ? String(previewPathLabel) : null,
+        runtimeTier: runtimeTier.tier,
+        runtimeTierSource: runtimeTier.source,
       },
       environment: {
         userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : '',
@@ -457,7 +741,7 @@ export function useFilmLabExportDebugReport({
           proxyWorkerProxyOutputRequestedH: renderDebugInfo?.proxyWorkerProxyOutputRequestedH ?? null,
           proxyWorkerProxyOutputTargetW: renderDebugInfo?.proxyWorkerProxyOutputTargetW ?? null,
           proxyWorkerProxyOutputTargetH: renderDebugInfo?.proxyWorkerProxyOutputTargetH ?? null,
-          proxyWorkerOutputFitStatusLabel: getProxyWorkerOutputFitStatusLabel(renderDebugInfo),
+          proxyWorkerOutputFitStatusLabel: getProxyWorkerOutputFitStatusLabel(renderDebugInfo, t),
           proxyWorkerOutputTileCountNominal: renderDebugInfo?.proxyWorkerOutputTileCountNominal ?? null,
           proxyWorkerOutputTileCountTarget: renderDebugInfo?.proxyWorkerOutputTileCountTarget ?? null,
           /** Ostatnia klatka CPU workera: pełny bufer nominal (parity kafle `PROXY_OUTPUT_TILES`). */
@@ -539,7 +823,7 @@ export function useFilmLabExportDebugReport({
           proxyMatchPreviewBuffer: readEnvFlag(
             typeof import.meta !== 'undefined' ? import.meta.env?.VITE_FILMLAB_PROXY_MATCH_PREVIEW : undefined
           ),
-          proxyWorkerOutputTileStatusLabel: getProxyWorkerOutputTileStatusLabel(renderDebugInfo),
+          proxyWorkerOutputTileStatusLabel: getProxyWorkerOutputTileStatusLabel(renderDebugInfo, t),
           proxyWorkerGpuInputDownscaleMs: renderDebugInfo?.proxyWorkerGpuInputDownscaleMs ?? null,
           proxyWorkerWebGpuSourceTexFormat: renderDebugInfo?.proxyWorkerWebGpuSourceTexFormat ?? null,
           proxyWorkerWebGpuLut3dTexFormat: renderDebugInfo?.proxyWorkerWebGpuLut3dTexFormat ?? null,
@@ -573,7 +857,7 @@ export function useFilmLabExportDebugReport({
             gateReadyMinFrames: MAIN_PREVIEW_AB_ROLLOUT_THRESHOLDS.gateReadyMinFrames,
           },
           mainThreadWebGpuPreviewAbThresholdsHint:
-            `Thresholds: ${getMainPreviewAbRolloutHealthThresholdsHint()} | ${getMainPreviewAbRolloutGateThresholdsHint()}`,
+            `${t('filmLab.exportDebug.thresholdsHintPrefix')} ${getMainPreviewAbRolloutHealthThresholdsHint()} | ${getMainPreviewAbRolloutGateThresholdsHint()}`,
           /** Skrót tekstowy rolloutu A/B (`webgpu-main` vs fallback) do szybkiego skanu raportu. */
           mainThreadWebGpuPreviewAbRolloutSummary: (() => {
             const total = Number(renderDebugInfo?.mainThreadWebGpuPreviewAbFramesTotal);
@@ -588,7 +872,13 @@ export function useFilmLabExportDebugReport({
                 : null;
             const m = Number.isFinite(main) ? Math.floor(main) : 0;
             const f = Number.isFinite(fallback) ? Math.floor(fallback) : Math.max(0, Math.floor(total) - m);
-            return `webgpu-main ${ratio != null ? `${ratio}%` : 'n/a'} (${m}/${Math.floor(total)}) · fallback ${f}`;
+            const ratioPct = ratio != null ? `${ratio}%` : t('filmLab.exportDebug.notAvailableShort');
+            return t('filmLab.exportDebug.rolloutAbSummary', {
+              ratioPct,
+              main: m,
+              total: Math.floor(total),
+              fallback: f,
+            });
           })(),
           /** Prosty status zdrowia rolloutu A/B na bazie fallback-rate (diagnostyka, nie hard gate CI). */
           mainThreadWebGpuPreviewAbHealth: (() => {
@@ -678,6 +968,8 @@ export function useFilmLabExportDebugReport({
       pipeline: {
         label: getPipelineLabel(pipelineInfo),
         info: pipelineInfo ?? null,
+        localMask: localMaskTelemetry,
+        workflowPro: workflowProTelemetry,
         rawBackendComparison: rawAbTest
           ? {
               executed: Boolean(rawAbTest?.executed),
@@ -755,6 +1047,14 @@ export function useFilmLabExportDebugReport({
           : null,
       },
       adjustments,
+      /** Pełna koperta recipe v1 (session / sidecar — ta sama forma co IndexedDB autosave). */
+      filmLabRecipeDocument,
+      /** Stub mask-evaluator v0 nad `maskGraphs` (typy semantyczne, `hasGenerativeStub` / `hasDepthRangeSemantic` / `hasBrushEdgeSemantic` — bez rastra). */
+      maskGraphEvaluatorStub,
+      /** Kompaktowy payload mask-engine (`mindfullens.mask-engine.worker-payload.v0`) — ten sam co fingerprint echo / worker. */
+      maskEngineWorkerPayload,
+      /** Stabilny hash (bez volatile meta / generatedAt) — cache invalidation / porównanie batch. */
+      recipeFingerprintStable,
       userCurves,
       colorMixer,
       colorGrading,
@@ -787,6 +1087,8 @@ export function useFilmLabExportDebugReport({
   }, [
     activeFilm,
     activeFilmIndex,
+    buildCurrentRecipeDocument,
+    panOffset,
     adjustments,
     batchState,
     colorCalibration,
@@ -811,10 +1113,16 @@ export function useFilmLabExportDebugReport({
     showInlineProcessing,
     uploadedFile,
     userCurves,
+    zoom,
+    t,
   ]);
 
   return {
     exportDebugReport,
     debugExportFeedback,
+    exportRecipeSidecar,
+    recipeExportFeedback,
+    copyRecipeDocumentJson,
+    recipeClipboardFeedback,
   };
 }

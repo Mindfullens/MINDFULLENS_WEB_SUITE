@@ -1,9 +1,89 @@
+import { memo, useCallback, useMemo } from 'react';
 import { mapTemperatureToKelvin } from './engine/sliderResponseMap.js';
 import { formatCustomSliderValue, formatSliderValue } from './engine/filmLabSliderFormat.js';
+import { useI18n } from './i18n';
 import { markFilmLabE2ePointerDown } from './filmLab/previewE2ePointerMark.js';
+
+function FilmLabSliderTrackImpl({
+  name,
+  value,
+  isInputProfile,
+  sliderDefs,
+  handleSliderStart,
+  handleSliderEnd,
+  handleSliderChange,
+  handleTemperatureSliderChange,
+  handleSliderDoubleClick,
+  handleSliderTouchStart,
+}) {
+  const { t } = useI18n();
+  const isDisabled = name === 'strength' && isInputProfile;
+  const displayValue = isDisabled ? '—' : formatSliderValue(name, value);
+  const isTemperatureSlider = name === 'temp' || name === 'brushMaskTemp';
+  const sliderMin = isTemperatureSlider ? 2000 : sliderDefs[name].min;
+  const sliderMax = isTemperatureSlider ? 10000 : sliderDefs[name].max;
+  const sliderValue = useMemo(
+    () =>
+      isTemperatureSlider ? Math.round(mapTemperatureToKelvin(value)) : value,
+    [isTemperatureSlider, value]
+  );
+
+  const onMouseDown = useCallback(
+    (event) => handleSliderStart(`slider:${name}`, event),
+    [handleSliderStart, name]
+  );
+  const onTouchStart = useCallback(
+    (event) => {
+      handleSliderTouchStart(name)(event);
+    },
+    [handleSliderTouchStart, name]
+  );
+  const onDoubleClick = useCallback(() => handleSliderDoubleClick(name), [handleSliderDoubleClick, name]);
+  const onRangeInput = useCallback(
+    (event) => {
+      if (isTemperatureSlider) {
+        handleTemperatureSliderChange(event, name);
+      } else {
+        handleSliderChange(name)(event);
+      }
+    },
+    [handleSliderChange, handleTemperatureSliderChange, isTemperatureSlider, name]
+  );
+
+  return (
+    <div className={`slider-group${isDisabled ? ' is-disabled' : ''}`}>
+      <div className="slider-label">
+        <span className="slider-name">{t(`filmLab.slider.${name}`)}</span>
+        <span className="slider-val">{displayValue}</span>
+      </div>
+      <input
+        className="slider-input"
+        id={`${name}Slider`}
+        name={`${name}Slider`}
+        type="range"
+        min={sliderMin}
+        max={sliderMax}
+        value={sliderValue}
+        disabled={isDisabled}
+        onMouseDown={onMouseDown}
+        onTouchStart={onTouchStart}
+        onDoubleClick={onDoubleClick}
+        onInput={onRangeInput}
+        onPointerUp={handleSliderEnd}
+        onPointerCancel={handleSliderEnd}
+        onTouchEnd={handleSliderEnd}
+        onBlur={handleSliderEnd}
+      />
+      {isDisabled ? <div className="slider-help">{t('filmLab.sliderHelp.inputProfileStrength')}</div> : null}
+    </div>
+  );
+}
+
+const FilmLabSliderTrack = memo(FilmLabSliderTrackImpl);
 
 export function createFilmLabSliderRenderers({
   adjustments,
+  updateAdjustment: _updateAdjustment,
   isInputProfile,
   sliderDefs,
   handleSliderStart,
@@ -20,44 +100,21 @@ export function createFilmLabSliderRenderers({
   setIsAdjusting,
   queueSliderUpdate,
 }) {
-  const renderSlider = (name) => {
-    const isDisabled = name === 'strength' && isInputProfile;
-    const displayValue = isDisabled ? '—' : formatSliderValue(name, adjustments[name]);
-    const isTemperatureSlider = name === 'temp';
-    const sliderMin = isTemperatureSlider ? 2000 : sliderDefs[name].min;
-    const sliderMax = isTemperatureSlider ? 10000 : sliderDefs[name].max;
-    const sliderValue = isTemperatureSlider
-      ? Math.round(mapTemperatureToKelvin(adjustments[name]))
-      : adjustments[name];
-
-    return (
-      <div className={`slider-group${isDisabled ? ' is-disabled' : ''}`} key={name}>
-        <div className="slider-label">
-          <span className="slider-name">{sliderDefs[name].label}</span>
-          <span className="slider-val">{displayValue}</span>
-        </div>
-        <input
-          className="slider-input"
-          id={`${name}Slider`}
-          name={`${name}Slider`}
-          type="range"
-          min={sliderMin}
-          max={sliderMax}
-          value={sliderValue}
-          disabled={isDisabled}
-          onMouseDown={(event) => handleSliderStart(`slider:${name}`, event)}
-          onTouchStart={handleSliderTouchStart(name)}
-          onDoubleClick={() => handleSliderDoubleClick(name)}
-          onInput={isTemperatureSlider ? handleTemperatureSliderChange : handleSliderChange(name)}
-          onPointerUp={handleSliderEnd}
-          onPointerCancel={handleSliderEnd}
-          onTouchEnd={handleSliderEnd}
-          onBlur={handleSliderEnd}
-        />
-        {isDisabled ? <div className="slider-help">Profil wejściowy nie używa siły profilu.</div> : null}
-      </div>
-    );
-  };
+  const renderSlider = (name) => (
+    <FilmLabSliderTrack
+      key={name}
+      name={name}
+      value={adjustments[name]}
+      isInputProfile={isInputProfile}
+      sliderDefs={sliderDefs}
+      handleSliderStart={handleSliderStart}
+      handleSliderEnd={handleSliderEnd}
+      handleSliderChange={handleSliderChange}
+      handleTemperatureSliderChange={handleTemperatureSliderChange}
+      handleSliderDoubleClick={handleSliderDoubleClick}
+      handleSliderTouchStart={handleSliderTouchStart}
+    />
+  );
 
   const renderCustomSlider = ({
     id,

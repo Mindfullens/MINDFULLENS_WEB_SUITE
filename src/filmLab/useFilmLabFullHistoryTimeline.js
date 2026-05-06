@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { useI18n } from '../i18n';
 import { getDisplayFilm } from './displayFilm.js';
 import { cloneSnapshotStackSafe } from './sessionSnapshot.js';
 import { FIT_UI_ZOOM } from './viewportZoom.js';
@@ -11,6 +12,8 @@ export function useFilmLabFullHistoryTimeline({
   historyRevision,
   zoom,
 }) {
+  const { t } = useI18n();
+
   return useMemo(() => {
     const normalizedHistory = cloneSnapshotStackSafe(undoStackRef.current, 20);
     const entries = normalizedHistory.map((snapshot, index) => {
@@ -22,8 +25,10 @@ export function useFilmLabFullHistoryTimeline({
       return {
         id: `undo-${index}`,
         isCurrent: false,
-        stepLabel: `Krok ${index + 1}`,
-        filmName: film?.name || 'Profil wejściowy',
+        stepLabel: t('filmLab.history.step', { n: index + 1 }),
+        filmName: film?.isInputProfile
+          ? t('filmLab.inputProfile.name')
+          : film?.name || t('filmLab.inputProfile.name'),
         exposure: Number(snapshot?.adjustments?.exposure ?? 0),
         contrast: Number(snapshot?.adjustments?.contrast ?? 0),
         rotation: Number(snapshot?.adjustments?.rotation ?? 0),
@@ -39,8 +44,10 @@ export function useFilmLabFullHistoryTimeline({
     entries.push({
       id: 'current-state',
       isCurrent: true,
-      stepLabel: 'Aktualny stan',
-      filmName: currentFilm?.name || 'Profil wejściowy',
+      stepLabel: t('filmLab.history.currentState'),
+      filmName: currentFilm?.isInputProfile
+        ? t('filmLab.inputProfile.name')
+        : currentFilm?.name || t('filmLab.inputProfile.name'),
       exposure: Number(adjustments?.exposure ?? 0),
       contrast: Number(adjustments?.contrast ?? 0),
       rotation: Number(adjustments?.rotation ?? 0),
@@ -50,6 +57,7 @@ export function useFilmLabFullHistoryTimeline({
 
     return entries;
   }, [
+    t,
     activeFilmIndex,
     adjustments?.contrast,
     adjustments?.exposure,
@@ -57,5 +65,7 @@ export function useFilmLabFullHistoryTimeline({
     adjustments?.rotation,
     historyRevision,
     zoom,
+    filmStocks,
+    undoStackRef,
   ]);
 }

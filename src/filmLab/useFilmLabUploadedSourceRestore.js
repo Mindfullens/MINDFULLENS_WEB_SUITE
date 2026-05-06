@@ -12,6 +12,8 @@ import { FIT_UI_ZOOM, ZOOM_MODE } from './viewportZoom.js';
 
 export function useFilmLabUploadedSourceRestore({
   restoreSnapshotRef,
+  /** Opcjonalnie (Film Lab Pro): unieważnia async handoff z katalogu. */
+  onBeforeApplyUploadedSource,
   activePanel,
   setUploadedFile,
   setImageUrl,
@@ -30,9 +32,15 @@ export function useFilmLabUploadedSourceRestore({
   setColorCalibration,
 }) {
   const applyUploadedSource = useCallback(
-    (file, { targetPanel = null, preserveLook = false } = {}) => {
+    (
+      file,
+      { targetPanel = null, preserveLook = false, skipDevelopCatalogLoadGen = false } = {}
+    ) => {
       if (!file) {
         return;
+      }
+      if (!skipDevelopCatalogLoadGen) {
+        onBeforeApplyUploadedSource?.();
       }
 
       setUploadedFile(file);
@@ -84,7 +92,7 @@ export function useFilmLabUploadedSourceRestore({
         compareX: 0.5,
       });
     },
-    [setPreferFullResPreview]
+    [onBeforeApplyUploadedSource, setPreferFullResPreview]
   );
 
   const restoreSnapshot = useCallback(

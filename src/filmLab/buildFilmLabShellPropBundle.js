@@ -2,6 +2,8 @@ import { CROP_ASPECT_PRESETS, CROP_OVERLAY_MODES } from './crop/cropConstants.js
 import { CATEGORY_TABS } from './categoryTabs.js';
 import { MIXER_COLORS, MIXER_GROUPS } from './mixerConstants.js';
 import { GRADE_ZONES, PANEL_TABS } from './panelAndGradeTabs.js';
+import { STUDIO_WORKSPACE_TABS } from './studioWorkspaceTabs.js';
+import { filterStudioWorkspaceTabsForUiMode } from './useFilmLabUiMode.js';
 import {
   buildFilmLabCanvasAreaProps,
   buildFilmLabExportModalProps,
@@ -15,6 +17,80 @@ import { METADATA_VIEW_MODE_LABEL, SLIDER_DEFS } from './workbenchConstants.js';
 
 export function buildFilmLabShellPropBundle(ctx) {
   return {
+    studioWorkspace: ctx.studioWorkspace,
+    studioNavProps: {
+      tabs: filterStudioWorkspaceTabsForUiMode(STUDIO_WORKSPACE_TABS, ctx.adjustments?.uiMode),
+      activeId: ctx.studioWorkspace,
+      onChange: ctx.handleStudioWorkspaceChange,
+    },
+    libraryWorkspaceProps: {
+      collections: ctx.libraryWorkspace?.collections ?? [],
+      assets: ctx.libraryWorkspace?.assets ?? [],
+      activeCollectionId: ctx.libraryWorkspace?.activeCollectionId ?? 'inbox',
+      onCollectionChange: ctx.libraryWorkspace?.setActiveCollectionId,
+      studioWorkspace: ctx.studioWorkspace,
+      sessionId: ctx.libraryWorkspace?.sessionId ?? 'active-session',
+      previewEpoch: ctx.libraryWorkspace?.previewEpoch ?? 0,
+      updateCatalogAsset: ctx.libraryWorkspace?.updateCatalogAsset,
+      libraryFilterQuery: ctx.libraryWorkspace?.libraryFilterQuery ?? '',
+      setLibraryFilterQuery: ctx.libraryWorkspace?.setLibraryFilterQuery,
+      filteredAssets: ctx.libraryWorkspace?.filteredAssets ?? [],
+      primaryAssetId: ctx.libraryWorkspace?.primaryAssetId,
+      selectedAssetIds: ctx.libraryWorkspace?.selectedAssetIds ?? [],
+      pickAsset: ctx.libraryWorkspace?.pickAsset,
+      selectionAnchorRef: ctx.libraryWorkspace?.selectionAnchorRef,
+      fileInputRef: ctx.fileInputRef,
+      onOpenAssetInDevelop: ctx.libraryWorkspace?.onOpenAssetInDevelop,
+      isMetadataPanelOpen: ctx.isMetadataPanelOpen ?? false,
+      onClearLibrary: ctx.libraryWorkspace?.onClearLibrary,
+      onRemoveSelectedFromLibrary: ctx.libraryWorkspace?.onRemoveSelectedFromLibrary,
+      /** Widoczny RAW bez OPFS — kolejka ekstrakcji embedded na przód (skraca „OCZEKUJE” / ~30 s). */
+      onPrioritizeRawEmbeddedExtract: ctx.libraryWorkspace?.prioritizeRawEmbeddedExtract,
+      /** Jak globalny filmstrip w zakładce Biblioteka — wybór + podgląd Develop (FilmLabShell korzysta z ctx). */
+      onFilmstripPickAsset: ctx.onFilmstripPickAsset,
+    },
+
+    sourceFileInputProps: {
+      fileInputRef: ctx.fileInputRef,
+      handleFileUpload: ctx.handleFileUpload,
+    },
+
+    developFilmstripProps: ctx.libraryWorkspace
+      ? (() => {
+          /**
+           * Ta sama kolejność co siatka stykówek: `filteredAssets` → kolekcja (`stripAssets`) → pełny katalog (`assets`).
+           * Bez osobnego fallbacku na sam `catalogDocument` — unikamy jednoklatkowych „zombie” po czyszczeniu.
+           */
+          const lw = ctx.libraryWorkspace;
+          const fromFiltered = Array.isArray(lw?.filteredAssets) ? lw.filteredAssets : [];
+          const fromStrip = Array.isArray(lw?.stripAssets) ? lw.stripAssets : [];
+          const fromHookAssets = Array.isArray(lw?.assets) ? lw.assets : [];
+          const filmstripAssets =
+            fromFiltered.length > 0
+              ? fromFiltered
+              : fromStrip.length > 0
+                ? fromStrip
+                : fromHookAssets;
+          return {
+            assets: filmstripAssets,
+            sessionId: ctx.libraryWorkspace.sessionId ?? 'active-session',
+            previewEpoch: ctx.libraryWorkspace.previewEpoch ?? 0,
+            primaryAssetId: ctx.libraryWorkspace.primaryAssetId,
+            selectedAssetIds: ctx.libraryWorkspace.selectedAssetIds ?? [],
+            onPickAsset: (assetId, modifiers) => {
+              const order = filmstripAssets
+                .map((a) => String(a?.id ?? ''))
+                .filter(Boolean);
+              if (typeof ctx.onFilmstripPickAsset === 'function') {
+                void ctx.onFilmstripPickAsset(assetId, modifiers, order);
+                return;
+              }
+              ctx.libraryWorkspace.pickAsset?.(assetId, modifiers, order);
+            },
+          };
+        })()
+      : null,
+
     toolbarProps: buildFilmLabToolbarProps({
       toolbarRef: ctx.toolbarRef,
       sessionRestoreNotice: ctx.sessionRestoreNotice,
@@ -35,6 +111,7 @@ export function buildFilmLabShellPropBundle(ctx) {
       isPreviewFullMode: ctx.isPreviewFullMode,
       togglePreviewFullMode: ctx.togglePreviewFullMode,
       toggleClipping: ctx.toggleClipping,
+      toggleClipLimiterPreview: ctx.toggleClipLimiterPreview,
       isMetadataPanelOpen: ctx.isMetadataPanelOpen,
       setIsMetadataPanelOpen: ctx.setIsMetadataPanelOpen,
       showRuntimeStatus: ctx.showRuntimeStatus,
@@ -48,6 +125,7 @@ export function buildFilmLabShellPropBundle(ctx) {
       copyToClipboard: ctx.copyToClipboard,
       pasteFromClipboard: ctx.pasteFromClipboard,
       clipboardFeedback: ctx.clipboardFeedback,
+      updateAdjustment: ctx.updateAdjustment,
       exportCubeLut: ctx.exportCubeLut,
       exportDebugReport: ctx.exportDebugReport,
       hasActiveSource: ctx.hasActiveSource,
@@ -74,6 +152,7 @@ export function buildFilmLabShellPropBundle(ctx) {
     }),
 
     canvasAreaProps: buildFilmLabCanvasAreaProps({
+      studioWorkspace: ctx.studioWorkspace,
       canvasAreaRef: ctx.canvasAreaRef,
       hasImage: ctx.hasImage,
       histogramCanvasRef: ctx.histogramCanvasRef,
@@ -89,6 +168,9 @@ export function buildFilmLabShellPropBundle(ctx) {
       isZoomBeyondFit: ctx.isZoomBeyondFit,
       isPanning: ctx.isPanning,
       canvasViewportSize: ctx.canvasViewportSize,
+      adjustments: ctx.adjustments,
+      setAdjustments: ctx.setAdjustments,
+      saveUndo: ctx.saveUndo,
       handleCanvasPointerDown: ctx.handleCanvasPointerDown,
       handleCanvasPointerMove: ctx.handleCanvasPointerMove,
       handleCanvasPointerUp: ctx.handleCanvasPointerUp,
@@ -116,6 +198,10 @@ export function buildFilmLabShellPropBundle(ctx) {
       metadataFeedback: ctx.metadataFeedback,
       displayedMetadataItems: ctx.displayedMetadataItems,
       handleFileUpload: ctx.handleFileUpload,
+      developFastPreviewBitmap: ctx.developFastPreviewBitmap ?? null,
+      developFastPreviewExifOrientation: ctx.developFastPreviewExifOrientation ?? 1,
+      developSmartPreviewBitmap: ctx.developSmartPreviewBitmap ?? null,
+      isAdjusting: ctx.isAdjusting ?? false,
     }),
 
     rightPanelProps: buildFilmLabRightPanelProps({
@@ -136,6 +222,7 @@ export function buildFilmLabShellPropBundle(ctx) {
       resetAdjustments: ctx.resetAdjustments,
       resetSingleAdjustment: ctx.resetSingleAdjustment,
       updateAdjustment: ctx.updateAdjustment,
+      setAdjustments: ctx.setAdjustments,
       activeCurveCh: ctx.activeCurveCh,
       setActiveCurveCh: ctx.setActiveCurveCh,
       curvesCanvasRef: ctx.curvesCanvasRef,
@@ -191,6 +278,10 @@ export function buildFilmLabShellPropBundle(ctx) {
       activeCropRectNorm: ctx.activeCropRectNorm,
       hasImage: ctx.hasImage,
       activeFilm: ctx.activeFilm,
+      setDoubleExposureOverlay: ctx.setDoubleExposureOverlay,
+      doubleExposurePlateReady: ctx.doubleExposurePlateReady,
+      doubleExposurePlateOrigin: ctx.doubleExposurePlateOrigin,
+      pipelineKind: ctx.pipelineInfo?.pipelineKind ?? null,
     }),
 
     shortcutHelpProps: buildFilmLabShortcutHelpProps({
@@ -211,6 +302,18 @@ export function buildFilmLabShellPropBundle(ctx) {
       setPendingBatchFiles: ctx.setPendingBatchFiles,
       processBatch: ctx.processBatch,
       exportImage: ctx.exportImage,
+      adjustments: ctx.adjustments,
+      doubleExposurePlateReady: ctx.doubleExposurePlateReady,
+      doubleExposurePlateOrigin: ctx.doubleExposurePlateOrigin,
     }),
+
+    bottomStatusBarProps: {
+      studioWorkspace: ctx.studioWorkspace,
+      hasActiveSource: ctx.hasActiveSource,
+      runtimeStatusBadge: ctx.runtimeStatusBadge,
+      previewPathLabel: ctx.previewPathLabel,
+      batchState: ctx.batchState,
+      adjustments: ctx.adjustments,
+    },
   };
 }

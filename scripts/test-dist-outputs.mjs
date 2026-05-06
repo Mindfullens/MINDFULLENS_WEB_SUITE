@@ -114,10 +114,10 @@ assert.match(
   /name="msapplication-TileColor"\s+content="#111111"/i,
   'dist/index.html: msapplication-TileColor',
 );
-assert.match(
-  indexHtml,
-  /name="apple-mobile-web-app-capable"\s+content="yes"/i,
-  'dist/index.html: apple web app capable',
+assert.ok(
+  /name="mobile-web-app-capable"\s+content="yes"/i.test(indexHtml) ||
+    /name="apple-mobile-web-app-capable"\s+content="yes"/i.test(indexHtml),
+  'dist/index.html: web app capable (mobile-web-app-capable lub legacy apple-mobile)',
 );
 assert.match(
   indexHtml,

@@ -1,24 +1,29 @@
+import { useMemo, useRef, useState } from 'react';
 import ColorWheel from './ColorWheel.jsx';
+import { DEVELOP_BASIC_LIGHT_KEYS } from './filmLab/filmLabDevelopSliderGroups.js';
+import {
+  FILM_FORMAT_IDS,
+  FILM_TONE_RESPONSE_SHAPES,
+  normalizeFilmToneResponseShape,
+} from './filmLab/filmLabIngressCalibration.js';
+import { analyzeLocalMaskAiAssistPresetSync } from './filmLab/localMaskAiAssistCore.js';
+import { flatAdjustmentsFromMaskSlot, seedFirstMaskLayerIfEmpty } from './filmLab/maskStackSeed.js';
 import { useFilmLabColorGradeWheelAdjustSession } from './filmLab/useFilmLabColorGradeWheelAdjustSession.js';
+import { useI18n } from './i18n';
+import { PIPELINE_KIND } from './engine/pipeline/constants.js';
 
-const LEAK_OPTIONS = [
-  { id: 'none', label: 'Brak' },
-  { id: 'warm', label: 'Ciepłe' },
-  { id: 'cool', label: 'Zimne' },
-  { id: 'vintage', label: 'Vintage' },
-  { id: 'prism', label: 'Pryzmat' },
-  { id: 'halation', label: 'Halacja' },
-];
+const LEAK_IDS = ['none', 'warm', 'cool', 'vintage', 'prism', 'halation'];
 
-const FRAME_OPTIONS = [
-  { id: 'none', label: 'Brak' },
-  { id: 'border-thin', label: 'Cienka biała' },
-  { id: 'polaroid', label: 'Polaroid' },
-  { id: 'border-thick', label: 'Gruba biała' },
-  { id: 'black-thin', label: 'Cienka czarna' },
-  { id: 'black-thick', label: 'Gruba czarna' },
-  { id: 'filmstrip', label: 'Klisza' },
-  { id: 'raw-darkroom', label: 'Raw Darkroom' },
+const FRAME_IDS = [
+  'none',
+  'border-thin',
+  'polaroid',
+  'border-thick',
+  'black-thin',
+  'black-thick',
+  'filmstrip',
+  'raw-darkroom',
+  'sprocket-35',
 ];
 
 const MIXER_THUMB_HUES = {
@@ -67,6 +72,7 @@ export default function FilmLabRightPanel({
   resetAdjustments,
   resetSingleAdjustment,
   updateAdjustment,
+  setAdjustments,
   activeCurveCh,
   setActiveCurveCh,
   curvesCanvasRef,
@@ -122,7 +128,35 @@ export default function FilmLabRightPanel({
   activeCropRectNorm,
   hasImage,
   activeFilm,
+  setDoubleExposureOverlay,
+  doubleExposurePlateReady,
+  doubleExposurePlateOrigin = 'none',
+  pipelineKind = null,
 }) {
+  const { t } = useI18n();
+  const doubleExposureInputRef = useRef(null);
+  const snapshotSlotsRef = useRef([null, null, null, null]);
+  const [snapshotEpoch, setSnapshotEpoch] = useState(0);
+  const leakOptions = useMemo(
+    () => LEAK_IDS.map((id) => ({ id, label: t(`filmLab.leak.${id}`) })),
+    [t],
+  );
+  const frameOptions = useMemo(
+    () => FRAME_IDS.map((id) => ({ id, label: t(`filmLab.frame.${id}`) })),
+    [t],
+  );
+  const snapshotSlots = useMemo(
+    () =>
+      [0, 1, 2, 3].map((index) => ({
+        index,
+        id: `S${index + 1}`,
+        hasValue: Boolean(snapshotSlotsRef.current[index]),
+      })),
+    [snapshotEpoch],
+  );
+  const canUseSnapshots = typeof setAdjustments === 'function';
+  const canUseHybridMaskStudio = typeof setAdjustments === 'function';
+
   const { onColorWheelSessionStart, onColorWheelSessionEnd } = useFilmLabColorGradeWheelAdjustSession({
     activeGradeZone,
     saveUndo,
@@ -130,6 +164,71 @@ export default function FilmLabRightPanel({
     setInteractionKind,
     handleSliderEnd,
   });
+
+  const saveSnapshotSlot = (slotIndex) => {
+    if (!canUseSnapshots) {
+      return;
+    }
+    try {
+      snapshotSlotsRef.current[slotIndex] = structuredClone(adjustments ?? {});
+    } catch {
+      snapshotSlotsRef.current[slotIndex] = JSON.parse(JSON.stringify(adjustments ?? {}));
+    }
+    setSnapshotEpoch((value) => value + 1);
+  };
+
+  const applySnapshotSlot = (slotIndex) => {
+    if (!canUseSnapshots) {
+      return;
+    }
+    const snap = snapshotSlotsRef.current[slotIndex];
+    if (!snap) {
+      return;
+    }
+    setAdjustments(() => {
+      try {
+        return structuredClone(snap);
+      } catch {
+        return JSON.parse(JSON.stringify(snap));
+      }
+    });
+  };
+
+  const applyMaskIntentPreset = (kind) => {
+    if (!canUseHybridMaskStudio) {
+      return;
+    }
+    setAdjustments((current) => {
+      const seeded = seedFirstMaskLayerIfEmpty(current ?? {}, t, 'brush');
+      const next = { ...seeded };
+      const stack = Array.isArray(next.localMasks) ? [...next.localMasks] : [];
+      const maskIndex = stack.length;
+      const cropRect = {
+        x: Number(next.cropRectX ?? 0),
+        y: Number(next.cropRectY ?? 0),
+        w: Number(next.cropRectW ?? 1),
+        h: Number(next.cropRectH ?? 1),
+      };
+      const { mask } = analyzeLocalMaskAiAssistPresetSync({
+        kind,
+        maskIndex,
+        activeCropRectNorm: cropRect,
+      });
+      const baseName = t('filmLab.maskStudioHybrid.intentName', {
+        kind: t(`filmLab.maskStudioHybrid.intent.${kind}`),
+        n: maskIndex + 1,
+      });
+      const created = { ...mask, name: String(mask?.name || baseName) };
+      stack.push(created);
+      return {
+        ...next,
+        localMasks: stack,
+        activeLocalMaskIndex: stack.length - 1,
+        brushMaskEnabled: true,
+        ...flatAdjustmentsFromMaskSlot(created),
+      };
+    });
+  };
 
   return (
     <aside className="sidebar-right" ref={rightSidebarRef}>
@@ -149,19 +248,17 @@ export default function FilmLabRightPanel({
       <div className="panel-content">
         <div className={`panel-page${activePanel === 'history' ? ' active' : ''}`}>
           <div className="effect-section">
-            <div className="effect-section-title">Cała historia</div>
-            <div className="slider-help">
-              Pełny łańcuch zmian: wszystkie kroki zapisane w Film Lab oraz aktualny stan roboczy.
-            </div>
+            <div className="effect-section-title">{t('filmLab.rightPanel.historyTitle')}</div>
+            <div className="slider-help">{t('filmLab.rightPanel.historyHelp')}</div>
             <div className="history-actions-row">
               <button type="button" className="effect-btn" onClick={undoAction} disabled={!undoStackRef.current.length}>
-                Cofnij ostatni krok
+                {t('filmLab.rightPanel.undoStep')}
               </button>
               <button type="button" className="effect-btn" onClick={redoAction} disabled={!redoStackRef.current.length}>
-                Dalej
+                {t('filmLab.rightPanel.redoStep')}
               </button>
               <span className="history-count-label">
-                Kroków zapisanych: {Math.max(0, fullHistoryTimeline.length - 1)}
+                {t('filmLab.rightPanel.stepsSaved')} {Math.max(0, fullHistoryTimeline.length - 1)}
               </span>
             </div>
             <div className="history-timeline-list">
@@ -172,20 +269,22 @@ export default function FilmLabRightPanel({
                 >
                   <div className="history-timeline-head">
                     <strong>{entry.stepLabel}</strong>
-                    <span>{entry.isCurrent ? 'TERAZ' : `#${index + 1}`}</span>
+                    <span>{entry.isCurrent ? t('filmLab.rightPanel.now') : `#${index + 1}`}</span>
                   </div>
                   <div className="history-timeline-grid">
-                    <span>Profil</span>
+                    <span>{t('filmLab.rightPanel.profile')}</span>
                     <strong>{entry.filmName}</strong>
-                    <span>Ekspozycja</span>
+                    <span>{t('filmLab.rightPanel.exposure')}</span>
                     <strong>{entry.exposure.toFixed(0)}</strong>
-                    <span>Kontrast</span>
+                    <span>{t('filmLab.rightPanel.contrast')}</span>
                     <strong>{entry.contrast.toFixed(0)}</strong>
-                    <span>Obrót</span>
+                    <span>{t('filmLab.rightPanel.rotation')}</span>
                     <strong>{entry.rotation.toFixed(1)}°</strong>
-                    <span>Odbicie</span>
-                    <strong>{entry.flipped ? 'ON' : 'OFF'}</strong>
-                    <span>Zoom</span>
+                    <span>{t('filmLab.rightPanel.flip')}</span>
+                    <strong>
+                      {entry.flipped ? t('filmLab.metaValue.yes') : t('filmLab.metaValue.no')}
+                    </strong>
+                    <span>{t('filmLab.rightPanel.zoom')}</span>
                     <strong>{Math.round(entry.zoom * 100)}%</strong>
                   </div>
                 </article>
@@ -195,44 +294,166 @@ export default function FilmLabRightPanel({
         </div>
 
         <div className={`panel-page${activePanel === 'basic' ? ' active' : ''}`}>
+          {/*
+            Epik B — Panel II (Tonality & Lab): ingress + profil.
+            Epik C — sekcja „Chemia emulsji”: kształt H&D, reciprocity, MTF→Clarity (merge w filmLabIngressCalibration).
+            Pełna lista procesów (E‑6 / K‑14 / BW / Cineon) — backlog silnika; merge obsługuje cyfra vs negative_film (C‑41 orange mask).
+          */}
           <div className="effect-section">
             <div className="effect-section-title">
-              Profil
+              {t('filmLab.rightPanel.section.panel2TonalityLab')}
               <button
                 className="section-reset"
                 type="button"
                 disabled={isInputProfile}
-                onClick={() => resetAdjustments(['strength'])}
+                onClick={() =>
+                  resetAdjustments([
+                    'filmFormatId',
+                    'inputWorkflowMode',
+                    'orangeMaskCorrection',
+                    'pushPullEv',
+                    'rawColorimetryPolicy',
+                    'filmToneResponseShape',
+                    'emulsionReciprocityComp',
+                    'emulsionEdgeAcutance',
+                    'strength',
+                  ])
+                }
               >
-                Reset
+                {t('filmLab.rightPanel.reset')}
               </button>
             </div>
+            <div className="slider-help">{t('filmLab.rightPanel.help.panel2TonalityLabIntro')}</div>
+
+            <div className="hsl-channel-label">{t('filmLab.rightPanel.panel2.colorWorkflow')}</div>
+            <div className="effect-grid" style={{ marginTop: 8 }}>
+              <button
+                type="button"
+                className={`effect-btn${adjustments.inputWorkflowMode !== 'negative_film' ? ' active' : ''}`}
+                onClick={() => updateAdjustment('inputWorkflowMode', 'digital')}
+              >
+                {t('filmLab.rightPanel.panel2.workflow.digital')}
+              </button>
+              <button
+                type="button"
+                className={`effect-btn${adjustments.inputWorkflowMode === 'negative_film' ? ' active' : ''}`}
+                onClick={() => updateAdjustment('inputWorkflowMode', 'negative_film')}
+              >
+                {t('filmLab.rightPanel.panel2.workflow.negativeFilm')}
+              </button>
+            </div>
+
+            <div className="hsl-channel-label" style={{ marginTop: 12 }}>
+              {t('filmLab.rightPanel.panel2.filmFormatTitle')}
+            </div>
+            <div className="mini-tab-row" style={{ flexWrap: 'wrap' }}>
+              {FILM_FORMAT_IDS.map((id) => (
+                <button
+                  key={id}
+                  type="button"
+                  className={`mini-tab${adjustments.filmFormatId === id ? ' active' : ''}`}
+                  onClick={() => updateAdjustment('filmFormatId', id)}
+                >
+                  {t(`filmLab.rightPanel.panel2.filmFormat.${id}`)}
+                </button>
+              ))}
+            </div>
+
+            {renderSlider('pushPullEv')}
+            {adjustments.inputWorkflowMode === 'negative_film' ? renderSlider('orangeMaskCorrection') : null}
+            {adjustments.inputWorkflowMode !== 'negative_film' ? (
+              <div className="slider-help">{t('filmLab.rightPanel.help.orangeMaskDigitalHint')}</div>
+            ) : null}
+
+            {pipelineKind === PIPELINE_KIND.RAW ? (
+              <>
+                <div className="hsl-channel-label" style={{ marginTop: 12 }}>
+                  {t('filmLab.rightPanel.ingress.rawColorimetry')}
+                </div>
+                <select
+                  className="ingress-raw-policy-select"
+                  value={adjustments.rawColorimetryPolicy ?? 'auto'}
+                  onChange={(e) => updateAdjustment('rawColorimetryPolicy', e.target.value)}
+                  aria-label={t('filmLab.rightPanel.ingress.rawColorimetry')}
+                >
+                  <option value="auto">{t('filmLab.rightPanel.ingress.rawPolicy.auto')}</option>
+                  <option value="camera_embed">{t('filmLab.rightPanel.ingress.rawPolicy.camera_embed')}</option>
+                  <option value="generic_matrix">{t('filmLab.rightPanel.ingress.rawPolicy.generic_matrix')}</option>
+                </select>
+                <div className="slider-help">{t('filmLab.rightPanel.help.rawColorimetryReload')}</div>
+              </>
+            ) : null}
+
+            <div className="hsl-channel-label" style={{ marginTop: 12 }}>
+              {t('filmLab.rightPanel.panel2.profileBlendTitle')}
+            </div>
+            <div className="slider-help">{t('filmLab.rightPanel.help.panel2ProfileBlend')}</div>
             {renderSlider('strength')}
           </div>
 
           <div className="effect-section">
             <div className="effect-section-title">
-              Światło
+              {t('filmLab.rightPanel.section.light')}
               <button
                 className="section-reset"
                 type="button"
-                onClick={() =>
-                  resetAdjustments(['exposure', 'contrast', 'highlights', 'shadows', 'whites', 'blacks'])
-                }
+                onClick={() => resetAdjustments([...DEVELOP_BASIC_LIGHT_KEYS])}
               >
-                Reset
+                {t('filmLab.rightPanel.reset')}
               </button>
             </div>
-            {['exposure', 'contrast', 'highlights', 'shadows', 'whites', 'blacks'].map(renderSlider)}
+            <div className="slider-help">{t('filmLab.rightPanel.help.panel2LightRolloff')}</div>
+            {DEVELOP_BASIC_LIGHT_KEYS.map(renderSlider)}
           </div>
 
           <div className="effect-section">
             <div className="effect-section-title">
-              Ton
-              <button className="section-reset" type="button" onClick={() => resetAdjustments(['fade', 'clarity', 'dehaze'])}>
-                Reset
+              {t('filmLab.rightPanel.section.emulsionChemistry')}
+              <button
+                className="section-reset"
+                type="button"
+                disabled={isInputProfile}
+                onClick={() =>
+                  resetAdjustments([
+                    'filmToneResponseShape',
+                    'emulsionReciprocityComp',
+                    'emulsionEdgeAcutance',
+                  ])
+                }
+              >
+                {t('filmLab.rightPanel.reset')}
               </button>
             </div>
+            <div className="slider-help">{t('filmLab.rightPanel.help.emulsionChemistryIntro')}</div>
+            <div className="slider-help">{t('filmLab.rightPanel.help.emulsionToneShape')}</div>
+            <div className="mini-tab-row">
+              {FILM_TONE_RESPONSE_SHAPES.map((sid) => (
+                <button
+                  key={sid}
+                  type="button"
+                  className={`mini-tab${
+                    normalizeFilmToneResponseShape(adjustments.filmToneResponseShape) === sid ? ' active' : ''
+                  }`}
+                  disabled={isInputProfile}
+                  onClick={() => updateAdjustment('filmToneResponseShape', sid)}
+                >
+                  {t(`filmLab.rightPanel.emulsion.toneShape.${sid}`)}
+                </button>
+              ))}
+            </div>
+            {renderSlider('emulsionReciprocityComp')}
+            {renderSlider('emulsionEdgeAcutance')}
+            <div className="slider-help">{t('filmLab.rightPanel.help.emulsionEdgeVsClarity')}</div>
+          </div>
+
+          <div className="effect-section">
+            <div className="effect-section-title">
+              {t('filmLab.rightPanel.section.tone')}
+              <button className="section-reset" type="button" onClick={() => resetAdjustments(['fade', 'clarity', 'dehaze'])}>
+                {t('filmLab.rightPanel.reset')}
+              </button>
+            </div>
+            <div className="slider-help">{t('filmLab.rightPanel.help.panel2LabFadeIntro')}</div>
             {['fade', 'clarity', 'dehaze'].map(renderSlider)}
           </div>
         </div>
@@ -240,19 +461,20 @@ export default function FilmLabRightPanel({
         <div className={`panel-page${activePanel === 'color' ? ' active' : ''}`}>
           <div className="effect-section">
             <div className="effect-section-title">
-              Kolor bazowy
+              {t('filmLab.rightPanel.section.baseColor')}
               <button
                 className="section-reset"
                 type="button"
                 onClick={() => resetAdjustments(['temp', 'tint', 'saturation', 'vibrance'])}
               >
-                Reset
+                {t('filmLab.rightPanel.reset')}
               </button>
             </div>
+            <div className="slider-help">{t('filmLab.rightPanel.help.panel2ColorTrimIntro')}</div>
             {renderSlider('temp')}
             {renderCustomSlider({
               id: 'tint',
-              label: sliderDefs.tint.label,
+              label: t('filmLab.slider.tint'),
               value: adjustments.tint,
               min: sliderDefs.tint.min,
               max: sliderDefs.tint.max,
@@ -261,7 +483,7 @@ export default function FilmLabRightPanel({
             })}
             {renderCustomSlider({
               id: 'saturation',
-              label: sliderDefs.saturation.label,
+              label: t('filmLab.slider.saturation'),
               value: adjustments.saturation,
               min: sliderDefs.saturation.min,
               max: sliderDefs.saturation.max,
@@ -270,7 +492,7 @@ export default function FilmLabRightPanel({
             })}
             {renderCustomSlider({
               id: 'vibrance',
-              label: sliderDefs.vibrance.label,
+              label: t('filmLab.slider.vibrance'),
               value: adjustments.vibrance,
               min: sliderDefs.vibrance.min,
               max: sliderDefs.vibrance.max,
@@ -281,9 +503,9 @@ export default function FilmLabRightPanel({
 
           <div className="effect-section">
             <div className="effect-section-title">
-              Krzywe RGB
+              {t('filmLab.rightPanel.section.rgbCurves')}
               <button className="section-reset" type="button" onClick={resetCurves}>
-                Reset
+                {t('filmLab.rightPanel.reset')}
               </button>
             </div>
             <div className="curves-ch-tabs">
@@ -307,24 +529,20 @@ export default function FilmLabRightPanel({
                 onDoubleClick={handleCurveDoubleClick}
               />
             </div>
-            <div className="slider-help">Dwuklik punktu usuwa punkt krzywej.</div>
+            <div className="slider-help">{t('filmLab.rightPanel.help.curveDoubleClick')}</div>
             {renderSlider('curveLumaMix')}
-            <div className="slider-help">
-              0% = RGB (więcej nasycenia), 100% = Luma (bez dodatkowego nasycania jak w C1).
-            </div>
+            <div className="slider-help">{t('filmLab.rightPanel.help.curveLumaMix')}</div>
           </div>
 
           <div className="effect-section">
             <div className="effect-section-title">
-              Kanały HSL
+              {t('filmLab.rightPanel.section.hslChannels')}
               <button className="section-reset" type="button" onClick={resetColorMixer}>
-                Reset
+                {t('filmLab.rightPanel.reset')}
               </button>
             </div>
-            <div className="slider-help">
-              Wybierz kanał HSL poniżej: osobno ustawiasz nasycenie, przesunięcie barwy i jasność.
-            </div>
-            <div className="hsl-channel-label">Kanał HSL</div>
+            <div className="slider-help">{t('filmLab.rightPanel.help.hslChannelsIntro')}</div>
+            <div className="hsl-channel-label">{t('filmLab.rightPanel.help.hslChannelLabel')}</div>
             <div className="mini-tab-row">
               {mixerGroups.map((group) => (
                 <button
@@ -356,9 +574,9 @@ export default function FilmLabRightPanel({
 
           <div className="effect-section">
             <div className="effect-section-title">
-              Gradacja tonalna
+              {t('filmLab.rightPanel.section.toneGrade')}
               <button className="section-reset" type="button" onClick={resetColorGrading}>
-                Reset
+                {t('filmLab.rightPanel.reset')}
               </button>
             </div>
             <div className="mini-tab-row">
@@ -378,10 +596,10 @@ export default function FilmLabRightPanel({
                 <ColorWheel
                   label={
                     activeGradeZone === 'shadows'
-                      ? 'Cienie'
+                      ? t('filmLab.gradeZone.shadows')
                       : activeGradeZone === 'midtones'
-                        ? 'Półtony'
-                        : 'Światła'
+                        ? t('filmLab.gradeZone.midtones')
+                        : t('filmLab.gradeZone.highlights')
                   }
                   hue={colorGrading[activeGradeZone].hue}
                   saturation={colorGrading[activeGradeZone].saturation}
@@ -401,7 +619,7 @@ export default function FilmLabRightPanel({
             {activeGradeZone === 'global' &&
               renderCustomSlider({
                 id: `grade-global-hue`,
-                label: 'Barwa',
+                label: t('filmLab.rightPanel.grade.hue'),
                 value: colorGrading.global.hue,
                 min: 0,
                 max: 360,
@@ -415,7 +633,7 @@ export default function FilmLabRightPanel({
             {activeGradeZone === 'global' &&
               renderCustomSlider({
                 id: `grade-global-saturation`,
-                label: 'Nasycenie',
+                label: t('filmLab.slider.saturation'),
                 value: colorGrading.global.saturation,
                 min: 0,
                 max: 100,
@@ -426,7 +644,7 @@ export default function FilmLabRightPanel({
             {activeGradeZone !== 'global'
               ? renderCustomSlider({
                   id: `grade-${activeGradeZone}-luminance`,
-                  label: 'Luminancja',
+                  label: t('filmLab.rightPanel.grade.luminance'),
                   value: colorGrading[activeGradeZone].luminance ?? 0,
                   min: -100,
                   max: 100,
@@ -436,7 +654,7 @@ export default function FilmLabRightPanel({
               : null}
             {renderCustomSlider({
               id: 'grade-blending',
-              label: 'Mieszanie',
+              label: t('filmLab.rightPanel.grade.blending'),
               value: colorGrading.blending,
               min: 0,
               max: 100,
@@ -446,7 +664,7 @@ export default function FilmLabRightPanel({
             })}
             {renderCustomSlider({
               id: 'grade-balance',
-              label: 'Balans',
+              label: t('filmLab.rightPanel.grade.balance'),
               value: colorGrading.balance,
               min: -100,
               max: 100,
@@ -457,14 +675,14 @@ export default function FilmLabRightPanel({
 
           <div className="effect-section">
             <div className="effect-section-title">
-              Kalibracja aparatu
+              {t('filmLab.rightPanel.section.cameraCalibration')}
               <button className="section-reset" type="button" onClick={resetColorCalibration}>
-                Reset
+                {t('filmLab.rightPanel.reset')}
               </button>
             </div>
             {renderCustomSlider({
               id: 'calibration-shadows-tint',
-              label: 'Tint cieni (Z↔M)',
+              label: t('filmLab.rightPanel.calibration.shadowsTint'),
               value: colorCalibration.shadowsTint,
               min: -100,
               max: 100,
@@ -473,7 +691,7 @@ export default function FilmLabRightPanel({
             })}
             {renderCustomSlider({
               id: 'calibration-red-hue',
-              label: 'Barwa czerwonej składowej',
+              label: t('filmLab.rightPanel.calibration.redHue'),
               value: colorCalibration.red.hue,
               min: -100,
               max: 100,
@@ -483,7 +701,7 @@ export default function FilmLabRightPanel({
             })}
             {renderCustomSlider({
               id: 'calibration-red-saturation',
-              label: 'Nasycenie czerwonej składowej',
+              label: t('filmLab.rightPanel.calibration.redSaturation'),
               value: colorCalibration.red.saturation,
               min: -100,
               max: 100,
@@ -493,7 +711,7 @@ export default function FilmLabRightPanel({
             })}
             {renderCustomSlider({
               id: 'calibration-green-hue',
-              label: 'Barwa zielonej składowej',
+              label: t('filmLab.rightPanel.calibration.greenHue'),
               value: colorCalibration.green.hue,
               min: -100,
               max: 100,
@@ -503,7 +721,7 @@ export default function FilmLabRightPanel({
             })}
             {renderCustomSlider({
               id: 'calibration-green-saturation',
-              label: 'Nasycenie zielonej składowej',
+              label: t('filmLab.rightPanel.calibration.greenSaturation'),
               value: colorCalibration.green.saturation,
               min: -100,
               max: 100,
@@ -513,7 +731,7 @@ export default function FilmLabRightPanel({
             })}
             {renderCustomSlider({
               id: 'calibration-blue-hue',
-              label: 'Barwa niebieskiej składowej',
+              label: t('filmLab.rightPanel.calibration.blueHue'),
               value: colorCalibration.blue.hue,
               min: -100,
               max: 100,
@@ -523,7 +741,7 @@ export default function FilmLabRightPanel({
             })}
             {renderCustomSlider({
               id: 'calibration-blue-saturation',
-              label: 'Nasycenie niebieskiej składowej',
+              label: t('filmLab.rightPanel.calibration.blueSaturation'),
               value: colorCalibration.blue.saturation,
               min: -100,
               max: 100,
@@ -537,46 +755,156 @@ export default function FilmLabRightPanel({
         <div className={`panel-page${activePanel === 'detail' ? ' active' : ''}`}>
           <div className="effect-section">
             <div className="effect-section-title">
-              Ziarno filmowe
+              {t('filmLab.rightPanel.section.panel4Ssg')}
               <button
                 className="section-reset"
                 type="button"
                 onClick={() => resetAdjustments(['userGrain', 'userGrainSize'])}
               >
-                Reset
+                {t('filmLab.rightPanel.reset')}
               </button>
             </div>
-            <div className="slider-help">0 = brak ziarna. Domyślna wartość jest dobierana wg ISO filmu.</div>
+            <div className="slider-help">{t('filmLab.rightPanel.help.panel4SsgIntro')}</div>
+            <div className="slider-help">{t('filmLab.rightPanel.help.grainIntro')}</div>
             {['userGrain', 'userGrainSize'].map(renderSlider)}
           </div>
 
           <div className="effect-section">
-            <div className="effect-section-title">Defekty analogowe</div>
-            <div className="slider-help">Aberacja chromatyczna i bloom (poświata).</div>
-            {['chromAb', 'bloom'].map(renderSlider)}
+            <div className="effect-section-title">{t('filmLab.rightPanel.section.panel2LabGlow')}</div>
+            <div className="slider-help">{t('filmLab.rightPanel.help.panel2LabGlowIntro')}</div>
+            {renderSlider('bloom')}
+            <div className="effect-grid" style={{ marginTop: 8 }}>
+              <button
+                type="button"
+                className={`effect-btn${adjustments.bloomLabAccurate !== false ? ' active' : ''}`}
+                onClick={() =>
+                  updateAdjustment(
+                    'bloomLabAccurate',
+                    adjustments.bloomLabAccurate === false ? true : false
+                  )
+                }
+              >
+                {t('filmLab.rightPanel.bloomLabAccurate')}
+              </button>
+            </div>
+            <div className="slider-help">{t('filmLab.rightPanel.help.bloomLabAccurateIntro')}</div>
+          </div>
+
+          <div className="effect-section">
+            <div className="effect-section-title">{t('filmLab.rightPanel.section.analogDefects')}</div>
+            <div className="slider-help">{t('filmLab.rightPanel.help.analogDefectsIntro')}</div>
+            {renderSlider('chromAb')}
           </div>
         </div>
 
         <div className={`panel-page${activePanel === 'effects' ? ' active' : ''}`}>
           <div className="effect-section">
-            <div className="effect-section-title">Losowe nakładki</div>
-            <div className="slider-help">
-              Każde kliknięcie losuje inny plik. Skróty: `D` = Rysy, `L` = RAW Leak.
+            <div className="effect-section-title">{t('filmLab.rightPanel.section.maskStudioHybrid')}</div>
+            <div className="slider-help">{t('filmLab.rightPanel.help.maskStudioHybridIntro')}</div>
+            <div className="effect-grid">
+              <button
+                type="button"
+                className="effect-btn"
+                disabled={!canUseHybridMaskStudio}
+                onClick={() => applyMaskIntentPreset('subject')}
+              >
+                {t('filmLab.maskStudioHybrid.intent.subject')}
+              </button>
+              <button
+                type="button"
+                className="effect-btn"
+                disabled={!canUseHybridMaskStudio}
+                onClick={() => applyMaskIntentPreset('sky')}
+              >
+                {t('filmLab.maskStudioHybrid.intent.sky')}
+              </button>
+              <button
+                type="button"
+                className="effect-btn"
+                disabled={!canUseHybridMaskStudio}
+                onClick={() => applyMaskIntentPreset('background')}
+              >
+                {t('filmLab.maskStudioHybrid.intent.background')}
+              </button>
             </div>
+            <div className="slider-help">{t('filmLab.rightPanel.help.maskStudioHybridAdvancedHint')}</div>
+          </div>
+
+          <div className="effect-section">
+            <div className="effect-section-title">{t('filmLab.rightPanel.section.panelJDepthExport')}</div>
+            <div className="slider-help">{t('filmLab.rightPanel.help.panelJDepthExportIntro')}</div>
+            <div className="effect-grid">
+              <button
+                type="button"
+                className={`effect-btn${String(adjustments?.depthMapSource ?? 'luminance') !== 'onnx' ? ' active' : ''}`}
+                onClick={() => updateAdjustment('depthMapSource', 'luminance')}
+              >
+                {t('filmLab.localMask.depthMapSourceEstimateBtn')}
+              </button>
+              <button
+                type="button"
+                className={`effect-btn${String(adjustments?.depthMapSource ?? 'luminance') === 'onnx' ? ' active' : ''}`}
+                onClick={() => updateAdjustment('depthMapSource', 'onnx')}
+              >
+                {t('filmLab.localMask.depthMapSourceModelBtn')}
+              </button>
+            </div>
+            <div className="slider-help">{t('filmLab.rightPanel.help.panelJDepthExportHint')}</div>
+          </div>
+
+          <div className="effect-section">
+            <div className="effect-section-title">{t('filmLab.rightPanel.section.panel10WorkflowQc')}</div>
+            <div className="slider-help">{t('filmLab.rightPanel.help.panel10WorkflowQcIntro')}</div>
+            <div className="effect-grid">
+              {snapshotSlots.map((slot) => (
+                <button
+                  key={`snapshot-save-${slot.id}`}
+                  className={`effect-btn${slot.hasValue ? ' active' : ''}`}
+                  type="button"
+                  disabled={!canUseSnapshots}
+                  onClick={() => saveSnapshotSlot(slot.index)}
+                >
+                  {t('filmLab.rightPanel.snapshotSave', { slot: slot.id })}
+                </button>
+              ))}
+            </div>
+            <div className="effect-grid" style={{ marginTop: 8 }}>
+              {snapshotSlots.map((slot) => (
+                <button
+                  key={`snapshot-load-${slot.id}`}
+                  className={`effect-btn${slot.hasValue ? ' active' : ''}`}
+                  type="button"
+                  disabled={!slot.hasValue || !canUseSnapshots}
+                  onClick={() => applySnapshotSlot(slot.index)}
+                >
+                  {t('filmLab.rightPanel.snapshotApply', { slot: slot.id })}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="effect-section">
+            <div className="effect-section-title">{t('filmLab.rightPanel.section.panel5OpticsPhysics')}</div>
+            <div className="slider-help">{t('filmLab.rightPanel.help.panel5OpticsPhysicsIntro')}</div>
+          </div>
+
+          <div className="effect-section">
+            <div className="effect-section-title">{t('filmLab.rightPanel.section.randomOverlays')}</div>
+            <div className="slider-help">{t('filmLab.rightPanel.help.randomOverlaysIntro')}</div>
             <div className="effect-grid">
               <button
                 className={`effect-btn${(adjustments.dust ?? 0) > 0 ? ' active' : ''}`}
                 type="button"
                 onClick={triggerDustZip}
               >
-                Rysy
+                {t('filmLab.rightPanel.effects.dustScratches')}
               </button>
               <button
                 className={`effect-btn${(adjustments.dust ?? 0) === 0 ? ' active' : ''}`}
                 type="button"
                 onClick={disableDustZip}
               >
-                Wyłącz Rysy
+                {t('filmLab.rightPanel.effects.dustDisable')}
               </button>
               <button
                 className={`effect-btn${adjustments.leak === 'raw-leakedge' ? ' active' : ''}`}
@@ -590,20 +918,23 @@ export default function FilmLabRightPanel({
                 type="button"
                 onClick={disableRawLeakZip}
               >
-                Wyłącz RAW Leak
+                {t('filmLab.rightPanel.effects.rawLeakDisable')}
               </button>
             </div>
           </div>
 
           <div className="effect-section">
-            <div className="effect-section-title">Winieta</div>
+            <div className="effect-section-title">{t('filmLab.rightPanel.section.vignette')}</div>
+            <div className="slider-help">{t('filmLab.rightPanel.help.panel6LegacyPrintIntro')}</div>
             {renderSlider('userVignette')}
           </div>
 
           <div className="effect-section">
-            <div className="effect-section-title">Przecieki światła</div>
+            <div className="effect-section-title">{t('filmLab.rightPanel.section.panel6LegacyPrint')}</div>
+            <div className="slider-help">{t('filmLab.rightPanel.help.panel6LegacyPrintHint')}</div>
+            <div className="effect-section-title">{t('filmLab.rightPanel.section.lightLeak')}</div>
             <div className="effect-grid">
-              {LEAK_OPTIONS.map((option) => (
+              {leakOptions.map((option) => (
                 <button
                   key={option.id}
                   className={`effect-btn${adjustments.leak === option.id ? ' active' : ''}`}
@@ -617,9 +948,9 @@ export default function FilmLabRightPanel({
           </div>
 
           <div className="effect-section">
-            <div className="effect-section-title">Ramka</div>
+            <div className="effect-section-title">{t('filmLab.rightPanel.section.frameStyle')}</div>
             <div className="effect-grid">
-              {FRAME_OPTIONS.map((option) => (
+              {frameOptions.map((option) => (
                 <button
                   key={option.id}
                   className={`effect-btn${adjustments.frame === option.id ? ' active' : ''}`}
@@ -636,16 +967,17 @@ export default function FilmLabRightPanel({
         <div className={`panel-page${activePanel === 'kino' ? ' active' : ''}`}>
           <div className="effect-section kino-intro">
             <div className="kino-icon">🎬</div>
-            <div className="kino-title">Kino 3D</div>
-            <div className="kino-subtitle">Halacja i efekty anamorfczne.</div>
+            <div className="kino-title">{t('filmLab.rightPanel.section.kinoTitle')}</div>
+            <div className="kino-subtitle">{t('filmLab.rightPanel.section.kinoSubtitle')}</div>
+            <div className="slider-help">{t('filmLab.rightPanel.help.panel5KinoIntro')}</div>
           </div>
 
           <div className="effect-section">
-            <div className="effect-section-title">Halacja</div>
+            <div className="effect-section-title">{t('filmLab.rightPanel.section.halation')}</div>
             {['halation', 'halRadius', 'halThresh'].map(renderSlider)}
             {renderCustomSlider({
               id: 'kino-hal-hue',
-              label: sliderDefs.halHue.label,
+              label: t('filmLab.slider.halHue'),
               value: adjustments.halHue,
               min: sliderDefs.halHue.min,
               max: sliderDefs.halHue.max,
@@ -658,14 +990,87 @@ export default function FilmLabRightPanel({
           </div>
 
           <div className="effect-section">
-            <div className="effect-section-title">Anamorficzne</div>
+            <div className="effect-section-title">{t('filmLab.rightPanel.section.anamorphic')}</div>
             {['anamorph', 'streakLen'].map(renderSlider)}
+          </div>
+
+          <div className="effect-section">
+            <div className="effect-section-title">{t('filmLab.rightPanel.section.gateWeave')}</div>
+            {renderSlider('gateWeave')}
+          </div>
+
+          <div className="effect-section">
+            <div className="effect-section-title">{t('filmLab.rightPanel.section.doubleExposure')}</div>
+            <input
+              ref={doubleExposureInputRef}
+              type="file"
+              accept="image/*"
+              hidden
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (file) {
+                  setDoubleExposureOverlay?.(file);
+                }
+                event.target.value = '';
+              }}
+            />
+            <div className="effect-grid">
+              <button
+                className="effect-btn"
+                type="button"
+                disabled={!hasImage}
+                onClick={() => doubleExposureInputRef.current?.click()}
+              >
+                {t('filmLab.rightPanel.doubleExposureLoadPlate')}
+              </button>
+              <button
+                className="effect-btn"
+                type="button"
+                disabled={!doubleExposurePlateReady}
+                onClick={() => setDoubleExposureOverlay?.(null)}
+              >
+                {t('filmLab.rightPanel.doubleExposureClearPlate')}
+              </button>
+            </div>
+            <div className="slider-help">
+              {!doubleExposurePlateReady ? (
+                '\u00a0'
+              ) : (
+                <>
+                  <div>
+                    {doubleExposurePlateOrigin === 'opfs'
+                      ? t('filmLab.rightPanel.doubleExposureRestoredFromCache')
+                      : t('filmLab.rightPanel.doubleExposurePlateHint')}
+                  </div>
+                  {doubleExposurePlateOrigin === 'file' ? (
+                    <div className="slider-help-nested">{t('filmLab.rightPanel.doubleExposureOpfsPersistHint')}</div>
+                  ) : null}
+                </>
+              )}
+            </div>
+            {renderSlider('doubleExposureAmount')}
+            <div className="effect-grid">
+              <button
+                className={`effect-btn${adjustments.doubleExposureBlendMode !== 'multiply' ? ' active' : ''}`}
+                type="button"
+                onClick={() => updateAdjustment('doubleExposureBlendMode', 'screen')}
+              >
+                {t('filmLab.rightPanel.doubleExposureBlendScreen')}
+              </button>
+              <button
+                className={`effect-btn${adjustments.doubleExposureBlendMode === 'multiply' ? ' active' : ''}`}
+                type="button"
+                onClick={() => updateAdjustment('doubleExposureBlendMode', 'multiply')}
+              >
+                {t('filmLab.rightPanel.doubleExposureBlendMultiply')}
+              </button>
+            </div>
           </div>
         </div>
 
         <div className={`panel-page${activePanel === 'crop' ? ' active' : ''}`}>
           <div className="effect-section">
-            <div className="effect-section-title">Proporcje kadru</div>
+            <div className="effect-section-title">{t('filmLab.rightPanel.section.cropAspectTitle')}</div>
             <div className="crop-aspect-grid">
               {cropAspectPresets.map((preset) => (
                 <button
@@ -679,13 +1084,17 @@ export default function FilmLabRightPanel({
               ))}
             </div>
             <div className="slider-help">
-              Aktywny preset: {activeCropAspect.label}
-              {activeCropAspect.ratio ? ' (blokada proporcji włączona)' : ' (bez blokady proporcji)'}.
+              {t('filmLab.rightPanel.help.cropAspectActive', {
+                label: activeCropAspect.label,
+                ratioHint: activeCropAspect.ratio
+                  ? t('filmLab.rightPanel.help.cropRatioLocked')
+                  : t('filmLab.rightPanel.help.cropRatioFree'),
+              })}
             </div>
           </div>
 
           <div className="effect-section">
-            <div className="effect-section-title">Nakładki kompozycyjne</div>
+            <div className="effect-section-title">{t('filmLab.rightPanel.section.cropOverlayTitle')}</div>
             <div className="crop-overlay-grid">
               {cropOverlayModes.map((mode) => (
                 <button
@@ -700,17 +1109,17 @@ export default function FilmLabRightPanel({
             </div>
             <div className="crop-action-row">
               <button className="effect-btn" type="button" onClick={cycleCropOverlayMode}>
-                Następna (O)
+                {t('filmLab.rightPanel.crop.overlayNext')}
               </button>
               <button className="effect-btn" type="button" onClick={rotateCropOverlay}>
-                Obrót nakładki 90°
+                {t('filmLab.rightPanel.crop.overlayRotate90')}
               </button>
             </div>
           </div>
 
           <div className="effect-section">
             <div className="effect-section-title">
-              Kadrowanie i prostowanie
+              {t('filmLab.rightPanel.section.cropStraightenTitle')}
               <button
                 className="section-reset"
                 type="button"
@@ -733,32 +1142,30 @@ export default function FilmLabRightPanel({
                   ]);
                 }}
               >
-                Reset
+                {t('filmLab.rightPanel.reset')}
               </button>
             </div>
             {['level'].map(renderSlider)}
-            <div className="slider-help">
-              Zatwierdzanie kadru: Enter, 2x klik na ramce lub środkowy znacznik.
-            </div>
+            <div className="slider-help">{t('filmLab.rightPanel.help.cropCommitHint')}</div>
             <div className="crop-action-row">
               <button className="effect-btn" type="button" onClick={rotateImage}>
-                Obrót 90°
+                {t('filmLab.rightPanel.crop.rotate90')}
               </button>
               <button
                 className={`effect-btn${adjustments.flipped ? ' active' : ''}`}
                 type="button"
                 onClick={toggleFlip}
               >
-                Odbicie poziome
+                {t('filmLab.rightPanel.crop.flipHorizontal')}
               </button>
               <button className="effect-btn" type="button" onClick={() => resetAdjustments(['level'])}>
-                Zeruj poziom
+                {t('filmLab.rightPanel.crop.resetLevel')}
               </button>
             </div>
           </div>
 
           <div className="effect-section">
-            <div className="effect-section-title">Ręczne prostowanie i auto-straighten</div>
+            <div className="effect-section-title">{t('filmLab.rightPanel.section.manualStraightenTitle')}</div>
             <div className="crop-action-row">
               <button
                 className={`effect-btn${isStraightenToolArmed ? ' active' : ''}`}
@@ -773,59 +1180,65 @@ export default function FilmLabRightPanel({
                   beginManualStraightenSession();
                 }}
               >
-                {isStraightenToolArmed ? 'Anuluj prostowanie' : 'Włącz prostowanie ręczne'}
+                {isStraightenToolArmed
+                  ? t('filmLab.rightPanel.crop.straightenCancel')
+                  : t('filmLab.rightPanel.crop.straightenEnable')}
               </button>
               <button className="effect-btn" type="button" onClick={runAutoStraighten}>
-                Auto (proxy)
+                {t('filmLab.rightPanel.crop.autoStraightenProxy')}
               </button>
             </div>
             <div className="slider-help">
               {isStraightenToolArmed
-                ? 'Naciśnij na jednym końcu horyzontu, przeciągnij do drugiego i puść. Zwolnienie myszy automatycznie zatwierdza prostowanie.'
-                : 'Tryb ręczny działa na Pointer Events + pointer capture oraz geometrii znormalizowanej, bez dryfu między klatkami.'}
+                ? t('filmLab.rightPanel.help.straightenManualArmed')
+                : t('filmLab.rightPanel.help.straightenManualIdle')}
             </div>
             {Number(adjustments.autoStraightenConfidence ?? 0) > 0 ? (
               <div className="crop-confidence">
-                Pewność auto-straighten: {(Number(adjustments.autoStraightenConfidence) * 100).toFixed(1)}%
+                {t('filmLab.rightPanel.crop.autoStraightenConfidence', {
+                  percent: (Number(adjustments.autoStraightenConfidence) * 100).toFixed(1),
+                })}
               </div>
             ) : null}
           </div>
 
           <div className="effect-section">
-            <div className="effect-section-title">Stan niedestrukcyjny</div>
+            <div className="effect-section-title">{t('filmLab.rightPanel.section.nonDestructiveState')}</div>
             <div className="crop-state-grid">
               <div className="crop-state-item">
-                <span>x</span>
+                <span>{t('filmLab.rightPanel.crop.coordX')}</span>
                 <strong>{activeCropRectNorm.x.toFixed(3)}</strong>
               </div>
               <div className="crop-state-item">
-                <span>y</span>
+                <span>{t('filmLab.rightPanel.crop.coordY')}</span>
                 <strong>{activeCropRectNorm.y.toFixed(3)}</strong>
               </div>
               <div className="crop-state-item">
-                <span>w</span>
+                <span>{t('filmLab.rightPanel.crop.coordW')}</span>
                 <strong>{activeCropRectNorm.w.toFixed(3)}</strong>
               </div>
               <div className="crop-state-item">
-                <span>h</span>
+                <span>{t('filmLab.rightPanel.crop.coordH')}</span>
                 <strong>{activeCropRectNorm.h.toFixed(3)}</strong>
               </div>
               <div className="crop-state-item">
-                <span>Zoom</span>
+                <span>{t('filmLab.rightPanel.zoom')}</span>
                 <strong>{Math.round((1 / Math.max(activeCropRectNorm.w, activeCropRectNorm.h)) * 100)}%</strong>
               </div>
               <div className="crop-state-item">
-                <span>Aspect</span>
+                <span>{t('filmLab.rightPanel.crop.stateAspect')}</span>
                 <strong>{activeCropAspect.id}</strong>
               </div>
             </div>
-            <div className="slider-help">Stan kadru jest trzymany niedestrukcyjnie jako znormalizowane `x/y/w/h`.</div>
+            <div className="slider-help">{t('filmLab.rightPanel.help.cropStateHint')}</div>
           </div>
         </div>
       </div>
 
       <div className="free-tier-info">
-        {hasImage ? `Render gotowy · ${activeFilm.name}` : 'Wgraj zdjęcie, aby rozpocząć'}
+        {hasImage
+          ? t('filmLab.rightPanel.footer.renderReady', { name: activeFilm.name })
+          : t('filmLab.rightPanel.footer.uploadPrompt')}
       </div>
     </aside>
   );

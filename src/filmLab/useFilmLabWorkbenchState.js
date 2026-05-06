@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   createZeroCalibrationState,
   createZeroColorGradeState,
@@ -8,6 +8,7 @@ import { cloneCurves } from './curvesCanvas.js';
 import { DEFAULT_ADJUSTMENTS } from './defaultAdjustments.js';
 import { DEFAULT_CURVES } from './defaultCurves.js';
 import { resolveInitialPanelFromLocation } from './panelAndGradeTabs.js';
+import { resolveInitialStudioWorkspaceFromLocation } from './studioWorkspaceTabs.js';
 import { useDevicePixelRatio } from './useDevicePixelRatio.js';
 import { FIT_UI_ZOOM, ZOOM_MODE } from './viewportZoom.js';
 
@@ -18,6 +19,7 @@ export function useFilmLabWorkbenchState() {
   const [activeCategory, setActiveCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [activePanel, setActivePanel] = useState(() => resolveInitialPanelFromLocation());
+  const [studioWorkspace, setStudioWorkspace] = useState(() => resolveInitialStudioWorkspaceFromLocation());
   const [historyRevision, setHistoryRevision] = useState(0);
   const [activeCurveCh, setActiveCurveCh] = useState('rgb');
   const [isStraightenToolArmed, setIsStraightenToolArmed] = useState(false);
@@ -48,6 +50,14 @@ export function useFilmLabWorkbenchState() {
   const [sessionRestorePrompt, setSessionRestorePrompt] = useState(null);
   const [metadataViewMode, setMetadataViewMode] = useState('full');
   const [exifMeta, setExifMeta] = useState(null);
+  /** Podgląd z OPFS (DAM) zanim pełny pipeline wczyta RAW — dekodowanie w workerze */
+  const [developFastPreviewBitmap, setDevelopFastPreviewBitmap] = useState(null);
+  /** EXIF 1–8 dla warstwy proxy (spójna z miniaturową ścieżką workera, niezależna od głównego canvas). */
+  const [developFastPreviewExifOrientation, setDevelopFastPreviewExifOrientation] = useState(1);
+  /** Tier smart WebP (~2560) — pixel-peep / Loupe (RAM). */
+  const [developSmartPreviewBitmap, setDevelopSmartPreviewBitmap] = useState(null);
+  /** Aktualne punkty krzywej podczas przeciągania — poza cyklem Reacta; silnik czyta dla 1D LUT. */
+  const curveInteractionLiveRef = useRef(null);
 
   return {
     uploadedFile,
@@ -62,6 +72,8 @@ export function useFilmLabWorkbenchState() {
     setSearchQuery,
     activePanel,
     setActivePanel,
+    studioWorkspace,
+    setStudioWorkspace,
     historyRevision,
     setHistoryRevision,
     activeCurveCh,
@@ -120,5 +132,12 @@ export function useFilmLabWorkbenchState() {
     setMetadataViewMode,
     exifMeta,
     setExifMeta,
+    developFastPreviewBitmap,
+    setDevelopFastPreviewBitmap,
+    developFastPreviewExifOrientation,
+    setDevelopFastPreviewExifOrientation,
+    developSmartPreviewBitmap,
+    setDevelopSmartPreviewBitmap,
+    curveInteractionLiveRef,
   };
 }

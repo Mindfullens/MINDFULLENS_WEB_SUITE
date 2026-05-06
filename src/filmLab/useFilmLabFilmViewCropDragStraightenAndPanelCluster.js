@@ -11,7 +11,7 @@ export function useFilmLabFilmViewCropDragStraightenAndPanelCluster({
 }) {
   const filmView = useFilmLabFilmViewCropRectApplyAndDragLayoutCluster(filmViewCropRectApplyAndDragLayoutArgs);
 
-  const { straightenDragOutsideCropArgs, panelNavigationArgs } = straightenPanelArgs;
+  const { straightenDragOutsideCropArgs, panelNavigationArgs, studioWorkspaceArgs } = straightenPanelArgs;
 
   const straightenPanel = useFilmLabStraightenDragOutsideCropAndPanelNavigationCluster({
     straightenDragOutsideCropArgs: {
@@ -20,6 +20,7 @@ export function useFilmLabFilmViewCropDragStraightenAndPanelCluster({
       stopCropDrag: filmView.stopCropDrag,
     },
     panelNavigationArgs,
+    studioWorkspaceArgs,
   });
 
   return {

@@ -15,8 +15,25 @@ coverage
 .turbo
 .cache
 
+# SPIKE outputs (regenerate with npm run spike:psd)
+scripts/spike-psd-output/
+scripts/spike-dng-output/
+
+# Playwright
+/playwright-report/
+/test-results/
+e2e/._*
+
+
 # Logs & OS
 *.log
 npm-debug.log*
 .DS_Store
 ._*
+
+# Playwright / lokalne artefakty testów
+test-results/
+
+# Spike’i skryptów (minimalne DNG/PSD — wygenerowane lokalnie)
+scripts/spike-dng-output/
+scripts/spike-psd-output/
