@@ -1,6 +1,5 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+@config '../tailwind.config.js';
 
 /* Pierwszy focus klawiatury: skok do aplikacji (SPA w #root). */
 .ml-skip-link:not(:focus):not(:focus-visible) {
