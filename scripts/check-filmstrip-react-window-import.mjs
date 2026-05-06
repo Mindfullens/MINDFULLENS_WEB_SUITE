@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
- * Named import z `react-window` potrafi się rozwiązać na `dist/react-window.js` i wywalić Rollupa
- * („FixedSizeList is not exported”). Ten skrypt musi przejść przed `vite build` / `npm run ci`.
+ * Named import z `react-window` potrafi się rozwiązać na `dist/react-window.js` i wywalić Rollupa.
+ * react-window v2 eksportuje `Grid`/`List`, nie `FixedSizeList` — trzymamy namespace import.
+ * Ten skrypt musi przejść przed `vite build` / `npm run ci`.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -27,12 +28,13 @@ const hasBadNamedImport =
   /import\s*\{[^}]*FixedSizeList[^}]*\}\s*from\s*['"]react-window['"]/.test(stripped);
 const hasNamespaceImport =
   /import\s*\*\s*as\s+ReactWindow\s+from\s*['"]react-window['"]/.test(stripped);
+const hasGridBinding = /const\s+Grid\s*=\s*ReactWindow\.Grid\b/.test(stripped);
 
-if (hasBadNamedImport || !hasNamespaceImport) {
+if (hasBadNamedImport || !hasNamespaceImport || !hasGridBinding) {
   console.error(
     `[check-filmstrip-react-window-import] FAIL: ${path.relative(root, file)}\n` +
-      '  Wymagane: import * as ReactWindow from \'react-window\' oraz const List = ReactWindow.FixedSizeList.\n' +
-      '  Named import FixedSizeList psuje build (Rollup + react-window).\n',
+      '  Wymagane: import * as ReactWindow from \'react-window\' oraz const Grid = ReactWindow.Grid.\n' +
+      '  Named import FixedSizeList psuje build (Rollup + react-window); v2 używa Grid/List.\n',
   );
   console.error('--- pierwsze 15 linii ---\n' + src.split(/\r?\n/).slice(0, 15).join('\n') + '\n---');
   process.exit(1);
