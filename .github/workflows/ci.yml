@@ -44,6 +44,11 @@ jobs:
             sed -n '1,30p' "$f" || true
             exit 1
           }
+          grep -q 'libraryListboxSel' "$f" && grep -E -q '\.poll\s*\(' "$f" || {
+            echo "::error::Plik $f jest przestarzały (brak .poll( / libraryListboxSel — stary toHaveAttribute na filmstripie). Zmerguj main."
+            sed -n '20,55p' "$f" || true
+            exit 1
+          }
 
       - name: E2E (Playwright)
         run: npm run test:e2e
