@@ -44,9 +44,10 @@ jobs:
             sed -n '1,30p' "$f" || true
             exit 1
           }
-          grep -q 'libraryListboxSel' "$f" && grep -E -q '\.poll\s*\(' "$f" || {
-            echo "::error::Plik $f jest przestarzały (brak .poll( / libraryListboxSel — stary toHaveAttribute na filmstripie). Zmerguj main."
-            sed -n '20,55p' "$f" || true
+          grep -q 'libraryListboxSel' "$f" && grep -E -q '\.poll\s*\(' "$f" \
+            && grep -q '.film-lab-filmstrip-cell[data-asset-id]' "$f" || {
+            echo "::error::Plik $f jest przestarzały (brak poll / libraryListboxSel / komórek filmstripu). Zmerguj main."
+            sed -n '20,70p' "$f" || true
             exit 1
           }
 

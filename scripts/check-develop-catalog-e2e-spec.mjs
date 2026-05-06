@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Zapobiega uruchamianiu Playwright na przestarzałym specu (np. `toHaveAttribute` na ukrytym filmstripie).
- * Uruchamiane przez npm (`pretest:e2e`) — działa w CI bez aktualizacji workflow YAML.
+ * Wywoływane na początku `npm run test:e2e` (nie tylko przez npm lifecycle `pretest`).
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -20,10 +20,11 @@ try {
 
 /** W specie Playwright bywa `await expect` + nowa linia + `.poll(` — nie ma dosłownego `expect.poll`. */
 const hasPoll = /\.poll\s*\(/.test(src);
-if (!src.includes('libraryListboxSel') || !hasPoll) {
+const hasLibraryCellPoll = src.includes('.film-lab-filmstrip-cell[data-asset-id]');
+if (!src.includes('libraryListboxSel') || !hasPoll || !hasLibraryCellPoll) {
   console.error(
-    `[check-develop-catalog-e2e-spec] FAIL: ${path.relative(root, f)} — brak oczekiwanego poll na data-asset-count (libraryListboxSel / .poll().\n` +
-      '  Zmerguj commit z main (test(e2e): poll data-asset-count …).',
+    `[check-develop-catalog-e2e-spec] FAIL: ${path.relative(root, f)} — wymagane: libraryListboxSel + .poll( + poll komórek .film-lab-filmstrip-cell[data-asset-id].\n` +
+      '  Zmerguj origin/main (poll zamiast expect(filmstrip).toHaveAttribute).',
   );
   process.exit(1);
 }
