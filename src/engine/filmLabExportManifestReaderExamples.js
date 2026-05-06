@@ -31,6 +31,10 @@ export const FILM_LAB_EXPORT_MANIFEST_DIGEST_READER_EXAMPLES = {
     'PSD + includeBeforeAfter + includeRecipeJson: runtime also emits before_recipe.json (variant before_recipe) after the before image, then after_recipe.json (useFilmLabEngine.exportImage / batchProcessor).',
     'PSD + includeLocalMaskPng: mask sidecar is always image/png (same as raster); with includeRecipeJson runtime adds mask_recipe.json then after_recipe.json after the mask block.',
     'PSD + before + mask + includeRecipeJson: artifact order is after (PSD), before (JPEG), before_recipe, mask (PNG), mask_recipe, after_recipe (useFilmLabEngine.exportImage / batchProcessor).',
+    'DNG variant B may append depth sidecars: depth_proxy (JSON contract) and optional depth_proxy_data (.f32 Float32 payload) when ONNX depth buffer is available in single export.',
+    'after_recipe JSON carries depth trace in export block for variant=after: export.depthTraceVersion=1 + export.depthMapSource + export.depthProxyDigest.',
+    'Live manifest.export includes depth diagnostics: export.depthProxyPresent (bool) and export.depthProxyVariant (none|json|json+f32).',
+    'Migration: older manifests may omit export.depthProxyVariant; readers should derive fallback from artifacts (depth_proxy -> json, depth_proxy+depth_proxy_data -> json+f32, none otherwise).',
   ],
   artifactRowPrimary: {
     variant: 'after',
@@ -229,6 +233,41 @@ export const FILM_LAB_EXPORT_MANIFEST_DIGEST_READER_EXAMPLES = {
         },
       ],
     },
+    singleDngVariantBWithDepthSidecars: {
+      mode: 'single',
+      export: {
+        includeBeforeAfter: false,
+        includeLocalMaskPng: false,
+        includeRecipeJson: true,
+        fileFormat: 'dng',
+      },
+      artifacts: [
+        {
+          variant: 'after',
+          artifactRole: 'primary',
+          fileName: 'mindfullens_example_after.dng',
+          mimeType: 'image/x-adobe-dng',
+        },
+        {
+          variant: 'depth_proxy',
+          artifactRole: 'sidecar',
+          fileName: 'mindfullens_example_depth_proxy.json',
+          mimeType: 'application/json',
+        },
+        {
+          variant: 'depth_proxy_data',
+          artifactRole: 'sidecar',
+          fileName: 'mindfullens_example_depth_proxy.f32',
+          mimeType: 'application/octet-stream',
+        },
+        {
+          variant: 'after_recipe',
+          artifactRole: 'sidecar',
+          fileName: 'mindfullens_example_after_recipe.json',
+          mimeType: 'application/json',
+        },
+      ],
+    },
     singleJpegWithLossyQualityNoRecipe: {
       mode: 'single',
       export: {
@@ -393,6 +432,35 @@ export const FILM_LAB_EXPORT_MANIFEST_DIGEST_READER_EXAMPLES = {
           artifactRole: 'primary',
           fileName: 'mindfullens_frame_001_after.dng',
           mimeType: 'image/x-adobe-dng',
+        },
+        {
+          variant: 'after_recipe',
+          artifactRole: 'sidecar',
+          fileName: 'mindfullens_frame_001_after_recipe.json',
+          mimeType: 'application/json',
+        },
+      ],
+    },
+    batchDngVariantBWithDepthSidecar: {
+      mode: 'batch',
+      export: {
+        includeBeforeAfter: false,
+        includeLocalMaskPng: false,
+        includeRecipeJson: true,
+        fileFormat: 'dng',
+      },
+      artifacts: [
+        {
+          variant: 'after',
+          artifactRole: 'primary',
+          fileName: 'mindfullens_frame_001_after.dng',
+          mimeType: 'image/x-adobe-dng',
+        },
+        {
+          variant: 'depth_proxy',
+          artifactRole: 'sidecar',
+          fileName: 'mindfullens_frame_001_depth_proxy.json',
+          mimeType: 'application/json',
         },
         {
           variant: 'after_recipe',

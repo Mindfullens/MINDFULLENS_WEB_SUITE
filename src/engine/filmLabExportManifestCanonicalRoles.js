@@ -15,7 +15,7 @@ export function canonicalFilmLabExportManifestArtifactRoleForVariant(variant) {
   if (v === 'mask') {
     return 'aux-mask';
   }
-  if (v === 'before' || v.includes('recipe')) {
+  if (v === 'before' || v.includes('recipe') || v === 'depth_proxy' || v === 'depth_proxy_data') {
     return 'sidecar';
   }
   return null;

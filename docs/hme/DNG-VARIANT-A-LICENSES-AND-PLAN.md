@@ -7,6 +7,13 @@
 
 **Disclaimer:** to nie jest porada prawna.
 
+### API dla integratorów (manifest / after_recipe)
+
+Jeśli integrator czyta eksporty z różnych rewizji kontraktu, użyj noty:
+- [`EXPORT-MANIFEST-DEPTH-COMPAT-API.md`](EXPORT-MANIFEST-DEPTH-COMPAT-API.md)
+
+Dokument opisuje adapter `normalizeLegacyManifestDepthDiagnostics(...)`, fallback dla starszych manifestów oraz stabilny odczyt pól depth trace.
+
 ### Compliance i release (poza samym kodem)
 
 1. **Przegląd prawny / sign-off compliance** — przed pierwszym **publicznym** releasem produktu, który **wysyła do użytkownika bundel frontowy zawierający ścieżkę zapisu DNG** (derivative light: `utif` / `filmLabExportDngVariantA.js` w artefaktach buildu Vite). Dotyczy to **polityki licencji OSS w bundlu**, ewentualnych zastrzeżeń dystrybucji oraz modelu produktu (web / źródło); realizacja **wewnętrzna** (dział prawny lub compliance). Ta bramka jest zsynchronizowana z nieodhaczonym polem **„Licencje (formalny sign-off)”** w [`EXPORT-PSD-DNG-SPIKE.md`](EXPORT-PSD-DNG-SPIKE.md) **§9**. Sam merge do repo **nie** zastępuje tego kroku.

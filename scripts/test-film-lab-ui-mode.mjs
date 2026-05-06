@@ -3,6 +3,9 @@
  * i aktualną listą zakładek w `src/filmLab/studioWorkspaceTabs.js`.
  */
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { STUDIO_WORKSPACE_IDS, STUDIO_WORKSPACE_TABS } from '../src/filmLab/studioWorkspaceTabs.js';
 import {
   clampStudioWorkspaceTabForUiMode,
@@ -28,5 +31,29 @@ for (const id of STUDIO_WORKSPACE_IDS) {
   assert.equal(resolveStudioWorkspaceForUiMode(id, 'pro'), id);
   assert.equal(clampStudioWorkspaceTabForUiMode(id, 'simple'), id);
 }
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const rightPanelSource = fs.readFileSync(path.join(root, 'src/FilmLabRightPanel.jsx'), 'utf8');
+
+assert.match(
+  rightPanelSource,
+  /section\.maskStudioHybrid/,
+  'Hybrid Mask Studio intent entrypoint should be present in right panel'
+);
+assert.match(
+  rightPanelSource,
+  /section\.panel10WorkflowQc/,
+  'Workflow and QC panel section should be present in right panel'
+);
+assert.match(
+  rightPanelSource,
+  /snapshotSave|snapshotApply/,
+  'Workflow QC should expose snapshot save/apply actions'
+);
+assert.match(
+  rightPanelSource,
+  /section\.panelJDepthExport/,
+  'Panel J depth/export roadmap section should be present in right panel'
+);
 
 console.log('film-lab-ui-mode tests OK');

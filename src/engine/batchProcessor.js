@@ -19,14 +19,19 @@ import {
   manifestLossyQualityForFilmLabExport,
   normalizeFilmLabExportFileFormat,
 } from './filmLabExportFormats.js';
+import { resolveFilmLabDngVariantFromEnv } from './filmLabExportDngVariantB.js';
 import { applyOutputSharpening } from './outputSharpening.js';
+import { buildDepthProxySidecarJsonBytes } from './filmLabDepthExportSidecar.js';
 import { ingestUploadSource } from './pipeline/ingestSource.js';
 import { buildBatchPerfContext, logBatchPerfSummary, measureAsync, recordBatchPerfFile, IS_BATCH_PERF_ENABLED } from './batchPerf.js';
 import { SERVICE_BUILD_LABEL, SERVICE_BUILD_TAG, VIEWPORT_BUILD_MARKER } from '../filmLab/buildInfo.js';
 import { buildFilmLabExportManifestArtifactRow } from './filmLabExportManifestArtifact.js';
 import {
   attachFilmLabExportManifestDigest,
+  buildFilmLabExportManifestExportBlock,
   buildFilmLabExportManifestRootBase,
+  resolveFilmLabExportDepthDiagnostics,
+  warnFilmLabExportDepthDiagnosticsCompatibility,
 } from './filmLabExportManifestHelpers.js';
 
 async function sha256HexFromBytes(bytes) {
@@ -261,6 +266,14 @@ export async function processBatch({
         }
         if (batchExportAsDng) {
           applyOutputSharpening(exportContext, exportCanvas.width, exportCanvas.height, sharpeningStrength);
+          const dngVariant = resolveFilmLabDngVariantFromEnv();
+          if (dngVariant === 'b') {
+            const { encodeFilmLabExportDngVariantBFromCanvas } = await import('./filmLabExportDngVariantB.js');
+            return encodeFilmLabExportDngVariantBFromCanvas(exportCanvas, {
+              depthMapSource: 'batch',
+              pipelineKind,
+            });
+          }
           const { encodeFilmLabExportDngDerivativeLightFromCanvas } = await import('./filmLabExportDngVariantA.js');
           return encodeFilmLabExportDngDerivativeLightFromCanvas(exportCanvas);
         }
@@ -274,6 +287,7 @@ export async function processBatch({
       });
       const encoded = encodeTimed.result;
       const outputName = `mindfullens_${baseName}_${sizeProfile}.${encoded.extension}`;
+      const dngVariant = batchExportAsDng ? resolveFilmLabDngVariantFromEnv() : 'a';
 
       zip.file(outputName, encoded.bytes, { binary: true });
       manifestEntries.push(
@@ -289,6 +303,31 @@ export async function processBatch({
           sha256HexFromBytes,
         })
       );
+      if (batchExportAsDng && dngVariant === 'b') {
+        const depthJsonBytes = buildDepthProxySidecarJsonBytes({
+          dngVariant: 'b',
+          depthMapSource: 'batch',
+          width: source.width,
+          height: source.height,
+          pipelineKind,
+          hasBinaryProxy: false,
+        });
+        const depthJsonName = `mindfullens_${baseName}_${sizeProfile}_depth_proxy.json`;
+        zip.file(depthJsonName, depthJsonBytes, { binary: true });
+        manifestEntries.push(
+          await buildFilmLabExportManifestArtifactRow({
+            sourceName: file.name,
+            variant: 'depth_proxy',
+            artifactRole: 'sidecar',
+            fileName: depthJsonName,
+            mimeType: 'application/json',
+            bytes: depthJsonBytes,
+            exportSessionId,
+            pipelineKind,
+            sha256HexFromBytes,
+          })
+        );
+      }
 
       if (includeBeforeAfter && typeof buildBeforeImageData === 'function') {
         const beforeData = buildBeforeImageData(source);
@@ -319,6 +358,7 @@ export async function processBatch({
               variant: 'before',
               artifactName: beforeArtifactName,
               artifactMimeType: beforeTimed.result.mimeType,
+              depthProxyPresent: batchExportAsDng && dngVariant === 'b',
             });
             if (beforeRecipeObject && typeof beforeRecipeObject === 'object') {
               const beforeRecipeBytes = new TextEncoder().encode(JSON.stringify(beforeRecipeObject, null, 2));
@@ -370,6 +410,7 @@ export async function processBatch({
               variant: 'mask',
               artifactName: maskArtifactName,
               artifactMimeType: 'image/png',
+              depthProxyPresent: batchExportAsDng && dngVariant === 'b',
             });
             if (maskRecipeObject && typeof maskRecipeObject === 'object') {
               const maskRecipeBytes = new TextEncoder().encode(JSON.stringify(maskRecipeObject, null, 2));
@@ -402,6 +443,7 @@ export async function processBatch({
           variant: 'after',
           artifactName: outputName,
           artifactMimeType: encoded.mimeType,
+          depthProxyPresent: batchExportAsDng && dngVariant === 'b',
         });
         if (recipeObject && typeof recipeObject === 'object') {
           const recipeBytes = new TextEncoder().encode(JSON.stringify(recipeObject, null, 2));
@@ -474,6 +516,7 @@ export async function processBatch({
   }
 
   const batchManifestLossyQ = manifestLossyQualityForFilmLabExport(normalizedFormat, lossyQuality);
+  const depthDiag = resolveFilmLabExportDepthDiagnostics(null, manifestEntries);
   const batchManifest = {
     ...buildFilmLabExportManifestRootBase({
       moduleName: 'batchProcessor.processBatch',
@@ -484,18 +527,21 @@ export async function processBatch({
       serviceBuildLabel: SERVICE_BUILD_LABEL,
       viewportBuildMarker: VIEWPORT_BUILD_MARKER,
     }),
-    export: {
+    export: buildFilmLabExportManifestExportBlock({
+      depthProxyVariant: depthDiag.depthProxyVariant,
       sizeProfile,
       fileFormat: normalizedFormat,
       pipelineKind,
+      depthProxyPresent: depthDiag.depthProxyPresent,
       includeLocalMaskPng,
       includeBeforeAfter,
       includeRecipeJson,
       totalSources: total,
       exportedSources: addedCount,
-      ...(batchManifestLossyQ !== undefined ? { lossyQuality: batchManifestLossyQ } : {}),
-    },
+      lossyQuality: batchManifestLossyQ,
+    }),
   };
+  warnFilmLabExportDepthDiagnosticsCompatibility(batchManifest, 'batchProcessor.processBatch');
   await attachFilmLabExportManifestDigest(batchManifest, { sha256HexFromBytes });
   zip.file(
     `mindfullens_batch_${sizeProfile}_manifest.json`,

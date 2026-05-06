@@ -11,10 +11,19 @@ import {
   FILM_LAB_EXPORT_MANIFEST_SCHEMA_REFS,
 } from '../src/engine/filmLabExportManifestConstants.js';
 import {
+  assertFilmLabExportDepthDiagnosticsCompatibility,
   attachFilmLabExportManifestDigest,
+  buildFilmLabExportManifestExportBlock,
   FILM_LAB_EXPORT_MANIFEST_DIGEST_VALIDATOR_HINTS,
   buildFilmLabExportManifestRootBase,
+  computeFilmLabDepthProxyVariant,
   computeFilmLabExportManifestCapabilities,
+  hasFilmLabDepthProxyArtifacts,
+  normalizeLegacyManifestDepthDiagnostics,
+  resolveFilmLabExportDepthDiagnostics,
+  upgradeLegacyAfterRecipeDepthTrace,
+  validateFilmLabExportDepthDiagnosticsCompatibility,
+  warnFilmLabExportDepthDiagnosticsCompatibility,
 } from '../src/engine/filmLabExportManifestHelpers.js';
 import {
   assertFilmLabExportOptionalScenariosSemantics,
@@ -122,6 +131,179 @@ assert.deepEqual(
   ],
   'root base helper should keep canonical capability order for after-only manifests'
 );
+const rootBaseDepthProbe = buildFilmLabExportManifestRootBase({
+  moduleName: 'test.exportManifest.rootBaseDepthProbe',
+  mode: 'single',
+  exportSessionId: '00000000-0000-4000-8000-000000000000',
+  artifactEntries: [
+    { variant: 'after', artifactRole: 'primary' },
+    { variant: 'depth_proxy', artifactRole: 'sidecar' },
+  ],
+  serviceBuildTag: 'test-build-tag',
+  serviceBuildLabel: 'test-build-label',
+  viewportBuildMarker: 'test-marker',
+});
+assert.ok(
+  rootBaseDepthProbe.capabilities.includes('export.depth.proxy'),
+  'root base helper should include export.depth.proxy capability when depth sidecars are present'
+);
+assert.equal(
+  hasFilmLabDepthProxyArtifacts([{ variant: 'after' }, { variant: 'depth_proxy' }]),
+  true,
+  'depthProxyPresent helper should detect depth_proxy variant'
+);
+assert.equal(
+  hasFilmLabDepthProxyArtifacts([{ variant: 'after' }, { variant: 'after_recipe' }]),
+  false,
+  'depthProxyPresent helper should be false without depth variants'
+);
+assert.equal(
+  computeFilmLabDepthProxyVariant([{ variant: 'after' }]),
+  'none',
+  'depthProxyVariant helper should return none without depth variants'
+);
+assert.equal(
+  computeFilmLabDepthProxyVariant([{ variant: 'after' }, { variant: 'depth_proxy' }]),
+  'json',
+  'depthProxyVariant helper should return json when only depth_proxy is present'
+);
+assert.equal(
+  computeFilmLabDepthProxyVariant([{ variant: 'after' }, { variant: 'depth_proxy' }, { variant: 'depth_proxy_data' }]),
+  'json+f32',
+  'depthProxyVariant helper should return json+f32 when both depth variants are present'
+);
+assert.deepEqual(
+  resolveFilmLabExportDepthDiagnostics({}, [{ variant: 'after' }, { variant: 'depth_proxy' }]),
+  { depthProxyPresent: true, depthProxyVariant: 'json' },
+  'depth diagnostics fallback should derive json variant for legacy manifests without export.depthProxyVariant'
+);
+assert.equal(
+  validateFilmLabExportDepthDiagnosticsCompatibility({
+    artifacts: [{ variant: 'after' }, { variant: 'depth_proxy' }],
+    export: { depthProxyVariant: 'none' },
+  }),
+  "export.depthProxyVariant='none' cannot coexist with depth_proxy/depth_proxy_data artifacts",
+  'reader validator should reject depth artifacts when export.depthProxyVariant=none'
+);
+assert.equal(
+  validateFilmLabExportDepthDiagnosticsCompatibility({
+    artifacts: [{ variant: 'after' }],
+    export: { depthProxyVariant: 'json' },
+  }),
+  "export.depthProxyVariant='json|json+f32' requires depth_proxy/depth_proxy_data artifacts",
+  'reader validator should reject json/json+f32 variant without depth artifacts'
+);
+assert.equal(
+  validateFilmLabExportDepthDiagnosticsCompatibility({
+    artifacts: [{ variant: 'after' }, { variant: 'depth_proxy' }],
+    export: { depthProxyVariant: 'json+f32' },
+  }),
+  "export.depthProxyVariant='json+f32' requires depth_proxy_data artifact",
+  'reader validator should reject json+f32 without depth_proxy_data artifact'
+);
+assert.deepEqual(
+  resolveFilmLabExportDepthDiagnostics(
+    { depthProxyVariant: 'json+f32' },
+    [{ variant: 'after' }, { variant: 'depth_proxy' }]
+  ),
+  { depthProxyPresent: true, depthProxyVariant: 'json' },
+  'depth diagnostics resolver should degrade json+f32 to json when .f32 artifact is missing'
+);
+assert.equal(
+  assertFilmLabExportDepthDiagnosticsCompatibility({
+    artifacts: [{ variant: 'after' }, { variant: 'depth_proxy' }, { variant: 'depth_proxy_data' }],
+    export: { depthProxyVariant: 'json+f32' },
+  }, { label: 'test.strict.ok' }),
+  true,
+  'strict validator should pass on consistent manifest'
+);
+assert.throws(
+  () =>
+    assertFilmLabExportDepthDiagnosticsCompatibility(
+      {
+        artifacts: [{ variant: 'after' }, { variant: 'depth_proxy' }],
+        export: { depthProxyVariant: 'json+f32' },
+      },
+      { label: 'test.strict.fail' }
+    ),
+  /\[test\.strict\.fail\].*requires depth_proxy_data artifact/
+);
+const strictVsWarnFixture = {
+  artifacts: [{ variant: 'after' }, { variant: 'depth_proxy' }],
+  export: { depthProxyVariant: 'json+f32' },
+};
+const warnReason = warnFilmLabExportDepthDiagnosticsCompatibility(strictVsWarnFixture, 'test.warn.strict', { silent: true });
+assert.equal(
+  warnReason,
+  "export.depthProxyVariant='json+f32' requires depth_proxy_data artifact",
+  'warn mode should return reason and allow continuation'
+);
+assert.throws(
+  () => assertFilmLabExportDepthDiagnosticsCompatibility(strictVsWarnFixture, { label: 'test.strict.same-fixture' }),
+  /\[test\.strict\.same-fixture\].*requires depth_proxy_data artifact/,
+  'strict mode should throw on same fixture where warn mode only reports reason'
+);
+assert.equal(
+  warnFilmLabExportDepthDiagnosticsCompatibility({
+    artifacts: [{ variant: 'after' }, { variant: 'depth_proxy' }],
+    export: { depthProxyVariant: 'none' },
+  }, 'test.reader', { silent: true }),
+  "export.depthProxyVariant='none' cannot coexist with depth_proxy/depth_proxy_data artifacts",
+  'warning hook should return incompatibility reason for invalid depth diagnostics'
+);
+const exportBlockOrderProbe = buildFilmLabExportManifestExportBlock({
+  depthProxyVariant: 'json',
+  sizeProfile: 'full',
+  fileFormat: 'dng',
+  pipelineKind: 'webgl2',
+  depthProxyPresent: true,
+  includeLocalMaskPng: false,
+  includeBeforeAfter: false,
+  includeRecipeJson: true,
+  lossyQuality: undefined,
+});
+assert.deepEqual(
+  Object.keys(exportBlockOrderProbe),
+  [
+    'depthProxyVariant',
+    'sizeProfile',
+    'fileFormat',
+    'pipelineKind',
+    'depthProxyPresent',
+    'includeLocalMaskPng',
+    'includeBeforeAfter',
+    'includeRecipeJson',
+  ],
+  'manifest.export key order should remain stable for digest shape'
+);
+const legacyUpgraded = upgradeLegacyAfterRecipeDepthTrace(
+  {
+    export: {},
+    artifacts: [{ variant: 'after' }, { variant: 'depth_proxy' }],
+  },
+  {
+    export: {
+      variant: 'after',
+      artifactName: 'mindfullens_example_after.dng',
+    },
+  }
+);
+assert.equal(legacyUpgraded?.export?.depthMapSource, 'luminance');
+assert.equal(legacyUpgraded?.export?.depthProxyDigest, '');
+assert.equal(legacyUpgraded?.export?.depthTraceVersion, 1);
+const normalizedLegacy = normalizeLegacyManifestDepthDiagnostics(
+  {
+    export: {},
+    artifacts: [{ variant: 'after' }, { variant: 'depth_proxy' }],
+  },
+  {
+    export: { variant: 'after' },
+  }
+);
+assert.equal(normalizedLegacy.manifest?.export?.depthProxyPresent, true);
+assert.equal(normalizedLegacy.manifest?.export?.depthProxyVariant, 'json');
+assert.equal(normalizedLegacy.afterRecipe?.export?.depthMapSource, 'luminance');
+assert.equal(normalizedLegacy.afterRecipe?.export?.depthTraceVersion, 1);
 assert.deepEqual(
   Object.keys(rootBaseProbe),
   [
@@ -259,6 +441,21 @@ function assertScenarioArtifacts(name, expectations) {
   assert.deepEqual(variants, expectations.variants, `${name}: artifact variants mismatch`);
 }
 
+function assertDepthProxyCrossCheckOnScenario(name) {
+  const scenario = examples.optionalScenarios?.[name];
+  assert.ok(scenario, `Missing optional scenario for depth cross-check: ${name}`);
+  const variants = scenario.artifacts.map((a) => String(a.variant ?? ''));
+  const hasDepthProxy = variants.includes('depth_proxy') || variants.includes('depth_proxy_data');
+  const hasAfterRecipe = variants.includes('after_recipe');
+  if (hasDepthProxy && hasAfterRecipe) {
+    assert.equal(
+      Boolean(scenario.export.includeRecipeJson),
+      true,
+      `${name}: depth_proxy/depth_proxy_data requires includeRecipeJson=true when after_recipe is present`
+    );
+  }
+}
+
 function deriveCapabilitiesFromScenario(scenario) {
   const caps = [
     'manifest.integrity.sha256',
@@ -274,6 +471,9 @@ function deriveCapabilitiesFromScenario(scenario) {
   }
   if (variants.includes('mask')) {
     caps.push('export.mask.alpha');
+  }
+  if (variants.includes('depth_proxy') || variants.includes('depth_proxy_data')) {
+    caps.push('export.depth.proxy');
   }
   if (variants.some((v) => String(v).includes('recipe'))) {
     caps.push('manifest.recipe.sidecar');
@@ -379,6 +579,8 @@ function assertMimeAndExtensionConsistency(name) {
       assert.equal(ext, 'webp', `${name}: webp mime must use .webp (${artifact.fileName})`);
     } else if (mime === 'application/json') {
       assert.equal(ext, 'json', `${name}: json mime must use .json (${artifact.fileName})`);
+    } else if (mime === 'application/octet-stream') {
+      assert.equal(ext, 'f32', `${name}: octet-stream depth payload must use .f32 (${artifact.fileName})`);
     } else if (mime === 'application/vnd.adobe.photoshop') {
       assert.equal(ext, 'psd', `${name}: psd mime must use .psd (${artifact.fileName})`);
     } else if (mime === 'image/x-adobe-dng') {
@@ -501,7 +703,12 @@ function assertAllowedVariantNames(name) {
   for (const artifact of scenario.artifacts) {
     const variant = String(artifact.variant || '');
     const isAllowed =
-      variant === 'after' || variant === 'before' || variant === 'mask' || variant.endsWith('_recipe');
+      variant === 'after'
+      || variant === 'before'
+      || variant === 'mask'
+      || variant === 'depth_proxy'
+      || variant === 'depth_proxy_data'
+      || variant.endsWith('_recipe');
     assert.ok(isAllowed, `${name}: unsupported variant name in optional scenario: ${variant}`);
   }
 }
@@ -523,6 +730,9 @@ for (const scenarioName of OPTIONAL_SCENARIO_NAMES) {
   if (variants.includes('mask')) {
     mustInclude.push('export.mask.alpha');
   }
+  if (variants.includes('depth_proxy') || variants.includes('depth_proxy_data')) {
+    mustInclude.push('export.depth.proxy');
+  }
   if (variants.some((v) => String(v).includes('recipe'))) {
     mustInclude.push('manifest.recipe.sidecar');
   }
@@ -534,6 +744,9 @@ for (const scenarioName of OPTIONAL_SCENARIO_NAMES) {
   if (!variants.includes('mask')) {
     mustNotInclude.push('export.mask.alpha');
   }
+  if (!variants.includes('depth_proxy') && !variants.includes('depth_proxy_data')) {
+    mustNotInclude.push('export.depth.proxy');
+  }
   if (!variants.some((v) => String(v).includes('recipe'))) {
     mustNotInclude.push('manifest.recipe.sidecar');
   }
@@ -542,6 +755,7 @@ for (const scenarioName of OPTIONAL_SCENARIO_NAMES) {
   assertMimeAndExtensionConsistency(scenarioName);
   assertArtifactRequiredFields(scenarioName);
   assertUniqueArtifactFileNames(scenarioName);
+  assertDepthProxyCrossCheckOnScenario(scenarioName);
 }
 
 assertArtifactIdentityPlaceholders();
@@ -584,9 +798,51 @@ function assertBeforeImageManifestRoleIsSidecar({ source, label }) {
   assert.ok(found, `${label}: expected at least one manifest push containing variant before`);
 }
 
+function assertDepthProxyManifestRoleIsSidecar({ source, label }) {
+  const patterns =
+    label === 'batchProcessor.processBatch'
+      ? [/manifestEntries\.push\([\s\S]*?variant:\s*'depth_proxy',[\s\S]*?\)\);/g]
+      : [/manifestArtifacts\.push\([\s\S]*?variant:\s*'depth_proxy',[\s\S]*?\)\);/g];
+
+  let found = false;
+  for (const re of patterns) {
+    for (const match of source.matchAll(re)) {
+      const block = match[0] ?? '';
+      found = true;
+      assert.match(
+        block,
+        /variant:\s*'depth_proxy',[\s\S]*?artifactRole:\s*'sidecar'/m,
+        `${label}: depth_proxy manifest entry must use artifactRole sidecar`
+      );
+    }
+  }
+  assert.ok(found, `${label}: expected manifest entry containing variant depth_proxy`);
+}
+
+function assertAfterRecipeDepthTraceFields({ source, label }) {
+  assert.match(
+    source,
+    /if \(variant === 'after'\) \{[\s\S]*?exportBlock\.depthMapSource[\s\S]*?exportBlock\.depthProxyDigest[\s\S]*?\}/m,
+    `${label}: export recipe snapshot should expose depthMapSource + depthProxyDigest for after variant`
+  );
+  assert.match(
+    source,
+    /const depthMapSourceForAfterRecipe = String\(adjustments\?\.depthMapSource \?\? 'luminance'\);[\s\S]*?depthProxyDigestForAfterRecipe[\s\S]*?depthMapSource:\s*depthMapSourceForAfterRecipe[\s\S]*?depthProxyDigest:\s*depthProxyDigestForAfterRecipe/m,
+    `${label}: after_recipe payload should pass depthMapSource/depthProxyDigest into buildExportRecipeSnapshot`
+  );
+  assert.match(
+    source,
+    /buildRecipeObject:[\s\S]*?buildExportRecipeSnapshot\({[\s\S]*?depthMapSource:\s*String\(adjustments\?\.depthMapSource \?\? 'luminance'\),[\s\S]*?depthProxyDigest:[\s\S]*?depthOnnxExternalRef\.current\?\.digest/m,
+    `${label}: batch recipe builder should forward depthMapSource/depthProxyDigest for after recipe trace/debug`
+  );
+}
+
 const engineSource = await readRepoUtf8('src/engine/useFilmLabEngine.js');
 const batchSource = await readRepoUtf8('src/engine/batchProcessor.js');
 assertBeforeImageManifestRoleIsSidecar({ source: engineSource, label: 'useFilmLabEngine.exportImage' });
 assertBeforeImageManifestRoleIsSidecar({ source: batchSource, label: 'batchProcessor.processBatch' });
+assertDepthProxyManifestRoleIsSidecar({ source: engineSource, label: 'useFilmLabEngine.exportImage' });
+assertDepthProxyManifestRoleIsSidecar({ source: batchSource, label: 'batchProcessor.processBatch' });
+assertAfterRecipeDepthTraceFields({ source: engineSource, label: 'useFilmLabEngine.exportImage' });
 
 console.log('PASS export manifest digest reader example');

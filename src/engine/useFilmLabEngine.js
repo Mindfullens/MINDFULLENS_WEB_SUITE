@@ -126,10 +126,16 @@ import {
   manifestLossyQualityForFilmLabExport,
   normalizeFilmLabExportFileFormat,
 } from './filmLabExportFormats.js';
+import { resolveFilmLabDngVariantFromEnv } from './filmLabExportDngVariantB.js';
 import { applyOutputSharpening } from './outputSharpening.js';
+import { buildDepthProxyBinaryBytes, buildDepthProxySidecarJsonBytes } from './filmLabDepthExportSidecar.js';
 import {
   attachFilmLabExportManifestDigest,
+  buildFilmLabExportManifestExportBlock,
   buildFilmLabExportManifestRootBase,
+  hasFilmLabDepthProxyArtifacts,
+  resolveFilmLabExportDepthDiagnostics,
+  warnFilmLabExportDepthDiagnosticsCompatibility,
 } from './filmLabExportManifestHelpers.js';
 import { activeCropRectNormFromAdjustments, recomputeAiAssistMasksHeuristic } from '../filmLab/adaptivePresetV1.js';
 import { ENGINE_PREVIEW_INTERACTION_MASK_BRUSH } from '../filmLab/filmLabMaskBrushDamageNormRect.js';
@@ -2591,6 +2597,9 @@ function buildExportRecipeSnapshot({
   variant = 'after',
   artifactName = null,
   artifactMimeType = null,
+  depthMapSource = null,
+  depthProxyDigest = null,
+  depthProxyPresent = false,
 }) {
   const runtimeTier = resolveRuntimeTier(renderDebugInfo);
   const recipeDocument = encodeFlatSnapshotToRecipeDocument({
@@ -2612,6 +2621,11 @@ function buildExportRecipeSnapshot({
     artifactName,
     artifactMimeType,
   };
+  if (variant === 'after') {
+    exportBlock.depthTraceVersion = 1;
+    exportBlock.depthMapSource = depthProxyPresent ? (depthMapSource == null ? null : String(depthMapSource)) : null;
+    exportBlock.depthProxyDigest = depthProxyPresent ? (depthProxyDigest == null ? '' : String(depthProxyDigest)) : null;
+  }
   if (lossyQ !== undefined) {
     exportBlock.lossyQuality = lossyQ;
   }
@@ -8723,6 +8737,8 @@ export function useFilmLabEngine(
 
         let encoded;
         let ff;
+        let dngDepthSidecarJson = null;
+        let dngDepthSidecarBin = null;
 
         if (exportAsPsd) {
           applyOutputSharpening(exportContext, exportCanvas.width, exportCanvas.height, sharpeningStrength);
@@ -8733,8 +8749,31 @@ export function useFilmLabEngine(
           ff = 'psd';
         } else if (exportAsDng) {
           applyOutputSharpening(exportContext, exportCanvas.width, exportCanvas.height, sharpeningStrength);
-          const { encodeFilmLabExportDngDerivativeLightFromCanvas } = await import('./filmLabExportDngVariantA.js');
-          encoded = encodeFilmLabExportDngDerivativeLightFromCanvas(exportCanvas);
+          const dngVariant = resolveFilmLabDngVariantFromEnv();
+          if (dngVariant === 'b') {
+            const { encodeFilmLabExportDngVariantBFromCanvas } = await import('./filmLabExportDngVariantB.js');
+            const depthMapSource = String(adjustments?.depthMapSource ?? 'luminance');
+            const depthProxyDigest =
+              depthMapSource === 'onnx' ? (depthOnnxExternalRef.current?.digest ?? '') : '';
+            encoded = encodeFilmLabExportDngVariantBFromCanvas(exportCanvas, {
+              depthMapSource,
+              depthProxyDigest,
+              pipelineKind,
+            });
+            dngDepthSidecarJson = buildDepthProxySidecarJsonBytes({
+              dngVariant: 'b',
+              depthMapSource,
+              depthProxyDigest,
+              width: exportCanvas.width,
+              height: exportCanvas.height,
+              pipelineKind,
+              hasBinaryProxy: Boolean(depthOnnxExternalRef.current?.buffer instanceof Float32Array),
+            });
+            dngDepthSidecarBin = buildDepthProxyBinaryBytes(depthOnnxExternalRef.current?.buffer);
+          } else {
+            const { encodeFilmLabExportDngDerivativeLightFromCanvas } = await import('./filmLabExportDngVariantA.js');
+            encoded = encodeFilmLabExportDngDerivativeLightFromCanvas(exportCanvas);
+          }
           ff = 'dng';
         } else {
           ff = normalizeFilmLabExportFileFormat(fileFormat);
@@ -8767,6 +8806,38 @@ export function useFilmLabEngine(
             sha256HexFromBytes,
           })
         );
+        if (dngDepthSidecarJson) {
+          const depthJsonName = `mindfullens_${safeFilmName}_depth_proxy.json`;
+          exportEnc.triggerBrowserDownload(dngDepthSidecarJson, 'application/json', depthJsonName);
+          manifestArtifacts.push(
+            await buildFilmLabExportManifestArtifactRow({
+              variant: 'depth_proxy',
+              artifactRole: 'sidecar',
+              fileName: depthJsonName,
+              mimeType: 'application/json',
+              bytes: dngDepthSidecarJson,
+              exportSessionId,
+              pipelineKind,
+              sha256HexFromBytes,
+            })
+          );
+        }
+        if (dngDepthSidecarBin) {
+          const depthBinName = `mindfullens_${safeFilmName}_depth_proxy.f32`;
+          exportEnc.triggerBrowserDownload(dngDepthSidecarBin, 'application/octet-stream', depthBinName);
+          manifestArtifacts.push(
+            await buildFilmLabExportManifestArtifactRow({
+              variant: 'depth_proxy_data',
+              artifactRole: 'sidecar',
+              fileName: depthBinName,
+              mimeType: 'application/octet-stream',
+              bytes: dngDepthSidecarBin,
+              exportSessionId,
+              pipelineKind,
+              sha256HexFromBytes,
+            })
+          );
+        }
 
         if (includeBeforeAfter) {
           const beforeData = transformSourceImageData(
@@ -8897,6 +8968,10 @@ export function useFilmLabEngine(
         }
 
         if (includeRecipeJson) {
+          const depthMapSourceForAfterRecipe = String(adjustments?.depthMapSource ?? 'luminance');
+          const depthProxyDigestForAfterRecipe =
+            depthMapSourceForAfterRecipe === 'onnx' ? (depthOnnxExternalRef.current?.digest ?? '') : '';
+          const depthProxyPresentForAfterRecipe = hasFilmLabDepthProxyArtifacts(manifestArtifacts);
           const recipePayload = buildExportRecipeSnapshot({
             activeFilm,
             adjustments,
@@ -8909,6 +8984,9 @@ export function useFilmLabEngine(
             variant: 'after',
             artifactName: afterArtifactName,
             artifactMimeType: encoded.mimeType,
+            depthMapSource: depthMapSourceForAfterRecipe,
+            depthProxyDigest: depthProxyDigestForAfterRecipe,
+            depthProxyPresent: depthProxyPresentForAfterRecipe,
           });
           const recipeBytes = new TextEncoder().encode(JSON.stringify(recipePayload, null, 2));
           exportEnc.triggerBrowserDownload(
@@ -8933,6 +9011,7 @@ export function useFilmLabEngine(
         // Avoid a second OS "save" dialog after the main export: manifest is for support/debug when sidecars are requested.
         if (includeRecipeJson) {
           const manifestLossyQ = manifestLossyQualityForFilmLabExport(ff, lossyQuality);
+          const depthDiag = resolveFilmLabExportDepthDiagnostics(null, manifestArtifacts);
           const manifestPayload = {
             ...buildFilmLabExportManifestRootBase({
               moduleName: 'useFilmLabEngine.exportImage',
@@ -8947,16 +9026,19 @@ export function useFilmLabEngine(
               id: activeFilm?.id ?? null,
               name: activeFilm?.name ?? null,
             },
-            export: {
+            export: buildFilmLabExportManifestExportBlock({
+              depthProxyVariant: depthDiag.depthProxyVariant,
               sizeProfile,
               fileFormat: ff,
               pipelineKind,
+              depthProxyPresent: depthDiag.depthProxyPresent,
               includeLocalMaskPng,
               includeBeforeAfter,
               includeRecipeJson,
-              ...(manifestLossyQ !== undefined ? { lossyQuality: manifestLossyQ } : {}),
-            },
+              lossyQuality: manifestLossyQ,
+            }),
           };
+          warnFilmLabExportDepthDiagnosticsCompatibility(manifestPayload, 'useFilmLabEngine.exportImage');
           await attachFilmLabExportManifestDigest(manifestPayload, { sha256HexFromBytes });
           const manifestBytes = new TextEncoder().encode(JSON.stringify(manifestPayload, null, 2));
           exportEnc.triggerBrowserDownload(
@@ -9117,6 +9199,7 @@ export function useFilmLabEngine(
               variant = 'after',
               artifactName = null,
               artifactMimeType = null,
+                depthProxyPresent = false,
             }) =>
               buildExportRecipeSnapshot({
                 activeFilm,
@@ -9132,6 +9215,12 @@ export function useFilmLabEngine(
                 variant,
                 artifactName,
                 artifactMimeType,
+                depthMapSource: String(adjustments?.depthMapSource ?? 'luminance'),
+                depthProxyDigest:
+                  String(adjustments?.depthMapSource ?? 'luminance') === 'onnx'
+                    ? (depthOnnxExternalRef.current?.digest ?? '')
+                    : '',
+                depthProxyPresent,
               })
           : null,
         rawBackendPreference,
@@ -9263,6 +9352,7 @@ export function useFilmLabEngine(
 export const __FILMLAB_INTERNALS = Object.freeze({
   buildWorkerAdjustmentsPayload,
   buildFastPreviewAdjustments,
+  buildExportRecipeSnapshot,
   resolveCurveLumaMix,
   IDENTITY_CURVES,
 });
