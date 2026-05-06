@@ -1,6 +1,6 @@
 /**
- * Named import `import { FixedSizeList } from 'react-window'` potrafi się sypać przy bundlu
- * (Rolldown/Rollup: „not exported” z `dist/react-window.js`). Namespace jest interoperacyjny z CJS/ESM.
+ * react-window v2 nie eksportuje już `FixedSizeList` — poziomy filmstrip to `Grid` (1 wiersz × N kolumn).
+ * Named import z pakietu bywa problematyczny przy bundlerze; namespace jest stabilny.
  */
 import * as ReactWindow from 'react-window';
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
@@ -17,7 +17,7 @@ import { isDamPreviewWebgpuPermanent, markDamPreviewWebgpuPermanent } from './fi
 import { useI18n } from '../i18n';
 import { FILMLAB_OPFS_PREVIEW_READY } from './filmLabOpfsPreviewReadyEvent.js';
 
-const List = ReactWindow.FixedSizeList;
+const Grid = ReactWindow.Grid;
 
 const CELL_W = 76;
 const CELL_GAP = 6;
@@ -435,6 +435,11 @@ const FilmstripRow = memo(function FilmstripRow({ index, style, data }) {
   );
 });
 
+/** Adapter: `Grid` przekazuje `columnIndex`; filmstrip to jeden wiersz → indeks assetu = kolumna. */
+const FilmstripGridCell = memo(function FilmstripGridCell({ columnIndex, style, data }) {
+  return <FilmstripRow index={columnIndex} style={style} data={data} />;
+});
+
 /**
  * Filmstrip (Develop / Library): pozioma lista wirtualna (`react-window`),
  * stały rozmiar komórki, overscan ≥ 10 — dekod Worker nie jest przerywany przy scrollu (współdzielony pool),
@@ -455,7 +460,6 @@ export default function FilmLabFilmstripCanvas({
   const emptyHint = t('workspace.library.filmstripEmpty');
   const containerRef = useRef(null);
   const listRef = useRef(null);
-  const outerRef = useRef(null);
   const allowedAssetIdsRef = useRef(new Set());
   /** Zapobiega podwójnemu `scheduleOpfsDamPreviewDecode` dla tego samego `(assetId, previewEpoch)`. */
   const filmstripDecodeInFlightRef = useRef(new Set());
@@ -552,14 +556,6 @@ export default function FilmLabFilmstripCanvas({
       typeof requestAnimationFrame !== 'undefined'
         ? requestAnimationFrame(() => {
             setViewportW(measure());
-            try {
-              const inst = listRef.current;
-              if (inst && typeof inst.resetAfterIndex === 'function') {
-                inst.resetAfterIndex(0, true);
-              }
-            } catch {
-              // noop
-            }
           })
         : 0;
     return () => {
@@ -570,7 +566,7 @@ export default function FilmLabFilmstripCanvas({
   }, [workspaceTabKey]);
 
   useLayoutEffect(() => {
-    const el = outerRef.current;
+    const el = listRef.current?.element;
     if (!el || !Array.isArray(assets) || assets.length === 0) {
       return;
     }
@@ -593,7 +589,7 @@ export default function FilmLabFilmstripCanvas({
     }
     const idx = assets.findIndex((a) => String(a?.id ?? '') === scrollFocusId);
     if (idx >= 0) {
-      listRef.current.scrollToItem(idx, 'smart');
+      listRef.current.scrollToColumn({ index: idx, align: 'smart' });
     }
   }, [scrollFocusId, assetIdsKey, assets, viewportW]);
 
@@ -652,22 +648,19 @@ export default function FilmLabFilmstripCanvas({
       aria-label="Filmstrip"
       data-asset-count={assets.length}
     >
-      <List
+      <Grid
         key={`filmstrip-rw-${assetIdsKey}`}
-        ref={listRef}
-        outerRef={outerRef}
+        gridRef={listRef}
         className="film-lab-filmstrip-rw"
-        layout="horizontal"
-        height={LIST_H}
-        width={listWidth}
-        itemCount={assets.length}
-        itemSize={CELL_STRIDE}
+        columnCount={assets.length}
+        columnWidth={CELL_STRIDE}
+        rowCount={1}
+        rowHeight={LIST_H}
         overscanCount={RW_OVERSCAN}
-        itemData={itemData}
-        itemKey={(index, d) => String(d.assets[index]?.id ?? index)}
-      >
-        {FilmstripRow}
-      </List>
+        cellComponent={FilmstripGridCell}
+        cellProps={{ data: itemData }}
+        style={{ height: LIST_H, width: listWidth }}
+      />
     </div>
   );
 }
