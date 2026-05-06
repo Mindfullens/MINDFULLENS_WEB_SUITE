@@ -72,6 +72,21 @@ jobs:
       - name: Install
         run: npm ci
 
+      - name: Guard — react-window / filmstrip (Rollup „not exported”)
+        run: |
+          set -euo pipefail
+          fs=src/filmLab/FilmLabFilmstripCanvas.jsx
+          grep -q "import \* as ReactWindow from 'react-window'" "$fs" || {
+            echo "::error::$fs na tym refie jest przestarzały (named import FixedSizeList psuje vite build). Zmerguj origin/main z fixami react-window."
+            echo "--- pierwsze linie pliku na runnerze ---"
+            sed -n '1,12p' "$fs"
+            exit 1
+          }
+          grep -q "react-window" vite.config.js && grep -q "resolve:" vite.config.js || {
+            echo "::error::vite.config.js — brak resolve/alias dla react-window. Zmerguj main."
+            exit 1
+          }
+
       - name: CI (lint, tests incl. RAW gate, Vite build, audit)
         run: npm run ci
 
