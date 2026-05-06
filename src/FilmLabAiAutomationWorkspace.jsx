@@ -20,6 +20,29 @@ const EXAMPLE_PRESET = {
   ],
 };
 
+const LEGEND_PRESET_PROFILE_1TO1 = {
+  schema: ADAPTIVE_PRESET_V1_SCHEMA,
+  version: 1,
+  steps: [
+    {
+      type: 'setPatch',
+      patch: {
+        inputWorkflowMode: 'negative_film',
+        filmFormatId: '35mm',
+        strength: 88,
+        pushPullEv: 1,
+        orangeMaskCorrection: 46,
+        filmToneResponseShape: 's_curve',
+        emulsionReciprocityComp: 22,
+        emulsionEdgeAcutance: 12,
+        userGrain: 28,
+        userGrainSize: 38,
+        fade: 9,
+      },
+    },
+  ],
+};
+
 export default function FilmLabAiAutomationWorkspace({
   adjustments,
   updateAdjustment,
@@ -83,6 +106,11 @@ export default function FilmLabAiAutomationWorkspace({
     setAdjustments((cur) => applyAdaptivePresetV1Steps(cur, parsed.preset, cropNorm));
   }, [textarea, setAdjustments, cropNorm]);
 
+  const onApplyLegendPreset = useCallback(() => {
+    setParseMessage('');
+    setAdjustments((cur) => applyAdaptivePresetV1Steps(cur, LEGEND_PRESET_PROFILE_1TO1, cropNorm));
+  }, [setAdjustments, cropNorm]);
+
   const onDownload = useCallback(() => {
     const blob = new Blob([textarea], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -136,6 +164,14 @@ export default function FilmLabAiAutomationWorkspace({
             {t('filmLab.aiAutomation.importFile')}
           </button>
           <input ref={fileImportRef} type="file" accept="application/json,.json" hidden onChange={onImportFile} />
+          <div className="slider-label" style={{ marginTop: 14 }}>
+            {t('filmLab.aiAutomation.legendPresetTitle')}
+          </div>
+          <div className="slider-help">{t('filmLab.aiAutomation.legendPresetHelp')}</div>
+          <button type="button" className="effect-btn" onClick={onApplyLegendPreset}>
+            {t('filmLab.aiAutomation.applyLegendPreset')}
+          </button>
+          <div className="slider-help">{t('filmLab.aiAutomation.legendPresetMap')}</div>
           <div className="slider-label" style={{ marginTop: 14 }}>
             {t('filmLab.aiAutomation.generativeSectionTitle')}
           </div>

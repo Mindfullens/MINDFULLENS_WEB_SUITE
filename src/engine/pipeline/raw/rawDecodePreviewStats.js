@@ -1,6 +1,7 @@
 /** Wspólne statystyki jakości klatki po dekodowaniu (PNG/JPEG w buforze). */
 
-export const DECODE_STATS_MAX_EDGE = 96;
+/** Mniejszy niż pełny podgląd — wystarcza do metryk Jakość / czarny kadr; mniej pikseli = szybszy ingest. */
+export const DECODE_STATS_MAX_EDGE = 64;
 
 function roundStat(value, digits = 4) {
   if (!Number.isFinite(value)) {
@@ -56,13 +57,15 @@ export async function computeDecodeStats(buffer, mimeType = 'image/png') {
       return null;
     }
 
-    const pixelCount = sampleWidth * sampleHeight;
     let lumaSum = 0;
     let nonBlackCount = 0;
     let opaqueCount = 0;
     let zeroAlphaCount = 0;
+    let sampledPixels = 0;
 
-    for (let index = 0; index < data.length; index += 4) {
+    /** Co drugi piksel (w rasterze RGBA) — ~2× mniej pracy, statystyki nadal reprezentatywne. */
+    for (let index = 0; index < data.length; index += 8) {
+      sampledPixels += 1;
       const red = data[index] || 0;
       const green = data[index + 1] || 0;
       const blue = data[index + 2] || 0;
@@ -82,6 +85,7 @@ export async function computeDecodeStats(buffer, mimeType = 'image/png') {
       }
     }
 
+    const pixelCount = Math.max(1, sampledPixels);
     return {
       sampledWidth: sampleWidth,
       sampledHeight: sampleHeight,

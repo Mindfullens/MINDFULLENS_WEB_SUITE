@@ -177,11 +177,11 @@ const aiDoc = encodeFlatSnapshotToRecipeDocument({
         source: 'ai-assist',
         ai: { kind: 'sky', confidence: 0.87, backend: 'worker' },
         enabled: true,
-        mode: 'linear',
+        mode: 'brush',
         opacity: 90,
         blend: 'normal',
         exposure: -10,
-        brush: { strokes: [] },
+        brush: { strokes: [], paths: [] },
         linear: {},
         radial: {},
         luma: {},
@@ -200,7 +200,7 @@ assert.equal(Number(aiDoc.aiIndex.latencyMs?.avg), 96.75);
 assert.equal(Number(aiDoc.recipeStats.aiMaskCount), 1);
 assert.equal(Number(aiDoc.recipeStats.aiAssistLatencyAvgMs), 96.75);
 assert.equal(aiDoc.recipeStats.aiAssistKpi100MsOk, true);
-assert.ok(aiDoc.maskGraphs[0].nodes.some((n) => n.type === 'semantic.linear_gradient.v1'));
+assert.ok(aiDoc.maskGraphs[0].nodes.some((n) => n.type === 'semantic.brush_strokes.v1'));
 assert.ok(aiDoc.maskGraphs[0].nodes.some((n) => n.type === 'semantic.ai_hint.v1'));
 
 const ev = evaluateMaskGraphProjectionStub({ maskGraphs: aiDoc.maskGraphs, width: 800, height: 600 });

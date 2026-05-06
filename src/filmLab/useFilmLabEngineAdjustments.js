@@ -22,7 +22,9 @@ export function useFilmLabEngineAdjustments({
       // In crop panel we preview against the full frame and edit the crop box non-destructively.
       cropBypass: activePanel === 'crop',
       isAdjusting,
-      interactionKind: isAdjusting ? interactionKind : 'idle',
+      interactionKind:
+        adjustments?.enginePreviewInteractionKind ??
+        (isAdjusting ? interactionKind : 'idle'),
     }),
     [
       activePanel,

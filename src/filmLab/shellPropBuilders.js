@@ -2,6 +2,8 @@ export function buildFilmLabGlobalKeydownProps({
   activePanel,
   studioWorkspace,
   hasImage,
+  hasActiveSource,
+  setIsExportModalOpen,
   isStraightenToolArmed,
   isPreviewFullMode,
   showRenderDebugPanel,
@@ -19,6 +21,7 @@ export function buildFilmLabGlobalKeydownProps({
   cycleMetadataViewMode,
   cycleRawLinearStageMode,
   cycleCropOverlayMode,
+  rotateCropOverlay,
   applyAutoExposure,
   applyAutoColor,
   stepZoom,
@@ -34,6 +37,8 @@ export function buildFilmLabGlobalKeydownProps({
     activePanel,
     studioWorkspace,
     hasImage,
+    hasActiveSource,
+    setIsExportModalOpen,
     isStraightenToolArmed,
     isPreviewFullMode,
     showRenderDebugPanel,
@@ -51,6 +56,7 @@ export function buildFilmLabGlobalKeydownProps({
     cycleMetadataViewMode,
     cycleRawLinearStageMode,
     cycleCropOverlayMode,
+    rotateCropOverlay,
     applyAutoExposure,
     applyAutoColor,
     stepZoom,
@@ -84,6 +90,7 @@ export function buildFilmLabToolbarProps({
   isPreviewFullMode,
   togglePreviewFullMode,
   toggleClipping,
+  toggleClipLimiterPreview,
   isMetadataPanelOpen,
   setIsMetadataPanelOpen,
   showRuntimeStatus,
@@ -130,6 +137,7 @@ export function buildFilmLabToolbarProps({
     isPreviewFullMode,
     togglePreviewFullMode,
     toggleClipping,
+    toggleClipLimiterPreview,
     isMetadataPanelOpen,
     onToggleMetadataPanel: () => setIsMetadataPanelOpen((c) => !c),
     showRuntimeStatus,
@@ -208,6 +216,10 @@ export function buildFilmLabCanvasAreaProps({
   metadataFeedback,
   displayedMetadataItems,
   handleFileUpload,
+  developFastPreviewBitmap = null,
+  developFastPreviewExifOrientation = 1,
+  developSmartPreviewBitmap = null,
+  isAdjusting = false,
 }) {
   return {
     studioWorkspace,
@@ -256,11 +268,14 @@ export function buildFilmLabCanvasAreaProps({
     metadataFeedback,
     displayedMetadataItems,
     handleFileUpload,
+    developFastPreviewBitmap,
+    developFastPreviewExifOrientation,
+    developSmartPreviewBitmap,
+    isAdjusting,
   };
 }
 
 export function buildFilmLabRightPanelProps({
-  maskWorkbench,
   rightSidebarRef,
   panelTabs,
   activePanel,
@@ -278,6 +293,7 @@ export function buildFilmLabRightPanelProps({
   resetAdjustments,
   resetSingleAdjustment,
   updateAdjustment,
+  setAdjustments,
   activeCurveCh,
   setActiveCurveCh,
   curvesCanvasRef,
@@ -333,9 +349,12 @@ export function buildFilmLabRightPanelProps({
   activeCropRectNorm,
   hasImage,
   activeFilm,
+  setDoubleExposureOverlay,
+  doubleExposurePlateReady,
+  doubleExposurePlateOrigin,
+  pipelineKind = null,
 }) {
   return {
-    maskWorkbench,
     rightSidebarRef,
     panelTabs,
     activePanel,
@@ -353,6 +372,7 @@ export function buildFilmLabRightPanelProps({
     resetAdjustments,
     resetSingleAdjustment,
     updateAdjustment,
+    setAdjustments,
     activeCurveCh,
     setActiveCurveCh,
     curvesCanvasRef,
@@ -408,6 +428,10 @@ export function buildFilmLabRightPanelProps({
     activeCropRectNorm,
     hasImage,
     activeFilm,
+    setDoubleExposureOverlay,
+    doubleExposurePlateReady,
+    doubleExposurePlateOrigin,
+    pipelineKind,
   };
 }
 export function buildFilmLabProfilesSidebarProps({
@@ -462,6 +486,9 @@ export function buildFilmLabExportModalProps({
   setPendingBatchFiles,
   processBatch,
   exportImage,
+  adjustments,
+  doubleExposurePlateReady,
+  doubleExposurePlateOrigin,
 }) {
   return {
     open: isExportModalOpen,
@@ -472,5 +499,8 @@ export function buildFilmLabExportModalProps({
     },
     processBatch,
     exportImage,
+    adjustments,
+    doubleExposurePlateReady,
+    doubleExposurePlateOrigin,
   };
 }

@@ -68,17 +68,31 @@ function circularHueDistance(a, b) {
  * @returns {number} waga 0–1
  */
 export function computeLocalMaskWeightAtPixel(maskEntry, pixelIdx, red, green, blue) {
-  let maskWeight = maskEntry.buffer ? maskEntry.buffer[pixelIdx] : 0;
+  /**
+   * Geometria maski (pędzel / linear / radial / raster AI) — wyłącznie z bufora.
+   * Brak ważnego bufora = 0 (np. tryb pędzla bez żadnego pociągnięcia), nie „pełna ramka” —
+   * inaczej rubylith i podgląd pokazują całe zdjęcie na niebiesko.
+   */
+  let spatial = 0;
+  const buf = maskEntry.buffer;
+  if (buf instanceof Float32Array && pixelIdx >= 0 && pixelIdx < buf.length) {
+    spatial = clampUnit(buf[pixelIdx]);
+  } else if (maskEntry.mode === 'luma' || maskEntry.mode === 'color') {
+    // Zakres Luma/Barwa bez warstwy geometrycznej = cały kadr (bufor tylko gdy jest pędzel/inna geometria).
+    spatial = 1;
+  }
   if (maskEntry.mode === 'luma') {
     const luma = rgbRec709LumaUnit(red, green, blue);
     const lumaMin = clampUnit(Math.min(maskEntry.lumaMin ?? 0, maskEntry.lumaMax ?? 1));
     const lumaMax = clampUnit(Math.max(maskEntry.lumaMin ?? 0, maskEntry.lumaMax ?? 1));
     const feather = clampUnit(maskEntry.lumaFeather ?? 0.35);
-    const edge = Math.max(0.005, feather * 0.42);
+    const edge = Math.max(0.003, feather * 0.38);
     const left = smoothstep(lumaMin - edge, lumaMin + edge, luma);
     const right = 1 - smoothstep(lumaMax - edge, lumaMax + edge, luma);
-    maskWeight = clampUnit(left * right);
-  } else if (maskEntry.mode === 'color') {
+    const rangeWeight = clampUnit(left * right);
+    return clampUnit(spatial * rangeWeight);
+  }
+  if (maskEntry.mode === 'color') {
     const [hueUnit, sat] = rgbToHsl(red, green, blue);
     const hueDeg = hueUnit * 360;
     const center = ((Number(maskEntry.colorHueCenter ?? 210) % 360) + 360) % 360;
@@ -96,9 +110,11 @@ export function computeLocalMaskWeightAtPixel(maskEntry, pixelIdx, red, green, b
     const right =
       satMax >= 0.99999 ? 1 : 1 - smoothstep(satMax - chromaEdge, satMax + chromaEdge, sat);
     const chromaWeight = clampUnit(left * right);
-    maskWeight = clampUnit(hueWeight * chromaWeight);
-  } else if (maskEntry.mode === 'depth') {
-    const brushW = maskEntry.buffer ? maskEntry.buffer[pixelIdx] : 0;
+    const rangeWeight = clampUnit(hueWeight * chromaWeight);
+    return clampUnit(spatial * rangeWeight);
+  }
+  if (maskEntry.mode === 'depth') {
+    const brushW = buf instanceof Float32Array && pixelIdx < buf.length ? buf[pixelIdx] : 0;
     const depthProxy = resolveDepthProxy01(maskEntry, pixelIdx, red, green, blue);
     const dMin = clampUnit(Math.min(maskEntry.depthMin ?? 0, maskEntry.depthMax ?? 1));
     const dMax = clampUnit(Math.max(maskEntry.depthMin ?? 0, maskEntry.depthMax ?? 1));
@@ -107,7 +123,7 @@ export function computeLocalMaskWeightAtPixel(maskEntry, pixelIdx, red, green, b
     const left = smoothstep(dMin - edge, dMin + edge, depthProxy);
     const right = 1 - smoothstep(dMax - edge, dMax + edge, depthProxy);
     const rangeW = clampUnit(left * right);
-    maskWeight = clampUnit(brushW * rangeW);
+    return clampUnit(brushW * rangeW);
   }
-  return clampUnit(maskWeight);
+  return spatial;
 }

@@ -22,7 +22,7 @@ export const FILM_LAB_EXPORT_MANIFEST_DIGEST_READER_EXAMPLES = {
     'migration: historical exports may list variant before with artifactRole primary; canonical contract uses sidecar (identify by variant=before, not by role).',
     'validatorFlow: clone manifest -> remove manifestDigest -> JSON.stringify with 2-space indent -> UTF-8 encode -> SHA-256 -> compare with manifest.manifestDigest.sha256.',
     'validatorFlow: verify artifacts[*].variant/artifactRole/fileName/mimeType exist, then check optionalScenarios by export flags and fileFormat.',
-    'optionalScenarios export.fileFormat (when present) must be a member of FILM_LAB_EXPORT_MANIFEST_OPTIONAL_SCENARIO_FILE_FORMAT_IDS in filmLabExportFormats.js (raster codecs + psd; UI encoder uses FILM_LAB_EXPORT_MODAL_FORMAT_IDS).',
+    'optionalScenarios export.fileFormat (when present) must be a member of FILM_LAB_EXPORT_MANIFEST_OPTIONAL_SCENARIO_FILE_FORMAT_IDS in filmLabExportFormats.js (raster codecs + psd + dng; UI encoder uses FILM_LAB_EXPORT_MODAL_FORMAT_IDS).',
     'optionalScenarios may include export.lossyQuality (0.35–1) alongside fileFormat for JPEG/WebP/AVIF digest blueprints (*WithLossyQuality); sorted export keys append lossyQuality after include* flags.',
     'JPEG/WebP/AVIF digest rows may omit lossyQuality when documenting encoder-default quality (*NoRecipe without WithLossyQuality); validators accept either shape.',
     'Live manifest.export and recipe export.export may add lossyQuality (0.35–1) for JPEG/WebP/AVIF via manifestLossyQualityForFilmLabExport; omitted for PNG/TIFF.',
@@ -166,6 +166,23 @@ export const FILM_LAB_EXPORT_MANIFEST_DIGEST_READER_EXAMPLES = {
         },
       ],
     },
+    singleDngNoRecipe: {
+      mode: 'single',
+      export: {
+        includeBeforeAfter: false,
+        includeLocalMaskPng: false,
+        includeRecipeJson: false,
+        fileFormat: 'dng',
+      },
+      artifacts: [
+        {
+          variant: 'after',
+          artifactRole: 'primary',
+          fileName: 'mindfullens_example_after.dng',
+          mimeType: 'image/x-adobe-dng',
+        },
+      ],
+    },
     singlePsdWithRecipe: {
       mode: 'single',
       export: {
@@ -180,6 +197,29 @@ export const FILM_LAB_EXPORT_MANIFEST_DIGEST_READER_EXAMPLES = {
           artifactRole: 'primary',
           fileName: 'mindfullens_example_after.psd',
           mimeType: 'application/vnd.adobe.photoshop',
+        },
+        {
+          variant: 'after_recipe',
+          artifactRole: 'sidecar',
+          fileName: 'mindfullens_example_after_recipe.json',
+          mimeType: 'application/json',
+        },
+      ],
+    },
+    singleDngWithRecipe: {
+      mode: 'single',
+      export: {
+        includeBeforeAfter: false,
+        includeLocalMaskPng: false,
+        includeRecipeJson: true,
+        fileFormat: 'dng',
+      },
+      artifacts: [
+        {
+          variant: 'after',
+          artifactRole: 'primary',
+          fileName: 'mindfullens_example_after.dng',
+          mimeType: 'image/x-adobe-dng',
         },
         {
           variant: 'after_recipe',
@@ -299,6 +339,23 @@ export const FILM_LAB_EXPORT_MANIFEST_DIGEST_READER_EXAMPLES = {
         },
       ],
     },
+    batchDngNoRecipe: {
+      mode: 'batch',
+      export: {
+        includeBeforeAfter: false,
+        includeLocalMaskPng: false,
+        includeRecipeJson: false,
+        fileFormat: 'dng',
+      },
+      artifacts: [
+        {
+          variant: 'after',
+          artifactRole: 'primary',
+          fileName: 'mindfullens_frame_001_after.dng',
+          mimeType: 'image/x-adobe-dng',
+        },
+      ],
+    },
     batchPsdWithRecipe: {
       mode: 'batch',
       export: {
@@ -313,6 +370,29 @@ export const FILM_LAB_EXPORT_MANIFEST_DIGEST_READER_EXAMPLES = {
           artifactRole: 'primary',
           fileName: 'mindfullens_frame_001_after.psd',
           mimeType: 'application/vnd.adobe.photoshop',
+        },
+        {
+          variant: 'after_recipe',
+          artifactRole: 'sidecar',
+          fileName: 'mindfullens_frame_001_after_recipe.json',
+          mimeType: 'application/json',
+        },
+      ],
+    },
+    batchDngWithRecipe: {
+      mode: 'batch',
+      export: {
+        includeBeforeAfter: false,
+        includeLocalMaskPng: false,
+        includeRecipeJson: true,
+        fileFormat: 'dng',
+      },
+      artifacts: [
+        {
+          variant: 'after',
+          artifactRole: 'primary',
+          fileName: 'mindfullens_frame_001_after.dng',
+          mimeType: 'image/x-adobe-dng',
         },
         {
           variant: 'after_recipe',

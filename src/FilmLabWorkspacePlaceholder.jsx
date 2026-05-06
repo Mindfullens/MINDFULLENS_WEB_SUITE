@@ -13,8 +13,6 @@ export default function FilmLabWorkspacePlaceholder({ workspaceId }) {
         <p className="film-lab-workspace-placeholder-copy">
           {t('workspace.placeholder.line1')}{' '}
           <strong>{t('filmLab.studio.develop.label')}</strong>
-          {t('workspace.placeholder.or')}
-          <strong>{t('filmLab.studio.masks.label')}</strong>
           {t('workspace.placeholder.lineEnd')}
         </p>
       </div>

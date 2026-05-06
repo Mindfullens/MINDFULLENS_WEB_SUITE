@@ -1,17 +1,12 @@
+import { memo, useCallback, useMemo } from 'react';
 import { mapTemperatureToKelvin } from './engine/sliderResponseMap.js';
 import { formatCustomSliderValue, formatSliderValue } from './engine/filmLabSliderFormat.js';
 import { useI18n } from './i18n';
 import { markFilmLabE2ePointerDown } from './filmLab/previewE2ePointerMark.js';
-import {
-  getActiveMaskSlotGraphNodeId,
-  isAdjustmentBoundToMask,
-  toggleAdjustmentMaskBinding,
-} from './filmLab/useFilmLabMaskBindings.js';
 
-function FilmLabSliderTrack({
+function FilmLabSliderTrackImpl({
   name,
-  adjustments,
-  updateAdjustment,
+  value,
   isInputProfile,
   sliderDefs,
   handleSliderStart,
@@ -23,52 +18,42 @@ function FilmLabSliderTrack({
 }) {
   const { t } = useI18n();
   const isDisabled = name === 'strength' && isInputProfile;
-  const displayValue = isDisabled ? '—' : formatSliderValue(name, adjustments[name]);
-  const isTemperatureSlider = name === 'temp';
+  const displayValue = isDisabled ? '—' : formatSliderValue(name, value);
+  const isTemperatureSlider = name === 'temp' || name === 'brushMaskTemp';
   const sliderMin = isTemperatureSlider ? 2000 : sliderDefs[name].min;
   const sliderMax = isTemperatureSlider ? 10000 : sliderDefs[name].max;
-  const sliderValue = isTemperatureSlider
-    ? Math.round(mapTemperatureToKelvin(adjustments[name]))
-    : adjustments[name];
+  const sliderValue = useMemo(
+    () =>
+      isTemperatureSlider ? Math.round(mapTemperatureToKelvin(value)) : value,
+    [isTemperatureSlider, value]
+  );
 
-  const bound = isAdjustmentBoundToMask(adjustments, name);
-  const nodeId = getActiveMaskSlotGraphNodeId(adjustments);
-  const canPin =
-    typeof updateAdjustment === 'function' &&
-    Array.isArray(adjustments?.localMasks) &&
-    adjustments.localMasks.length > 0 &&
-    adjustments?.uiMode !== 'simple';
-
-  const toggleBinding = () => {
-    if (!canPin || typeof updateAdjustment !== 'function') {
-      return;
-    }
-    toggleAdjustmentMaskBinding(adjustments, name, updateAdjustment);
-  };
+  const onMouseDown = useCallback(
+    (event) => handleSliderStart(`slider:${name}`, event),
+    [handleSliderStart, name]
+  );
+  const onTouchStart = useCallback(
+    (event) => {
+      handleSliderTouchStart(name)(event);
+    },
+    [handleSliderTouchStart, name]
+  );
+  const onDoubleClick = useCallback(() => handleSliderDoubleClick(name), [handleSliderDoubleClick, name]);
+  const onRangeInput = useCallback(
+    (event) => {
+      if (isTemperatureSlider) {
+        handleTemperatureSliderChange(event, name);
+      } else {
+        handleSliderChange(name)(event);
+      }
+    },
+    [handleSliderChange, handleTemperatureSliderChange, isTemperatureSlider, name]
+  );
 
   return (
     <div className={`slider-group${isDisabled ? ' is-disabled' : ''}`}>
       <div className="slider-label">
         <span className="slider-name">{t(`filmLab.slider.${name}`)}</span>
-        {canPin ? (
-          <button
-            type="button"
-            className={`slider-mask-pin${bound ? ' active' : ''}`}
-            title={
-              bound
-                ? t('filmLab.sliderMaskBind.activeTitle', { node: nodeId })
-                : t('filmLab.sliderMaskBind.idleTitle', { node: nodeId })
-            }
-            aria-label={t('filmLab.sliderMaskBind.aria')}
-            aria-pressed={bound}
-            onClick={(e) => {
-              e.preventDefault();
-              toggleBinding();
-            }}
-          >
-            ◎
-          </button>
-        ) : null}
         <span className="slider-val">{displayValue}</span>
       </div>
       <input
@@ -80,10 +65,10 @@ function FilmLabSliderTrack({
         max={sliderMax}
         value={sliderValue}
         disabled={isDisabled}
-        onMouseDown={(event) => handleSliderStart(`slider:${name}`, event)}
-        onTouchStart={handleSliderTouchStart(name)}
-        onDoubleClick={() => handleSliderDoubleClick(name)}
-        onInput={isTemperatureSlider ? handleTemperatureSliderChange : handleSliderChange(name)}
+        onMouseDown={onMouseDown}
+        onTouchStart={onTouchStart}
+        onDoubleClick={onDoubleClick}
+        onInput={onRangeInput}
         onPointerUp={handleSliderEnd}
         onPointerCancel={handleSliderEnd}
         onTouchEnd={handleSliderEnd}
@@ -94,9 +79,11 @@ function FilmLabSliderTrack({
   );
 }
 
+const FilmLabSliderTrack = memo(FilmLabSliderTrackImpl);
+
 export function createFilmLabSliderRenderers({
   adjustments,
-  updateAdjustment,
+  updateAdjustment: _updateAdjustment,
   isInputProfile,
   sliderDefs,
   handleSliderStart,
@@ -117,8 +104,7 @@ export function createFilmLabSliderRenderers({
     <FilmLabSliderTrack
       key={name}
       name={name}
-      adjustments={adjustments}
-      updateAdjustment={updateAdjustment}
+      value={adjustments[name]}
       isInputProfile={isInputProfile}
       sliderDefs={sliderDefs}
       handleSliderStart={handleSliderStart}

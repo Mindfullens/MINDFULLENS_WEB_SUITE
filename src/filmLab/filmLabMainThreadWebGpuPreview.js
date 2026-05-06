@@ -462,6 +462,8 @@ async function runMainThreadProxyWgslWithRgba8Source(device, srcW, srcH, rgba8, 
     device,
     format,
     alphaMode: 'opaque',
+    /** `copyTextureToBuffer` ze swapchain — wymaga COPY_SRC (Walidacja Dawn). */
+    usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
   });
 
   const sourceRgba8 = rgba8.subarray(0, n);

@@ -55,6 +55,13 @@ export default function FilmLabShortcutHelp({ open, onClose }) {
             </div>
           </div>
           <div className="shortcut-help-row">
+            <span>{t('shortcutHelp.cropOverlayRotate')}</span>
+            <div className="shortcut-help-keys">
+              <kbd>Shift</kbd>
+              <kbd>{SHORTCUT_KEYS.overlayCycle}</kbd>
+            </div>
+          </div>
+          <div className="shortcut-help-row">
             <span>{t('shortcutHelp.fit')}</span>
             <div className="shortcut-help-keys">
               <kbd>0</kbd>
@@ -108,54 +115,6 @@ export default function FilmLabShortcutHelp({ open, onClose }) {
             </div>
           </div>
           <div className="shortcut-help-row">
-            <span>{t('shortcutHelp.maskStudioWorkspace')}</span>
-            <div className="shortcut-help-keys">
-              <kbd>M</kbd>
-              <kbd>Shift</kbd>
-              <kbd>M</kbd>
-              <kbd>X</kbd>
-            </div>
-          </div>
-          <div className="shortcut-help-row">
-            <span>{t('shortcutHelp.maskPrevNext')}</span>
-            <div className="shortcut-help-keys">
-              <kbd>Alt</kbd>
-              <kbd>{SHORTCUT_KEYS.localMaskPrev}</kbd>
-              <kbd>{SHORTCUT_KEYS.localMaskNext}</kbd>
-            </div>
-          </div>
-          <div className="shortcut-help-row">
-            <span>{t('shortcutHelp.maskDuplicate')}</span>
-            <div className="shortcut-help-keys">
-              <kbd>Alt</kbd>
-              <kbd>{SHORTCUT_KEYS.localMaskDuplicate}</kbd>
-            </div>
-          </div>
-          <div className="shortcut-help-row">
-            <span>{t('shortcutHelp.maskSoloMute')}</span>
-            <div className="shortcut-help-keys">
-              <kbd>Alt</kbd>
-              <kbd>{SHORTCUT_KEYS.localMaskSolo}</kbd>
-              <kbd>{SHORTCUT_KEYS.localMaskMute}</kbd>
-            </div>
-          </div>
-          <div className="shortcut-help-row">
-            <span>{t('shortcutHelp.maskOverlay')}</span>
-            <div className="shortcut-help-keys">
-              <kbd>Alt</kbd>
-              <kbd>{SHORTCUT_KEYS.localMaskOverlay}</kbd>
-            </div>
-          </div>
-          <div className="shortcut-help-row">
-            <span>{t('shortcutHelp.maskMoveVertical')}</span>
-            <div className="shortcut-help-keys">
-              <kbd>Alt</kbd>
-              <kbd>Shift</kbd>
-              <kbd>↑</kbd>
-              <kbd>↓</kbd>
-            </div>
-          </div>
-          <div className="shortcut-help-row">
             <span>{t('shortcutHelp.copySettings')}</span>
             <div className="shortcut-help-keys">
               <kbd>Cmd/Ctrl</kbd>
@@ -204,6 +163,16 @@ export default function FilmLabShortcutHelp({ open, onClose }) {
                 <kbd>Y</kbd>
               </div>
             </div>
+          </div>
+          <div className="shortcut-help-row">
+            <span title={t('shortcutHelp.exportSaveDialogTitle')}>{t('shortcutHelp.exportSaveDialog')}</span>
+            <div className="shortcut-help-keys">
+              <kbd>Cmd/Ctrl</kbd>
+              <kbd>{SHORTCUT_KEYS.exportModal}</kbd>
+            </div>
+          </div>
+          <div className="shortcut-help-tip-banner" role="note">
+            {t('shortcutHelp.kinoTip')}
           </div>
         </div>
       </div>

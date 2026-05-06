@@ -24,7 +24,6 @@ export default function FilmLabShellContainer({ shellRef, viewMode, isPreviewFul
     developFilmstripProps,
     toolbarProps,
     profilesSidebarProps,
-    maskWorkbench,
     canvasAreaProps,
     rightPanelProps,
     shortcutHelpProps,
@@ -33,10 +32,9 @@ export default function FilmLabShellContainer({ shellRef, viewMode, isPreviewFul
     bottomStatusBarProps,
   } = useMemo(() => {
     const raw = buildFilmLabShellPropBundle(bundleArgs);
-    const { developFilmstripProps, maskWorkbench, ...shellRest } = raw;
+    const { developFilmstripProps, ...shellRest } = raw;
     return {
       ...shellRest,
-      maskWorkbench,
       developFilmstripProps,
       studioNavProps: {
         ...raw.studioNavProps,
@@ -74,7 +72,6 @@ export default function FilmLabShellContainer({ shellRef, viewMode, isPreviewFul
       sourceFileInputProps={sourceFileInputProps}
       toolbarProps={toolbarProps}
       profilesSidebarProps={profilesSidebarProps}
-      maskWorkbench={maskWorkbench}
       canvasAreaProps={canvasAreaProps}
       rightPanelProps={rightPanelProps}
       shortcutHelpProps={shortcutHelpProps}

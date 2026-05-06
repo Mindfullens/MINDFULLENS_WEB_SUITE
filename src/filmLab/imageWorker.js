@@ -16,6 +16,7 @@ import {
 import { orderTiffJpegDecodeAttempts } from './filmLabOpfsJpegAttemptOrder.js';
 import {
   createFilmLabImageBitmap,
+  createFilmLabImageBitmapAsStoredInFile,
   FILMLAB_CREATE_IMAGE_BITMAP_ORIENTATION_NONE,
 } from './filmLabImageBitmapOptions.js';
 import {
@@ -207,11 +208,15 @@ async function createJpegImageBitmapWithFallback(buf, assetId = '', label = '') 
     });
   }
   const blob = new Blob([buf], { type: 'image/jpeg' });
+  /**
+   * DAM Develop proxy: bez `from-image` — orientacja z TIFF/DNG + EXIF 1–8 scalana w `pickOri`
+   * i stosowana **raz** w `FilmLabThumbCanvas` / `drawImageBitmapToRectWithOrientation`.
+   */
   try {
-    return await createFilmLabImageBitmap(blob, JPEG_RESIZE_DECODE_OPTS);
+    return await createFilmLabImageBitmapAsStoredInFile(blob, JPEG_RESIZE_DECODE_OPTS);
   } catch (e1) {
     try {
-      return await createFilmLabImageBitmap(blob, BMP_DECODE_OPTS);
+      return await createFilmLabImageBitmapAsStoredInFile(blob, BMP_DECODE_OPTS);
     } catch (e2) {
       const err = e2 instanceof Error ? e2 : e1;
       throw err instanceof Error ? err : new Error(String(err));
@@ -238,8 +243,11 @@ function pickDecodedPreviewOrientation(jpegOrientation, rawOrientation) {
   return r > 1 ? r : j > 1 ? j : 1;
 }
 
+/** Prefiks `source.bin` w workerze — tylko odczyt nagłówka TIFF dla tagu 0x0112 (CR2/NEF bez EXIF w JPEG). */
+const DAM_ORIENTATION_SOURCE_PROBE_BYTES = 786432;
+
 /** Bufor OPFS może zawierać cały RAW zamiast JPEG — tnij SOI…EOI zanim createImageBitmap. */
-async function decodeDamPreviewFromBytes(ab, assetId, catalogAssetMetaHint = null) {
+async function decodeDamPreviewFromBytes(ab, assetId, catalogAssetMetaHint = null, sessionId = null) {
   /** Pełny bufor dla IFD/SubIFD; „brutalne” skany bajt-po-bajcie są ograniczone w parserze (~1 MB). */
   const u8Probe = new Uint8Array(ab);
   const hexHeader = Array.from(u8Probe.slice(0, Math.min(4, u8Probe.length)))
@@ -249,6 +257,7 @@ async function decodeDamPreviewFromBytes(ab, assetId, catalogAssetMetaHint = nul
     console.log('[DNG Entry] Parsing asset:', assetId || '(unknown)', 'First 4 bytes:', hexHeader);
   }
   const rawHeaderOrientation = getRawFileOrientation(ab, assetId);
+  const catalogOri = Number(catalogAssetMetaHint?.orientationTag);
   /**
    * Fallback orientacji z metadanych katalogu — gdy `ab` jest już czystym JPEG
    * (tier standard/embedded z OPFS), `getRawFileOrientation` zwraca null bo JPEG.
@@ -256,35 +265,63 @@ async function decodeDamPreviewFromBytes(ab, assetId, catalogAssetMetaHint = nul
    * lecz w nagłówku TIFF pliku RAW. `catalogAssetMetaHint.orientationTag` pochodzi
    * z exif snapshotem zapisanego przy otwarciu pliku w Develop — jest niezawodnym fallbackiem.
    */
-  const effectiveRawOrientation =
+  let effectiveRawOrientation =
     rawHeaderOrientation != null
       ? rawHeaderOrientation
-      : Number.isFinite(Number(catalogAssetMetaHint?.orientationTag)) &&
-          Number(catalogAssetMetaHint.orientationTag) >= 2
-        ? Math.round(Number(catalogAssetMetaHint.orientationTag))
+      : Number.isFinite(catalogOri) && catalogOri >= 1 && catalogOri <= 8
+        ? Math.round(catalogOri)
         : null;
+
+  /**
+   * Cold path: katalog jeszcze bez `orientationTag` (FIFO ekstrakcji), a OPFS trzyma sam `*.jpg`.
+   * Jednorazowy odczyt początku `source.bin` w workerze — tag IFD z TIFF, bez blokowania UI.
+   */
+  if (
+    effectiveRawOrientation == null &&
+    typeof sessionId === 'string' &&
+    sessionId.length > 0 &&
+    bufferStartsWithJpegSoi(u8Probe)
+  ) {
+    try {
+      const srcProbe = await readCatalogSourceBytes(sessionId, assetId, catalogAssetMetaHint, {
+        maxBytes: DAM_ORIENTATION_SOURCE_PROBE_BYTES,
+      });
+      if (srcProbe?.buffer?.byteLength > 64) {
+        const po = getRawFileOrientation(srcProbe.buffer, assetId);
+        if (po != null && po >= 1 && po <= 8) {
+          effectiveRawOrientation = po;
+        }
+      }
+    } catch {
+      /* brak source.bin / race — zostaje wyłącznie JPEG EXIF */
+    }
+  }
+
   if (import.meta.env?.DEV) {
     console.log('[RAW Header] Detected orientation:', rawHeaderOrientation ?? '(none)',
       '| effectiveOrientation:', effectiveRawOrientation ?? '(none)', 'for', assetId || '(unknown)');
   }
 
+  const pickOri = (jpegOrientation) =>
+    pickDecodedPreviewOrientation(jpegOrientation, effectiveRawOrientation);
+
   const decodeBuf = async (buf, sourceTag) => {
     const jpegOrientation = getExifOrientation(buf, assetId);
-    const orientation = pickDecodedPreviewOrientation(jpegOrientation, effectiveRawOrientation);
+    const orientation = pickOri(jpegOrientation);
     const bitmap = await createJpegImageBitmapWithFallback(buf, assetId, sourceTag);
-    return { bitmap, orientation };
+    return { bitmap, orientation, jpegExifOrientation: jpegOrientation };
   };
 
   /** Osadzony JPEG lub surowy strip (DNG) — `createImageBitmap` czasem przyjmie bufor bez image/jpeg. */
   const decodeOpaqueOrJpegStrip = async (buf, sourceTag) => {
     const jpegOrientation = getExifOrientation(buf, assetId);
-    const orientation = pickDecodedPreviewOrientation(jpegOrientation, effectiveRawOrientation);
+    const orientation = pickOri(jpegOrientation);
     const tryMime = async (mime) => {
       const blob = new Blob([buf], { type: mime });
       try {
-        return await createFilmLabImageBitmap(blob, JPEG_RESIZE_DECODE_OPTS);
+        return await createFilmLabImageBitmapAsStoredInFile(blob, JPEG_RESIZE_DECODE_OPTS);
       } catch {
-        return await createFilmLabImageBitmap(blob, BMP_DECODE_OPTS);
+        return await createFilmLabImageBitmapAsStoredInFile(blob, BMP_DECODE_OPTS);
       }
     };
     let bitmap;
@@ -303,7 +340,7 @@ async function decodeDamPreviewFromBytes(ab, assetId, catalogAssetMetaHint = nul
         head4,
       });
     }
-    return { bitmap, orientation };
+    return { bitmap, orientation, jpegExifOrientation: jpegOrientation };
   };
 
   if (bufferStartsWithJpegSoi(u8Probe)) {
@@ -371,15 +408,15 @@ async function decodeDamPreviewFromBytes(ab, assetId, catalogAssetMetaHint = nul
     if (rawStripBuf && rawStripBuf.byteLength >= 64) {
       try {
         const jpegOrientation = getExifOrientation(rawStripBuf, assetId);
-        const orientation = pickDecodedPreviewOrientation(jpegOrientation, effectiveRawOrientation);
+        const orientation = pickOri(jpegOrientation);
         const blob = new Blob([rawStripBuf], { type: 'image/jpeg' });
         let bitmap;
         try {
-          bitmap = await createFilmLabImageBitmap(blob, JPEG_RESIZE_DECODE_OPTS);
+          bitmap = await createFilmLabImageBitmapAsStoredInFile(blob, JPEG_RESIZE_DECODE_OPTS);
         } catch {
-          bitmap = await createFilmLabImageBitmap(blob, BMP_DECODE_OPTS);
+          bitmap = await createFilmLabImageBitmapAsStoredInFile(blob, BMP_DECODE_OPTS);
         }
-        return { bitmap, orientation };
+        return { bitmap, orientation, jpegExifOrientation: jpegOrientation };
       } catch {
         /* dalej — finalny błąd */
       }
@@ -412,31 +449,6 @@ function previewFirstMarkerHex(ab) {
   return Array.from(u8.slice(0, Math.min(4, u8.length)))
     .map((b) => b.toString(16).padStart(2, '0'))
     .join(' ');
-}
-
-/**
- * Naprawia niespójność między tagiem EXIF Orientation a faktycznym ułożeniem pikseli w JPEG.
- * Niektóre aparaty (Nikon NEF, Canon CR2) zapisują podgląd JPEG już obrócony do naturalnej
- * orientacji, lecz nadal ustawiają tag Orientation = 6 lub 8 (błąd firmware).
- * `createImageBitmap(blob, { imageOrientation: 'none' })` ignoruje EXIF → bitmap ma „właściwy"
- * stosunek boków. Jeśli tag mówi „obróć 90°/270°" (orientation 5–8), ale bitmap jest PIONOWY
- * (height > width), to obrót zmieniłby obraz w poziomy — co jest błędem. W takim wypadku
- * zwracamy 1 (brak rotacji).
- * @param {ImageBitmap} bitmap
- * @param {number} orientation  — wartość z getExifOrientation / getRawFileOrientation
- * @returns {number}
- */
-function reconcileOrientationWithBitmap(bitmap, orientation) {
-  const o = Number(orientation) || 1;
-  if (o < 5 || o > 8) {
-    return o; // orientacje 1–4 nie zamieniają szerokości z wysokością — brak problemu
-  }
-  // Orientacje 5–8 zakładają swap osi. Jeśli bitmap JUŻ jest pionowy (bh > bw),
-  // rotacja zmieniłaby go w poziomy → błąd. Ignoruj tag, traktuj jako prawidłowo obrócony.
-  if (bitmap.height > bitmap.width) {
-    return 1;
-  }
-  return o;
 }
 
 async function decodeDamPreview(id, sessionId, assetId, catalogAssetMeta, opts = {}) {
@@ -521,26 +533,23 @@ async function decodeDamPreview(id, sessionId, assetId, catalogAssetMeta, opts =
       tier,
       bytes: ab.byteLength,
     });
-    const { bitmap, orientation } = await decodeDamPreviewFromBytes(ab, assetId, catalogAssetMeta);
+    const decoded = await decodeDamPreviewFromBytes(ab, assetId, catalogAssetMeta, sessionId);
+    const { bitmap } = decoded || {};
     if (cancelled.has(id)) {
-      bitmap.close();
+      bitmap?.close?.();
       cancelled.delete(id);
       return;
     }
-    /**
-     * Część aparatów (Canon, Nikon) wbudowuje w plik RAW podgląd JPEG już obrócony do naturalnej
-     * orientacji, ale jednocześnie ustawia tag EXIF Orientation != 1 (błąd firmware).
-     * Jeśli po wykryciu orientacji obrót 90°/270° zmieniłby pionowy obraz (bh > bw) w poziomy,
-     * ignorujemy tag i traktujemy obraz jako poprawnie obrócony (orientation = 1).
-     */
-    const finalOrientation = reconcileOrientationWithBitmap(bitmap, orientation);
+    const oraw = Number(decoded?.orientation);
+    const finalOrientation =
+      Number.isFinite(oraw) && oraw >= 1 && oraw <= 8 ? Math.floor(oraw) : 1;
     /** Transfer — ImageBitmap nie jest kopiowany do głównego wątku. */
     self.postMessage(
       {
         type: 'ready',
         id,
         bitmap,
-        orientation: Number.isFinite(finalOrientation) ? finalOrientation : 1,
+        orientation: finalOrientation,
       },
       [bitmap]
     );

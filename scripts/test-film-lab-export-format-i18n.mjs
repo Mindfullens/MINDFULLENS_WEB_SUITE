@@ -1,5 +1,5 @@
 /**
- * Ensures PL/EN locale strings exist for every export format pill ID (raster + PSD).
+ * Ensures PL/EN locale strings exist for every export format pill ID (raster + PSD + DNG).
  */
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';

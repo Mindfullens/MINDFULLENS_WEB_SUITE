@@ -10,10 +10,6 @@ import FilmLabSessionRestorePrompt from './FilmLabSessionRestorePrompt.jsx';
 import FilmLabStudioNav from './FilmLabStudioNav.jsx';
 import { FILE_INPUT_ACCEPT } from './engine/pipeline/constants.js';
 import FilmLabFilmstripCanvas from './filmLab/FilmLabFilmstripCanvas.jsx';
-import {
-  FilmLabLocalMaskWorkbenchListRail,
-  FilmLabLocalMaskWorkbenchToolsRail,
-} from './FilmLabLocalMaskWorkbench.jsx';
 import FilmLabLibraryWorkspace from './FilmLabLibraryWorkspace.jsx';
 
 const noop = () => {};
@@ -39,7 +35,6 @@ export default function FilmLabShell({
   sourceFileInputProps = null,
   toolbarProps,
   profilesSidebarProps,
-  maskWorkbench = null,
   canvasAreaProps,
   rightPanelProps,
   shortcutHelpProps,
@@ -90,15 +85,9 @@ export default function FilmLabShell({
             aria-hidden={isLibraryWorkspace}
           >
             <div className="film-lab-develop-route-columns">
-              <div className="film-lab-develop-left-stack">
-                {maskWorkbench ? <FilmLabLocalMaskWorkbenchListRail wb={maskWorkbench} /> : null}
-                <FilmLabProfilesSidebar {...profilesSidebarProps} />
-              </div>
+              <FilmLabProfilesSidebar {...profilesSidebarProps} />
               <FilmLabCanvasArea {...canvasAreaProps} />
-              <div className="film-lab-develop-right-stack">
-                {maskWorkbench ? <FilmLabLocalMaskWorkbenchToolsRail wb={maskWorkbench} /> : null}
-                <FilmLabRightPanel {...rightPanelProps} />
-              </div>
+              <FilmLabRightPanel {...rightPanelProps} />
             </div>
           </div>
         </div>

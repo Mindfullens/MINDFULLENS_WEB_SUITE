@@ -61,6 +61,16 @@ export default function FilmLabBottomStatusBar({
       : null;
   const depthProxyTitle = t('filmLab.bottomStatus.depthProxyActiveTitle');
 
+  const gateWeave = Number(adjustments?.gateWeave ?? 0);
+  const doubleExposureAmt = Number(adjustments?.doubleExposureAmount ?? 0);
+  /** Hide Phase C chip on Library grid; show in Develop and Export (pre-save reminder). */
+  const showPhaseCKinoChip =
+    studioWorkspace !== 'library' &&
+    ((Number.isFinite(gateWeave) && gateWeave > 0.01) ||
+      (Number.isFinite(doubleExposureAmt) && doubleExposureAmt > 0.01));
+  const phaseCKinoLine = showPhaseCKinoChip ? t('filmLab.bottomStatus.phaseCKinoActive') : null;
+  const phaseCKinoTitle = t('filmLab.bottomStatus.phaseCKinoActiveTitle');
+
   return (
     <footer
       className="film-lab-bottom-status"
@@ -112,6 +122,16 @@ export default function FilmLabBottomStatusBar({
             </span>
             <span className="film-lab-bottom-status-meta" title={depthProxyTitle}>
               {depthProxyLine}
+            </span>
+          </>
+        ) : null}
+        {phaseCKinoLine ? (
+          <>
+            <span className="film-lab-bottom-status-sep" aria-hidden>
+              ·
+            </span>
+            <span className="film-lab-bottom-status-meta" title={phaseCKinoTitle}>
+              {phaseCKinoLine}
             </span>
           </>
         ) : null}

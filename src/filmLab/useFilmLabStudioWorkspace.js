@@ -6,8 +6,8 @@ import {
 } from './useFilmLabUiMode.js';
 
 /**
- * Primary navigation between library / develop / masks / …
- * Syncs `?workspace=` and nudges related UI (e.g. masks → Detal panel, export → save modal).
+ * Primary navigation between library / develop / export.
+ * Syncs `?workspace=` and nudges related UI (export → save modal when a source is loaded).
  */
 export function useFilmLabStudioWorkspace({
   setStudioWorkspace,
@@ -15,6 +15,7 @@ export function useFilmLabStudioWorkspace({
   setIsExportModalOpen,
   studioWorkspace,
   uiMode,
+  hasActiveSource,
 }) {
   useEffect(() => {
     if (normalizeUiMode(uiMode) !== 'simple') {
@@ -47,14 +48,11 @@ export function useFilmLabStudioWorkspace({
         /* ignore */
       }
 
-      if (resolved === 'masks') {
-        setActivePanel('detail');
-      }
-      if (resolved === 'export') {
+      if (resolved === 'export' && hasActiveSource) {
         setIsExportModalOpen(true);
       }
     },
-    [setStudioWorkspace, setActivePanel, setIsExportModalOpen, uiMode]
+    [setStudioWorkspace, setActivePanel, setIsExportModalOpen, uiMode, hasActiveSource]
   );
 
   return { handleStudioWorkspaceChange };

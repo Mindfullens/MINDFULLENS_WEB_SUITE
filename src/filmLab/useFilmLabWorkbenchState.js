@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   createZeroCalibrationState,
   createZeroColorGradeState,
@@ -50,6 +50,14 @@ export function useFilmLabWorkbenchState() {
   const [sessionRestorePrompt, setSessionRestorePrompt] = useState(null);
   const [metadataViewMode, setMetadataViewMode] = useState('full');
   const [exifMeta, setExifMeta] = useState(null);
+  /** Podgląd z OPFS (DAM) zanim pełny pipeline wczyta RAW — dekodowanie w workerze */
+  const [developFastPreviewBitmap, setDevelopFastPreviewBitmap] = useState(null);
+  /** EXIF 1–8 dla warstwy proxy (spójna z miniaturową ścieżką workera, niezależna od głównego canvas). */
+  const [developFastPreviewExifOrientation, setDevelopFastPreviewExifOrientation] = useState(1);
+  /** Tier smart WebP (~2560) — pixel-peep / Loupe (RAM). */
+  const [developSmartPreviewBitmap, setDevelopSmartPreviewBitmap] = useState(null);
+  /** Aktualne punkty krzywej podczas przeciągania — poza cyklem Reacta; silnik czyta dla 1D LUT. */
+  const curveInteractionLiveRef = useRef(null);
 
   return {
     uploadedFile,
@@ -124,5 +132,12 @@ export function useFilmLabWorkbenchState() {
     setMetadataViewMode,
     exifMeta,
     setExifMeta,
+    developFastPreviewBitmap,
+    setDevelopFastPreviewBitmap,
+    developFastPreviewExifOrientation,
+    setDevelopFastPreviewExifOrientation,
+    developSmartPreviewBitmap,
+    setDevelopSmartPreviewBitmap,
+    curveInteractionLiveRef,
   };
 }

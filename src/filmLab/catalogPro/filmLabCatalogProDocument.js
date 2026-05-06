@@ -71,6 +71,8 @@ export function buildCatalogProDocument({
             objects: [],
           },
           exif: null,
+          /** @type {{ embedded: null, standard: null }} — binaria w OPFS; JSON tylko meta (DAM-PREVIEW-CONTRACT) */
+          preview: { embedded: null, standard: null },
           createdAt: nowIso,
           updatedAt: nowIso,
         },

@@ -1,5 +1,7 @@
 # Smoke — maska lokalna P1 (chroma, Shift+klik, krawędź pędzla)
 
+**Stan produktu:** rails Mask Studio **nie są** montowane w `FilmLabShell` — UI mask w aplikacji jest wyłączone. Poniżej zostaje jako odniesienie do kodu silnika / recipe, nie jako procedura end-user.
+
 Krótka checklista QA przed mergem zmian w zakresie maski **Hue / pędzel**. Kod: [`filmLabLocalMaskRangeMath.js`](../../src/engine/filmLabLocalMaskRangeMath.js), [`FilmLabCanvasArea.jsx`](../../src/FilmLabCanvasArea.jsx), [`canvasLumaSobelSample.js`](../../src/filmLab/canvasLumaSobelSample.js).
 
 ## Automaty CI / lokalnie
@@ -10,17 +12,15 @@ npm run test:local-mask-p1
 
 (Wewnętrznie: `test:range-mask` + `test:luma-sobel-sample`.)
 
-### Playwright (Shift+klik na podglądzie)
+### Playwright
 
-To **nie zastępuje** krótkiego smoke ręcznego — **uzupełnia** go regresją w CI: job GitHub Actions **`e2e-playwright`** (workflow [`ci.yml`](../../.github/workflows/ci.yml)) uruchamia dokładnie `npm run test:e2e` na tym scenariuszu Hue.
+`npm run test:e2e` uruchamia scenariusze w `e2e/` (np. Develop / katalog). **Dedykowany test Shift+klik Hue został usunięty** wraz z wycofaniem Mask Studio z UI — regresję Hue sprawdzaj ręcznie według sekcji poniżej.
 
 Wymaga Chromium (`npx playwright install chromium` przy pierwszym uruchomieniu):
 
 ```bash
 npm run test:e2e
 ```
-
-Scenariusz: [`e2e/shift-click-hue-mask.spec.js`](../../e2e/shift-click-hue-mask.spec.js) — workspace Maski, fixture dwutonowy, Shift+klik zmienia **Hue center**.
 
 **Lokalnie (macOS / niektóre wolumeny):** jeśli Playwright zgłosi **`ENOTEMPTY`** przy czyszczeniu `test-results/`, często winne są pliki **`._*`** (AppleDouble). Usuń katalog `test-results/` (np. `rm -rf test-results`) i uruchom test ponownie.
 

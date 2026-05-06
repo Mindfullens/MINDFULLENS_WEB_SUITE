@@ -381,6 +381,8 @@ function assertMimeAndExtensionConsistency(name) {
       assert.equal(ext, 'json', `${name}: json mime must use .json (${artifact.fileName})`);
     } else if (mime === 'application/vnd.adobe.photoshop') {
       assert.equal(ext, 'psd', `${name}: psd mime must use .psd (${artifact.fileName})`);
+    } else if (mime === 'image/x-adobe-dng') {
+      assert.equal(ext, 'dng', `${name}: dng mime must use .dng (${artifact.fileName})`);
     } else {
       assert.fail(`${name}: unsupported mime in optional scenario: ${mime}`);
     }

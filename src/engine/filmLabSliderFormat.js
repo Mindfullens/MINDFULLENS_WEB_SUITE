@@ -10,10 +10,12 @@ export const PERCENT_SLIDERS = new Set([
   'anamorph',
   'cropZoom',
   'curveLumaMix',
+  'emulsionReciprocityComp',
+  'emulsionEdgeAcutance',
 ]);
 
 export function formatSliderValue(name, value) {
-  if (name === 'temp') {
+  if (name === 'temp' || name === 'brushMaskTemp') {
     return `${Math.round(mapTemperatureToKelvin(value))}K`;
   }
 

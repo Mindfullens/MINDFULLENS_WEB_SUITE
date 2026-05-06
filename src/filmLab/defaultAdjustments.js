@@ -26,6 +26,8 @@ export const DEFAULT_ADJUSTMENTS = {
   temp: 0,
   tint: 0,
   showClipping: false,
+  /** Hybrid Phase B: amber/cyan „limiter” bands before hard clip (only when showClipping). */
+  clipLimiterPreview: false,
   saturation: 0,
   vibrance: 0,
   curveLumaMix: 72,
@@ -36,6 +38,8 @@ export const DEFAULT_ADJUSTMENTS = {
   frame: 'none',
   chromAb: 0,
   bloom: 0,
+  /** When true (default), bloom uses D65 Lab L blur + original a/b (CPU path). False = legacy RGB blur. */
+  bloomLabAccurate: true,
   dust: 0,
   dustVariant: -1,
   dustCycle: 0,
@@ -49,6 +53,12 @@ export const DEFAULT_ADJUSTMENTS = {
   halHue: 0,
   anamorph: 0,
   streakLen: 50,
+  /** Phase C: subtelny „gate weave” na buforze RGB (0–100). */
+  gateWeave: 0,
+  /** Phase C: siła mieszania drugiej płytki (0–100). */
+  doubleExposureAmount: 0,
+  /** Phase C: `screen` | `multiply` — tryb kompozytu drugiej płytki. */
+  doubleExposureBlendMode: 'screen',
   flipped: false,
   rotation: 0,
   compareMode: false,
@@ -69,13 +79,32 @@ export const DEFAULT_ADJUSTMENTS = {
   aiAssistWorstLatencyMs: null,
   activeLocalMaskIndex: 0,
   localMasks: [],
-  brushMaskRadius: 80,
-  brushMaskFeather: 65,
+  brushMaskRadius: 30,
+  brushMaskFeather: 100,
   brushMaskExposure: 35,
   brushMaskErase: false,
   /** 0–100: przy >0 znaczki pędzla ważą Sobel lumy — mocniejsze na krawędziach (P1 edge brush). */
-  brushMaskEdgeSensitivity: 0,
+  brushMaskEdgeSensitivity: 68,
   brushMaskStrokes: [],
+  /** Normalized brush radius / max(canvasCssW, canvasCssH); used with brushMaskPaths rasterization */
+  brushMaskRadiusNorm: null,
+  /** 0–100: Lightroom-like flow (stroke opacity buildup; scales raster alpha) */
+  brushMaskFlow: 20,
+  /** 0–100: brush “density” / max stroke strength cap */
+  brushMaskDensity: 60,
+  /** Continuous brush paths (image-normalized 0–1 coords); preferred over brushMaskStrokes */
+  brushMaskPaths: [],
+  /** Lokalna tonacja maski (jak Lightroom — ważone przez wagę maski) */
+  brushMaskContrast: 0,
+  brushMaskHighlights: 0,
+  brushMaskShadows: 0,
+  brushMaskWhites: 0,
+  brushMaskBlacks: 0,
+  brushMaskTemp: 0,
+  brushMaskTint: 0,
+  brushMaskSaturation: 0,
+  /** Active mask semantic / ONNX raster alpha ({ data, width, height }); mirrors slot.rasterAlpha when editing */
+  localMaskRasterAlpha: null,
   linearMaskAngle: 0,
   linearMaskFeather: 55,
   linearMaskOffset: 0,
@@ -108,8 +137,6 @@ export const DEFAULT_ADJUSTMENTS = {
   localMaskGraphIndexB: 1,
 
   /** Widok Maski (PRO): aktywna sekcja buildera prawego pasa. */
-  maskStudioBuilderSection: 'geometry',
-
   /** Przypięcia suwaków Develop → węzeł maski (recipe / HME). */
   adjustmentBindings: [],
 
@@ -137,6 +164,24 @@ export const DEFAULT_ADJUSTMENTS = {
 
   /** P2: znacznik recipe — węzeł `semantic.generative_stub.v1` w projekcji maskGraph (bez renderu generacji). */
   generativeAiStubIntent: false,
+
+  /** Epik A — Panel I: format kadra (skala ziarna / halacji / aberracji w merge Ingress). */
+  filmFormatId: '35mm',
+  /** 0–100: redukcja pomarańczowej maski bazy C-41 (tylko `inputWorkflowMode` = negative_film). */
+  orangeMaskCorrection: 0,
+  /** -3…+3 EV push/pull — dodawane do ekspozycji w merge Ingress (nie zapisują „podwójnie” stanu). */
+  pushPullEv: 0,
+  /** `digital` | `negative_film` — tryb przepływu wejścia. */
+  inputWorkflowMode: 'digital',
+  /** RAW (LibRaw): auto | camera_embed | generic_matrix — ponowny ingest po zmianie. */
+  rawColorimetryPolicy: 'auto',
+
+  /** Epik C — Panel III: linear | log | s_curve → cienki bias `curveLumaMix` w merge Ingress. */
+  filmToneResponseShape: 'linear',
+  /** 0–100: reciprocity — cienki dodatek EV w merge Ingress (nie pełny Schwarzschild). */
+  emulsionReciprocityComp: 0,
+  /** 0–100: MTF / ostrość krawędzi — dodawane do Clarity w merge Ingress (bez osobnego kernela). */
+  emulsionEdgeAcutance: 0,
 };
 
 export function getFilmGrainDefaults(film) {

@@ -1,11 +1,10 @@
 /**
  * Simple vs Pro UI gating — jeden silnik, dwa poziomy złożoności (NORTH-STAR).
- * Pro: pełny graph warstw / automation AI w nawigacji.
- * Simple: te zakładki są ukryte; mask graph w panelu Maski pozostaje ukryty osobno (FilmLabLocalMaskWorkbench).
+ * Gdy pojawią się dodatkowe zakładki tylko dla Pro, dopisz je tutaj i w filtrze nawigacji.
  */
 
-/** Studio tabs hidden in Simple mode (still reachable via recipe/engine, not via top nav). */
-export const SIMPLE_MODE_HIDDEN_STUDIO_WORKSPACE_IDS = Object.freeze(['layers', 'ai']);
+/** Studio tabs hidden in Simple mode (brak — nawigacja jest wspólna). */
+export const SIMPLE_MODE_HIDDEN_STUDIO_WORKSPACE_IDS = Object.freeze([]);
 
 export function normalizeUiMode(mode) {
   return mode === 'simple' ? 'simple' : 'pro';

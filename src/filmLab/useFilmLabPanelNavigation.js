@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, startTransition } from 'react';
 import { PANEL_TABS } from './panelAndGradeTabs.js';
 import { useLastNonCropPanelRef } from './useLastNonCropPanel.js';
 
@@ -19,7 +19,9 @@ export function useFilmLabPanelNavigation({ activePanel, lastNonCropPanelRef, se
   useLastNonCropPanelRef(activePanel, lastNonCropPanelRef);
 
   const handlePanelTabChange = useCallback((tabId) => {
-    setActivePanel(tabId);
+    startTransition(() => {
+      setActivePanel(tabId);
+    });
     replacePanelSearchParam(tabId);
   }, [setActivePanel]);
 

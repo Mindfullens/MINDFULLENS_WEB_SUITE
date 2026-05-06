@@ -328,6 +328,7 @@ export const filmLabFilmLabProClusterArgFactories = {
         setIsExportModalOpen: c.setIsExportModalOpen,
         studioWorkspace: c.studioWorkspace,
         uiMode: c.adjustments?.uiMode,
+        hasActiveSource: c.hasActiveSource,
       },
     },
   }),

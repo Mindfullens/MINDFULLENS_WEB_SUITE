@@ -3,7 +3,6 @@
  */
 export function buildFilmLabShellContainerBundleArgs(s) {
   return {
-    maskWorkbench: s.maskWorkbench ?? null,
     toolbarRef: s.toolbarRef,
     sessionRestoreNotice: s.sessionRestoreNotice,
     setSessionRestoreNotice: s.setSessionRestoreNotice,
@@ -23,6 +22,7 @@ export function buildFilmLabShellContainerBundleArgs(s) {
     isPreviewFullMode: s.isPreviewFullMode,
     togglePreviewFullMode: s.togglePreviewFullMode,
     toggleClipping: s.toggleClipping,
+    toggleClipLimiterPreview: s.toggleClipLimiterPreview,
     isMetadataPanelOpen: s.isMetadataPanelOpen,
     setIsMetadataPanelOpen: s.setIsMetadataPanelOpen,
     showRuntimeStatus: s.showRuntimeStatus,
@@ -98,6 +98,7 @@ export function buildFilmLabShellContainerBundleArgs(s) {
     displayedMetadataItems: s.displayedMetadataItems,
     handleFileUpload: s.handleFileUpload,
     developFastPreviewBitmap: s.developFastPreviewBitmap,
+    developFastPreviewExifOrientation: s.developFastPreviewExifOrientation,
     developSmartPreviewBitmap: s.developSmartPreviewBitmap,
     isAdjusting: s.isAdjusting,
     onFilmstripPickAsset: s.onFilmstripPickAsset,
@@ -163,6 +164,9 @@ export function buildFilmLabShellContainerBundleArgs(s) {
     runAutoStraighten: s.runAutoStraighten,
     activeCropRectNorm: s.activeCropRectNorm,
     activeFilm: s.activeFilm,
+    setDoubleExposureOverlay: s.setDoubleExposureOverlay,
+    doubleExposurePlateReady: s.doubleExposurePlateReady,
+    doubleExposurePlateOrigin: s.doubleExposurePlateOrigin,
     sessionRestorePrompt: s.sessionRestorePrompt,
     confirmSessionRestore: s.confirmSessionRestore,
     declineSessionRestore: s.declineSessionRestore,

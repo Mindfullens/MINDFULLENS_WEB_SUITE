@@ -1,4 +1,5 @@
 import { buildCurvePreviewLut, sampleCurveLut } from './engine/curveInterpolation.js';
+import { cloneCurves, drawCurvesPreview } from './filmLab/curvesCanvas.js';
 import { markFilmLabE2ePointerDown } from './filmLab/previewE2ePointerMark.js';
 
 export function createFilmLabCurveHandlers({
@@ -14,6 +15,8 @@ export function createFilmLabCurveHandlers({
   setUserCurves,
   handleSliderEnd,
   clamp,
+  curveInteractionLiveRef,
+  requestCurvePreviewFrame,
 }) {
   const getCurvePosition = (event) => {
     const curvesCanvas = curvesCanvasRef.current;
@@ -48,115 +51,127 @@ export function createFilmLabCurveHandlers({
     setInteractionKind('curve');
     markFilmLabE2ePointerDown();
 
+    const working = cloneCurves(userCurves);
+    const points = working[activeCurveCh].map((point) => [...point]);
+    const [mouseX, mouseY] = getCurvePosition(event);
+    let closestIndex = -1;
+    let closestDistance = Number.POSITIVE_INFINITY;
+
+    points.forEach((point, index) => {
+      const distance = Math.sqrt((point[0] - mouseX) ** 2 + (point[1] - mouseY) ** 2);
+
+      if (distance < closestDistance) {
+        closestDistance = distance;
+        closestIndex = index;
+      }
+    });
+
+    if (closestDistance >= 40) {
+      const leftEdgeX = points[0]?.[0] ?? 0;
+      const rightEdgeX = points[points.length - 1]?.[0] ?? 255;
+      const hasInteriorRoom = rightEdgeX - leftEdgeX > 1;
+
+      if (hasInteriorRoom) {
+        const safeX = Math.round(clamp(mouseX, leftEdgeX + 1, rightEdgeX - 1));
+        const currentLut = buildCurvePreviewLut(points, 'monotonic');
+        const baselineY = sampleCurveLut(currentLut, safeX);
+        const newPoint = [safeX, Math.round(clamp(baselineY))];
+        points.push(newPoint);
+        points.sort((left, right) => left[0] - right[0]);
+        closestIndex = points.findIndex(
+          (point) => point[0] === newPoint[0] && point[1] === newPoint[1]
+        );
+      }
+    }
+
+    working[activeCurveCh] = points;
+    if (curveInteractionLiveRef) {
+      curveInteractionLiveRef.current = working;
+    }
+
+    const pointerLiveRef = { x: mouseX, y: mouseY };
     let isDraggingActive = true;
-    let pendingPosition = null;
-    let dragFrameId = 0;
+    let rafLoopId = 0;
+    /** ~30 fps dla podglądu silnika — co klatkę rAF generowało lawinę renderów i blokowało UI. */
+    let lastCurvePreviewInvoke = 0;
+    const CURVE_PREVIEW_MIN_MS = 34;
 
-    setUserCurves((current) => {
-      const points = current[activeCurveCh].map((point) => [...point]);
-      const [mouseX, mouseY] = getCurvePosition(event);
-      let closestIndex = -1;
-      let closestDistance = Number.POSITIVE_INFINITY;
+    const applyPointerToPoint = () => {
+      const nextX = pointerLiveRef.x;
+      const nextY = pointerLiveRef.y;
+      const movingPoints = working[activeCurveCh];
+      if (closestIndex < 0 || closestIndex >= movingPoints.length) {
+        return;
+      }
+      let minX = 0;
+      let maxX = 255;
 
-      points.forEach((point, index) => {
-        const distance = Math.sqrt((point[0] - mouseX) ** 2 + (point[1] - mouseY) ** 2);
-
-        if (distance < closestDistance) {
-          closestDistance = distance;
-          closestIndex = index;
-        }
-      });
-
-      if (closestDistance >= 40) {
-        const leftEdgeX = points[0]?.[0] ?? 0;
-        const rightEdgeX = points[points.length - 1]?.[0] ?? 255;
-        const hasInteriorRoom = rightEdgeX - leftEdgeX > 1;
-
-        if (hasInteriorRoom) {
-          const safeX = Math.round(clamp(mouseX, leftEdgeX + 1, rightEdgeX - 1));
-          const currentLut = buildCurvePreviewLut(points, 'monotonic');
-          const baselineY = sampleCurveLut(currentLut, safeX);
-          const newPoint = [safeX, Math.round(clamp(baselineY))];
-          points.push(newPoint);
-          points.sort((left, right) => left[0] - right[0]);
-          closestIndex = points.findIndex(
-            (point) => point[0] === newPoint[0] && point[1] === newPoint[1]
-          );
-        }
+      if (closestIndex === 0) {
+        maxX = movingPoints.length > 1 ? movingPoints[1][0] - 1 : 255;
+      } else if (closestIndex === movingPoints.length - 1) {
+        minX = movingPoints[closestIndex - 1][0] + 1;
+      } else {
+        minX = movingPoints[closestIndex - 1][0] + 1;
+        maxX = movingPoints[closestIndex + 1][0] - 1;
       }
 
-      const flushMove = () => {
-        dragFrameId = 0;
+      movingPoints[closestIndex] = [
+        Math.round(clamp(nextX, minX, maxX)),
+        Math.round(clamp(nextY)),
+      ];
+    };
 
-        if (!isDraggingActive || !pendingPosition) {
-          return;
-        }
+    const tick = () => {
+      if (!isDraggingActive) {
+        return;
+      }
+      applyPointerToPoint();
+      drawCurvesPreview(curvesCanvasRef.current, working, activeCurveCh);
+      const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+      if (
+        typeof requestCurvePreviewFrame === 'function' &&
+        now - lastCurvePreviewInvoke >= CURVE_PREVIEW_MIN_MS
+      ) {
+        lastCurvePreviewInvoke = now;
+        requestCurvePreviewFrame();
+      }
+      rafLoopId = requestAnimationFrame(tick);
+    };
 
-        const { x: nextX, y: nextY } = pendingPosition;
-        pendingPosition = null;
+    const handleMove = (moveEvent) => {
+      const [nx, ny] = getCurvePosition(moveEvent);
+      pointerLiveRef.x = nx;
+      pointerLiveRef.y = ny;
+    };
 
-        setUserCurves((movingCurves) => {
-          const movingPoints = movingCurves[activeCurveCh].map((point) => [...point]);
+    const handleUp = () => {
+      isDraggingActive = false;
+      if (rafLoopId) {
+        cancelAnimationFrame(rafLoopId);
+        rafLoopId = 0;
+      }
+      window.removeEventListener('pointermove', handleMove);
+      window.removeEventListener('pointerup', handleUp);
+      applyPointerToPoint();
+      setUserCurves(cloneCurves(working));
+      if (curveInteractionLiveRef) {
+        curveInteractionLiveRef.current = null;
+      }
+      if (typeof requestCurvePreviewFrame === 'function') {
+        requestCurvePreviewFrame();
+      }
+      handleSliderEnd();
+    };
 
-          if (closestIndex < 0 || closestIndex >= movingPoints.length) {
-            return movingCurves;
-          }
-          let minX = 0;
-          let maxX = 255;
+    applyPointerToPoint();
+    drawCurvesPreview(curvesCanvasRef.current, working, activeCurveCh);
+    if (typeof requestCurvePreviewFrame === 'function') {
+      requestCurvePreviewFrame();
+    }
+    rafLoopId = requestAnimationFrame(tick);
 
-          if (closestIndex === 0) {
-            maxX = movingPoints.length > 1 ? movingPoints[1][0] - 1 : 255;
-          } else if (closestIndex === movingPoints.length - 1) {
-            minX = movingPoints[closestIndex - 1][0] + 1;
-          } else {
-            minX = movingPoints[closestIndex - 1][0] + 1;
-            maxX = movingPoints[closestIndex + 1][0] - 1;
-          }
-
-          movingPoints[closestIndex] = [
-            Math.round(clamp(nextX, minX, maxX)),
-            Math.round(clamp(nextY)),
-          ];
-
-          return {
-            ...movingCurves,
-            [activeCurveCh]: movingPoints,
-          };
-        });
-      };
-
-      const handleMove = (moveEvent) => {
-        const [nextX, nextY] = getCurvePosition(moveEvent);
-        pendingPosition = { x: nextX, y: nextY };
-
-        if (dragFrameId) {
-          return;
-        }
-
-        dragFrameId = window.requestAnimationFrame(flushMove);
-      };
-
-      const handleUp = () => {
-        isDraggingActive = false;
-
-        if (dragFrameId) {
-          window.cancelAnimationFrame(dragFrameId);
-          dragFrameId = 0;
-        }
-
-        window.removeEventListener('pointermove', handleMove);
-        window.removeEventListener('pointerup', handleUp);
-        handleSliderEnd();
-      };
-
-      window.addEventListener('pointermove', handleMove);
-      window.addEventListener('pointerup', handleUp);
-
-      return {
-        ...current,
-        [activeCurveCh]: points,
-      };
-    });
+    window.addEventListener('pointermove', handleMove);
+    window.addEventListener('pointerup', handleUp);
   };
 
   const handleCurveDoubleClick = (event) => {

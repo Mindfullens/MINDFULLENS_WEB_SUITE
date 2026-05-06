@@ -17,7 +17,6 @@ import { METADATA_VIEW_MODE_LABEL, SLIDER_DEFS } from './workbenchConstants.js';
 
 export function buildFilmLabShellPropBundle(ctx) {
   return {
-    maskWorkbench: ctx.maskWorkbench ?? null,
     studioWorkspace: ctx.studioWorkspace,
     studioNavProps: {
       tabs: filterStudioWorkspaceTabsForUiMode(STUDIO_WORKSPACE_TABS, ctx.adjustments?.uiMode),
@@ -45,6 +44,8 @@ export function buildFilmLabShellPropBundle(ctx) {
       isMetadataPanelOpen: ctx.isMetadataPanelOpen ?? false,
       onClearLibrary: ctx.libraryWorkspace?.onClearLibrary,
       onRemoveSelectedFromLibrary: ctx.libraryWorkspace?.onRemoveSelectedFromLibrary,
+      /** Widoczny RAW bez OPFS — kolejka ekstrakcji embedded na przód (skraca „OCZEKUJE” / ~30 s). */
+      onPrioritizeRawEmbeddedExtract: ctx.libraryWorkspace?.prioritizeRawEmbeddedExtract,
       /** Jak globalny filmstrip w zakładce Biblioteka — wybór + podgląd Develop (FilmLabShell korzysta z ctx). */
       onFilmstripPickAsset: ctx.onFilmstripPickAsset,
     },
@@ -110,6 +111,7 @@ export function buildFilmLabShellPropBundle(ctx) {
       isPreviewFullMode: ctx.isPreviewFullMode,
       togglePreviewFullMode: ctx.togglePreviewFullMode,
       toggleClipping: ctx.toggleClipping,
+      toggleClipLimiterPreview: ctx.toggleClipLimiterPreview,
       isMetadataPanelOpen: ctx.isMetadataPanelOpen,
       setIsMetadataPanelOpen: ctx.setIsMetadataPanelOpen,
       showRuntimeStatus: ctx.showRuntimeStatus,
@@ -197,6 +199,7 @@ export function buildFilmLabShellPropBundle(ctx) {
       displayedMetadataItems: ctx.displayedMetadataItems,
       handleFileUpload: ctx.handleFileUpload,
       developFastPreviewBitmap: ctx.developFastPreviewBitmap ?? null,
+      developFastPreviewExifOrientation: ctx.developFastPreviewExifOrientation ?? 1,
       developSmartPreviewBitmap: ctx.developSmartPreviewBitmap ?? null,
       isAdjusting: ctx.isAdjusting ?? false,
     }),
@@ -219,6 +222,7 @@ export function buildFilmLabShellPropBundle(ctx) {
       resetAdjustments: ctx.resetAdjustments,
       resetSingleAdjustment: ctx.resetSingleAdjustment,
       updateAdjustment: ctx.updateAdjustment,
+      setAdjustments: ctx.setAdjustments,
       activeCurveCh: ctx.activeCurveCh,
       setActiveCurveCh: ctx.setActiveCurveCh,
       curvesCanvasRef: ctx.curvesCanvasRef,
@@ -274,6 +278,10 @@ export function buildFilmLabShellPropBundle(ctx) {
       activeCropRectNorm: ctx.activeCropRectNorm,
       hasImage: ctx.hasImage,
       activeFilm: ctx.activeFilm,
+      setDoubleExposureOverlay: ctx.setDoubleExposureOverlay,
+      doubleExposurePlateReady: ctx.doubleExposurePlateReady,
+      doubleExposurePlateOrigin: ctx.doubleExposurePlateOrigin,
+      pipelineKind: ctx.pipelineInfo?.pipelineKind ?? null,
     }),
 
     shortcutHelpProps: buildFilmLabShortcutHelpProps({
@@ -294,6 +302,9 @@ export function buildFilmLabShellPropBundle(ctx) {
       setPendingBatchFiles: ctx.setPendingBatchFiles,
       processBatch: ctx.processBatch,
       exportImage: ctx.exportImage,
+      adjustments: ctx.adjustments,
+      doubleExposurePlateReady: ctx.doubleExposurePlateReady,
+      doubleExposurePlateOrigin: ctx.doubleExposurePlateOrigin,
     }),
 
     bottomStatusBarProps: {

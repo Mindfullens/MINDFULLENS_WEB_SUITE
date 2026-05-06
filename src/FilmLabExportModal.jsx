@@ -21,6 +21,9 @@ const FILM_LAB_EXPORT_SIZE_PRESETS_HEADING_ID = 'film-lab-export-size-presets-he
 /** Visible subtitle + `aria-labelledby` target for the file format pill group. */
 const FILM_LAB_EXPORT_FORMAT_HEADING_ID = 'film-lab-export-format-heading';
 
+/** Long hint under format pills when DNG is selected (derivative light — SPIKE §4.6–4.7). */
+const FILM_LAB_EXPORT_DNG_HINT_ID = 'film-lab-export-dng-hint';
+
 const EXPORT_ICONS = {
   social: '📱',
   web: '💻',
@@ -73,6 +76,9 @@ export default function FilmLabExportModal({
   onClose,
   processBatch,
   exportImage,
+  adjustments,
+  doubleExposurePlateReady,
+  doubleExposurePlateOrigin = 'none',
 }) {
   const { t } = useI18n();
   const closeButtonRef = useRef(null);
@@ -190,6 +196,20 @@ export default function FilmLabExportModal({
     return null;
   }
 
+  const doubleExposureStrength = Number(adjustments?.doubleExposureAmount ?? 0);
+  const hasBatch = Boolean(pendingBatchFiles?.length);
+  const showDoubleExposureNoPlateWarning =
+    Number.isFinite(doubleExposureStrength) &&
+    doubleExposureStrength > 0 &&
+    !doubleExposurePlateReady;
+  const showDoubleExposureBatchWarning =
+    hasBatch && Number.isFinite(doubleExposureStrength) && doubleExposureStrength > 0;
+  const showDoubleExposurePlateRecipeNote =
+    Number.isFinite(doubleExposureStrength) &&
+    doubleExposureStrength > 0 &&
+    doubleExposurePlateReady &&
+    (doubleExposurePlateOrigin === 'file' || doubleExposurePlateOrigin === 'opfs');
+
   const handleBackdropClick = () => {
     onClose();
   };
@@ -263,6 +283,7 @@ export default function FilmLabExportModal({
             className="export-modal-format-pills"
             role="group"
             aria-labelledby={FILM_LAB_EXPORT_FORMAT_HEADING_ID}
+            aria-describedby={fileFormat === 'dng' ? FILM_LAB_EXPORT_DNG_HINT_ID : undefined}
           >
             {FILM_LAB_EXPORT_MODAL_FORMAT_IDS.map((id) => (
               <button
@@ -270,6 +291,7 @@ export default function FilmLabExportModal({
                 type="button"
                 className={`export-format-pill${fileFormat === id ? ' is-active' : ''}`}
                 aria-pressed={fileFormat === id}
+                title={id === 'dng' ? t('filmLab.exportModal.formatDngPillTitle') : undefined}
                 onClick={() => {
                   setFileFormat(id);
                   writeExportModalPrefs({
@@ -286,7 +308,34 @@ export default function FilmLabExportModal({
               </button>
             ))}
           </div>
+          {fileFormat === 'dng' ? (
+            <p
+              id={FILM_LAB_EXPORT_DNG_HINT_ID}
+              className="export-modal-quality-hint"
+              role="note"
+            >
+              {t('filmLab.exportModal.formatDngNote')}
+            </p>
+          ) : null}
         </div>
+
+        {showDoubleExposureNoPlateWarning ? (
+          <p className="export-modal-warning-hint" role="note">
+            {t('filmLab.exportModal.doubleExposureNoPlateNote')}
+          </p>
+        ) : null}
+
+        {showDoubleExposureBatchWarning ? (
+          <p className="export-modal-warning-hint" role="note">
+            {t('filmLab.exportModal.doubleExposureBatchPlateNote')}
+          </p>
+        ) : null}
+
+        {showDoubleExposurePlateRecipeNote ? (
+          <p className="export-modal-quality-hint" role="note">
+            {t('filmLab.exportModal.doubleExposurePlateRecipeNote')}
+          </p>
+        ) : null}
 
         <label className="export-modal-mask-row">
           <input

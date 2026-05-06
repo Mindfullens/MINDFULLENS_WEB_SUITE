@@ -26,6 +26,11 @@ const pendingTimeouts = new Map();
 const WORKER_JOB_TIMEOUT_MS = 10000;
 /** Miniatury OPFS + `createImageBitmap` na RAW — dłużej niż domyślny job, krócej niż „wiszenie” bez końca. */
 const WORKER_DAM_PREVIEW_JOB_TIMEOUT_MS = 22000;
+/**
+ * Kill-switch dla ścieżki siatki (`skipSourceBin`): zamrożony WASM / natywny dekoder → `terminate()`
+ * po tym czasie (`replaceWorkerSlot` w `onWorkerJobTimeout`).
+ */
+export const WORKER_DAM_PREVIEW_KILL_MS = 5000;
 
 function clearWorkerJobTimeout(requestId) {
   const key = String(requestId ?? '');
@@ -54,6 +59,11 @@ function wireFilmLabImageWorker(w, idx) {
   });
   w.addEventListener('messageerror', (ev) => {
     console.error('[Worker Bridge FATAL ERROR]', 'messageerror', ev?.data ?? ev);
+  });
+  /** OOM / ciche wyjątki w WASM — bez tego slot pozostaje martwy i „wiecznie zajęty”. */
+  w.addEventListener('error', (ev) => {
+    console.warn('[Worker Bridge] worker error event (recoverable)', ev?.message ?? ev);
+    replaceWorkerSlot(idx);
   });
 }
 
@@ -193,7 +203,10 @@ function releaseWorker(workerIdx) {
   pumpJobQueue();
 }
 
-/** Zadania develop (≥200) wypychają z kolejki tło (miniatury prefetch), żeby nie blokować slotów poolu. */
+/**
+ * Zadania develop (≥ progu) wypychają z kolejki tło. Miniatury / filmstrip < 200 — kasowane z kolejki
+ * gdy wchodzi szybki Develop (unik: 4 sloty zatkane thumbami, użytkownik czeka 10s na OPFS proxy).
+ */
 const PRIORITY_DEVELOP_PURGE = 200;
 
 function purgeQueuedLowPriorityJobsForDevelop(incomingPriority) {
@@ -377,24 +390,15 @@ export function cancelImageWorkerRequest(requestId) {
 }
 
 /**
- * ≥ PRIORITY_DEVELOP_PURGE (200) — inaczej `purgeQueuedLowPriorityJobsForDevelop` usuwa kolejkę
- * miniaturek biblioteki przy każdym jobie develop (≥200) i siatka/filmstrip zostają w „OCZEKUJE”.
+ * Miniatury & filmstrip < PRIORITY_DEVELOP_PURGE — przy jobie Develop są wycinane z kolejki (sloty dla proxy).
  */
-const PRIORITY_VIEWPORT_THUMB = 200;
-const PRIORITY_PREFETCH_THUMB = 200;
-const PRIORITY_DEVELOP_FAST = 220;
-/**
- * Odczyt source.bin z OPFS dla Develop — MUSI być ≥ PRIORITY_DEVELOP_PURGE (200),
- * inaczej job develop fast preview (220) lub filmstrip (200) usuwa ten job z kolejki
- * (`purgeQueuedLowPriorityJobsForDevelop`) i ingest wpada w nieskończoną pętlę z UI.
- */
-const PRIORITY_CATALOG_SOURCE_OPFS = 240;
-/**
- * Musi być **>= PRIORITY_DEVELOP_PURGE (200)** — inaczej `purgeQueuedLowPriorityJobsForDevelop`
- * (wywoływane przy każdym jobie develop ≥200) wyrzuca z kolejki wszystkie joby filmstripu
- * (było 90) i miniatury na dolnym pasku nigdy się nie dekodują.
- */
-const PRIORITY_FILMSTRIP = 200;
+const PRIORITY_VIEWPORT_THUMB = 199;
+const PRIORITY_PREFETCH_THUMB = 199;
+/** Wyżej niż odczyt dużego RAW — najpierw mały tier OPFS, potem source.bin. */
+const PRIORITY_DEVELOP_FAST = 300;
+/** Poniżej szybkiego podglądu; nadal ≥ purge dla ingest (nie może spaść pod progiem usuwania tła). */
+const PRIORITY_CATALOG_SOURCE_OPFS = 250;
+const PRIORITY_FILMSTRIP = 199;
 
 export function getThumbViewportPriority() {
   return PRIORITY_VIEWPORT_THUMB;
@@ -451,9 +455,7 @@ export function scheduleOpfsDamPreviewDecode({
       skipSourceBin: Boolean(skipSourceBin),
     },
     transfer: [],
-    timeoutMs: skipSourceBin
-      ? Math.min(WORKER_DAM_PREVIEW_JOB_TIMEOUT_MS, 8000)
-      : WORKER_DAM_PREVIEW_JOB_TIMEOUT_MS,
+    timeoutMs: skipSourceBin ? WORKER_DAM_PREVIEW_KILL_MS : WORKER_DAM_PREVIEW_JOB_TIMEOUT_MS,
   });
 }
 

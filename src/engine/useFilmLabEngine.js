@@ -6,6 +6,11 @@ import {
   getWebGpuApiExposure,
 } from './webGpuEnvironment.js';
 import { ingestUploadSource } from './pipeline/ingestSource.js';
+import { setFilmLabDevelopGhostClear } from '../filmLab/filmLabDevelopCatalogLoadCooperation.js';
+import {
+  isRawBridgeUnavailableIngestError,
+  isRawBridgeUnavailablePipelineInfo,
+} from './pipeline/raw/rawBridgeUnavailable.js';
 import { createIdlePipelineInfo, PIPELINE_KIND, PIPELINE_STATUS } from './pipeline/constants.js';
 import { disposeRawPipeline } from './pipeline/raw/rawPipelineController.js';
 import { createFastPreviewRenderer } from './preview/fastPreviewRenderer.js';
@@ -30,6 +35,17 @@ import {
 } from './overlayManifest.js';
 import { buildCurveLut, sampleCurveLut as sampleSharedCurveLut } from './curveInterpolation.js';
 import { resolveWhiteBalanceGains } from './whiteBalance.js';
+import { applyBloomLabLuminance } from './filmLabBloomLab.js';
+import {
+  applyDoubleExposureBlend,
+  applyGateWeaveToImageData,
+} from './filmLabPhaseCPasses.js';
+import {
+  getDevelopUploadSourceKey,
+  readDoubleExposurePlateBlobFromOpfs,
+  removeDoubleExposurePlateFromOpfs,
+  writeDoubleExposurePlateToOpfs,
+} from '../filmLab/opfs/filmLabOpfsDoubleExposurePlate.js';
 import {
   CLIPPING_HIGHLIGHT_THRESHOLD,
   CLIPPING_SHADOW_THRESHOLD,
@@ -49,7 +65,10 @@ import {
   mapFilmSafeExposureEv,
 } from './colorMathShared.js';
 import { validateCubeLutSrgbForWorkerTransfer } from './lut/cubeLutPayload.js';
-import { FAST_PREVIEW_MAIN_THREAD_SOURCE_TEX_FORMAT } from './preview/fastPreviewConstants.js';
+import {
+  FAST_PREVIEW_MAIN_THREAD_SOURCE_TEX_FORMAT,
+  inferFastPreviewDamageScopeFromInteractionKind,
+} from './preview/fastPreviewConstants.js';
 import { getNominalProxyRenderSize } from './proxyComputeSize.js';
 import { buildProxyWebGpuUBlockFloat32 } from './proxyWebGpuUniformBlock.js';
 import {
@@ -73,17 +92,24 @@ import {
   PREVIEW_E2E_FRAME_COST_TARGET_MS,
   PREVIEW_E2E_KPI_TARGET_MS,
 } from '../filmLab/rolloutGate.js';
-import {
-  combineLocalMaskGraphWeights,
-  normalizeLocalMaskGraphOp,
-} from '../filmLab/localMaskGraph.js';
+import { combineLocalMaskGraphWeights } from '../filmLab/localMaskGraph.js';
 import { applyRecipeLayerToneRgb } from '../filmLab/recipeLayerBlendApply.js';
 import {
   applyRetouchHealBoxBlurPass,
   computeRetouchMaskWeightAtPixel,
 } from './filmLabRetouchPreviewPass.js';
 import { applyCmykSoftProofApproxToRgba } from './filmLabCmykSoftProofApprox.js';
+import {
+  mergeIngressCalibrationIntoAdjustments,
+  normalizeRawColorimetryPolicy,
+} from '../filmLab/filmLabIngressCalibration.js';
 import { inferDepthProxyBufferFromImageData } from '../filmLab/depth/filmLabDepthOnnxInference.js';
+import {
+  buildBrushMaskBuffer,
+  buildLinearMaskBuffer,
+  buildRadialMaskBuffer,
+} from '../filmLab/maskGeometryBuffers.js';
+import { buildLocalMaskStackSnapshot, buildMaskBrushPathStyle } from '../filmLab/buildLocalMaskStackSnapshot.js';
 import {
   getDepthOnnxIdleCallbackTimeoutMs,
   scheduleDepthOnnxInferOnIdle,
@@ -106,6 +132,7 @@ import {
   buildFilmLabExportManifestRootBase,
 } from './filmLabExportManifestHelpers.js';
 import { activeCropRectNormFromAdjustments, recomputeAiAssistMasksHeuristic } from '../filmLab/adaptivePresetV1.js';
+import { ENGINE_PREVIEW_INTERACTION_MASK_BRUSH } from '../filmLab/filmLabMaskBrushDamageNormRect.js';
 
 function readPreviewE2ePointerContext(isAdjustingRef, isPanningRef) {
   return (
@@ -289,6 +316,42 @@ const IDENTITY_CURVES = {
   ],
 };
 
+/**
+ * Podczas przeciągania krzywej kontrolki są trzymane w refie (`curveInteractionLiveRef`).
+ * Nie możemy polegać na `interactionKind` / `isAdjusting` z propsów — pierwsze `requestCurvePreviewFrame()`
+ * po pointerdown dzieje się zanim React zcommituje stan; bez refa LUT pozostaje „stary”.
+ */
+function isCurveInteractionLive(curveInteractionLiveRef) {
+  const live = curveInteractionLiveRef?.current;
+  return Boolean(
+    live &&
+      typeof live === 'object' &&
+      Array.isArray(live.rgb) &&
+      Array.isArray(live.r) &&
+      Array.isArray(live.g) &&
+      Array.isArray(live.b)
+  );
+}
+
+function resolveCurveInteractionUserCurves(adjustments, curveInteractionLiveRef) {
+  if (isCurveInteractionLive(curveInteractionLiveRef)) {
+    return curveInteractionLiveRef.current;
+  }
+  return adjustments?.userCurves ?? IDENTITY_CURVES;
+}
+
+function mergeLiveUserCurves(adjustments, curveInteractionLiveRef) {
+  if (!adjustments) {
+    return adjustments;
+  }
+  const base = mergeIngressCalibrationIntoAdjustments(adjustments);
+  const uc = resolveCurveInteractionUserCurves(base, curveInteractionLiveRef);
+  if (uc === base.userCurves) {
+    return base;
+  }
+  return { ...base, userCurves: uc };
+}
+
 const HUE_SECTORS = [
   { id: 'red', center: 0, spread: 42 },
   { id: 'orange', center: 32, spread: 28 },
@@ -318,6 +381,86 @@ const USER_RESPONSE_SCALE = Object.freeze({
   grading: 0.62,
   calibration: 0.42,
 });
+
+/**
+ * Lokalna maska (CPU preview): ekspozycja + tonacja + WB + nasycenie — ważone wagą maski.
+ * `blendScale` jak przy ekspozycji (add / subtract / normal).
+ */
+function applyLocalMaskRgbTone(red, green, blue, maskEntry, maskWeight, blendScale) {
+  const opacity = Math.max(0, Math.min(1, Number(maskEntry.opacity ?? 1)));
+  if (maskWeight <= 1e-7) {
+    return [red, green, blue];
+  }
+  const localGain = Math.pow(
+    2,
+    (Number(maskEntry.exposure ?? 0) / 100) * maskWeight * opacity * 0.75 * blendScale
+  );
+  let r = red;
+  let g = green;
+  let b = blue;
+  [r, g, b] = applyExposureGainWithShoulder(r, g, b, localGain);
+
+  const k = maskWeight * opacity * 0.75 * blendScale;
+  /** Local mask path only: stronger positive highlights/whites toward clipping vs global tone scale. */
+  const LOCAL_MASK_HL_WH_POS_GAIN = 1.42;
+  const hlRaw = Number(maskEntry.maskHighlights ?? 0);
+  const whRaw = Number(maskEntry.maskWhites ?? 0);
+  let hl =
+    mapSignedSliderForResponse(hlRaw, 'highlights') * (USER_RESPONSE_SCALE.highlights / 100) * k;
+  if (hlRaw > 0) {
+    hl *= LOCAL_MASK_HL_WH_POS_GAIN;
+  }
+  const sh =
+    mapSignedSliderForResponse(Number(maskEntry.maskShadows ?? 0), 'shadows') *
+    (USER_RESPONSE_SCALE.shadows / 100) *
+    k;
+  let wh =
+    mapSignedSliderForResponse(whRaw, 'whites') * (USER_RESPONSE_SCALE.whites / 100) * k;
+  if (whRaw > 0) {
+    wh *= LOCAL_MASK_HL_WH_POS_GAIN;
+  }
+  const bl =
+    mapSignedSliderForResponse(Number(maskEntry.maskBlacks ?? 0), 'blacks') *
+    (USER_RESPONSE_SCALE.blacks / 100) *
+    k;
+  [r, g, b] = applyToneAdjustments(r, g, b, hl, sh, wh, bl);
+
+  const conDelta =
+    mapSignedSliderForResponse(Number(maskEntry.maskContrast ?? 0), 'contrast') *
+    (USER_RESPONSE_SCALE.contrast / 200) *
+    k;
+  if (Math.abs(conDelta) > 1e-10) {
+    const totalCon = 1 + conDelta;
+    r = ((r / 255 - 0.5) * totalCon + 0.5) * 255;
+    g = ((g / 255 - 0.5) * totalCon + 0.5) * 255;
+    b = ((b / 255 - 0.5) * totalCon + 0.5) * 255;
+  }
+
+  const mtUser = Number(maskEntry.maskTemp ?? 0);
+  const mnUser = Number(maskEntry.maskTint ?? 0);
+  if (Math.abs(mtUser) > 1e-6 || Math.abs(mnUser) > 1e-6) {
+    /** Pełne wartości suwaków do krzywej WB; skala `k` na mnożnikach (nieliniowość jak globalny „temp”) */
+    const wb = resolveWhiteBalanceGains(mtUser, mnUser);
+    const s = Math.max(0, Math.min(1, k));
+    r *= 1 + (wb.r - 1) * s;
+    g *= 1 + (wb.g - 1) * s;
+    b *= 1 + (wb.b - 1) * s;
+  }
+
+  const msat =
+    mapSignedSliderForResponse(Number(maskEntry.maskSaturation ?? 0), 'saturation') *
+    (USER_RESPONSE_SCALE.saturation / 100) *
+    k;
+  if (Math.abs(msat) > 1e-8) {
+    const satMix = 1 + msat;
+    const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+    r = gray + (r - gray) * satMix;
+    g = gray + (g - gray) * satMix;
+    b = gray + (b - gray) * satMix;
+  }
+
+  return [clamp(r), clamp(g), clamp(b)];
+}
 
 const USER_CURVE_LUT_RESOLUTION = 4096;
 
@@ -445,7 +588,19 @@ const PROXY_MATCH_PREVIEW_BUFFER = readEnvFlag(
   import.meta?.env?.VITE_FILMLAB_PROXY_MATCH_PREVIEW,
   false
 );
-const PRESERVE_FULL_EFFECT_STACK_DURING_ADJUST = true;
+/**
+ * true = podczas drag wymuś pełny stos CPU dla dust/leak/ramka (wolniej, wierniej).
+ * false (domyślne) = maks. FPS; WebGL fast path nawet gdy te nakładki byłyby tylko na CPU.
+ */
+const PRESERVE_FULL_EFFECT_STACK_DURING_ADJUST = readEnvFlag(
+  import.meta?.env?.VITE_FILMLAB_PRESERVE_CPU_STACK_ON_DRAG,
+  false
+);
+/**
+ * Skala długiej krawędzi proxy workera przy interakcji (1 = stary zachowanie, mniej = szybciej).
+ * Domyślnie 0,82 — mniejszy bufor, mniej pikseli w workerze.
+ */
+const DRAG_PROXY_SCALE = Math.min(1, Math.max(0.45, Number(import.meta?.env?.VITE_FILMLAB_DRAG_PROXY_SCALE ?? 0.82)));
 
 function parseCubeLut(text) {
   let size = 0;
@@ -552,14 +707,22 @@ function normalizeFastLookLutForWorker(lookLut) {
 
 const FAST_PREVIEW_CPU_ONLY_INTERACTION_PREFIXES = [];
 
+/**
+ * Ekspozycja / temperatura / tonacja: ten sam szybki tor WebGL co pozostałe suwaki (uniformy),
+ * bez ciężkiego CPU w głównym wątku — eliminacja migotania przy przeciąganiu.
+ * Krzywa: nadal CPU pełny podgląd (dokładność punktów).
+ */
 function shouldForceCpuPreviewDuringAdjust(interactionKind) {
-  if (!interactionKind || interactionKind === 'idle') {
+  const kind = String(interactionKind || '');
+  if (!kind || kind === 'idle') {
     return false;
   }
+  /** Krzywa: fast GL / worker proxy nie trzymają 1:1 z pełnym `renderToContext` przy przeciąganiu punktów. */
+  if (kind === 'curve') {
+    return true;
+  }
 
-  return FAST_PREVIEW_CPU_ONLY_INTERACTION_PREFIXES.some((prefix) =>
-    interactionKind.startsWith(prefix)
-  );
+  return FAST_PREVIEW_CPU_ONLY_INTERACTION_PREFIXES.some((prefix) => kind.startsWith(prefix));
 }
 
 async function loadCubeLut(lutFile) {
@@ -747,6 +910,8 @@ function drawRandomOverlay({
   matchOrientation = false,
   strictOrientation = false,
   randomizeTransform = true,
+  /** Zip overlays (dust / RAW leak / klisza): map texture to full canvas; screen blend so opaque JPG centers do not hide the image. */
+  pinFullCanvas = false,
 }) {
   if (!Array.isArray(files) || files.length === 0) {
     return false;
@@ -835,9 +1000,15 @@ function drawRandomOverlay({
   context.save();
   context.globalCompositeOperation = blendMode;
   context.globalAlpha = clampUnit(opacity);
-  context.translate(width / 2 + offsetX, height / 2 + offsetY);
-  context.scale(flipX * scale, flipY * scale);
-  context.drawImage(image, -width / 2, -height / 2, width, height);
+
+  if (pinFullCanvas) {
+    context.drawImage(image, 0, 0, width, height);
+  } else {
+    context.translate(width / 2 + offsetX, height / 2 + offsetY);
+    context.scale(flipX * scale, flipY * scale);
+    context.drawImage(image, -width / 2, -height / 2, width, height);
+  }
+
   context.restore();
 
   return true;
@@ -2052,9 +2223,10 @@ function applyLightLeak(context, canvas, type, seed = 1, variantIndex = null) {
         fileIndex: variantIndex,
         opacity: 0.06 + random() * 0.1,
         blendMode: 'screen',
-        matchOrientation: true,
-        strictOrientation: true,
+        matchOrientation: false,
+        strictOrientation: false,
         randomizeTransform: false,
+        pinFullCanvas: true,
       });
       break;
     }
@@ -2132,9 +2304,10 @@ function applyDust(context, canvas, amount, seed = 1, variantIndex = null) {
     fileIndex: variantIndex,
     opacity: Math.min(0.75, 0.14 + amount * 0.45),
     blendMode: 'screen',
-    matchOrientation: true,
-    strictOrientation: true,
+    matchOrientation: false,
+    strictOrientation: false,
     randomizeTransform: false,
+    pinFullCanvas: true,
   });
 }
 
@@ -2225,354 +2398,6 @@ function applyAnamorph(context, canvas, fxCanvasRef, strength, streakLength) {
   context.restore();
 }
 
-function buildBrushMaskBuffer(width, height, brushStrokes) {
-  if (!Array.isArray(brushStrokes) || brushStrokes.length === 0 || width < 1 || height < 1) {
-    return null;
-  }
-  const mask = new Float32Array(width * height);
-  for (const stroke of brushStrokes) {
-    const cx = Math.round(clampUnit(Number(stroke?.x ?? 0.5)) * (width - 1));
-    const cy = Math.round(clampUnit(Number(stroke?.y ?? 0.5)) * (height - 1));
-    const radiusNorm = Math.max(0.004, Math.min(0.5, Number(stroke?.radius ?? 0.05)));
-    const feather = clampUnit(Number(stroke?.feather ?? 0.65));
-    const radiusPx = Math.max(2, Math.round(radiusNorm * Math.max(width, height)));
-    const softStart = radiusPx * (1 - feather * 0.85);
-    const yMin = Math.max(0, cy - radiusPx);
-    const yMax = Math.min(height - 1, cy + radiusPx);
-    const xMin = Math.max(0, cx - radiusPx);
-    const xMax = Math.min(width - 1, cx + radiusPx);
-    for (let y = yMin; y <= yMax; y += 1) {
-      for (let x = xMin; x <= xMax; x += 1) {
-        const dx = x - cx;
-        const dy = y - cy;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist > radiusPx) {
-          continue;
-        }
-        let weight = 1;
-        if (dist > softStart) {
-          const t = (dist - softStart) / Math.max(1e-5, radiusPx - softStart);
-          weight = 1 - t;
-        }
-        const idx = y * width + x;
-        const edgeGain = Math.max(0.12, Math.min(1, Number(stroke?.edgeGain ?? 1)));
-        const safeWeight = Math.max(0, Math.min(1, weight * edgeGain));
-        if (stroke?.erase) {
-          mask[idx] = Math.max(0, mask[idx] - safeWeight);
-        } else {
-          mask[idx] = Math.max(mask[idx], safeWeight);
-        }
-      }
-    }
-  }
-  return mask;
-}
-
-function buildBrushMaskSignature(width, height, brushStrokes) {
-  if (!Array.isArray(brushStrokes) || brushStrokes.length === 0) {
-    return `${width}x${height}:0`;
-  }
-  // Compact stable signature: dimensions + stroke count + rounded stroke fields.
-  let signature = `${width}x${height}:${brushStrokes.length}`;
-  for (let i = 0; i < brushStrokes.length; i += 1) {
-    const s = brushStrokes[i];
-    const x = Math.round(clampUnit(Number(s?.x ?? 0.5)) * 1000);
-    const y = Math.round(clampUnit(Number(s?.y ?? 0.5)) * 1000);
-    const r = Math.round(Math.max(0, Math.min(0.5, Number(s?.radius ?? 0.05))) * 1000);
-    const f = Math.round(clampUnit(Number(s?.feather ?? 0.65)) * 1000);
-    const e = s?.erase ? 1 : 0;
-    const g = Math.round(Math.max(0, Math.min(1, Number(s?.edgeGain ?? 1))) * 1000);
-    signature += `|${x},${y},${r},${f},${e},${g}`;
-  }
-  return signature;
-}
-
-function buildLinearMaskBuffer(width, height, adjustments) {
-  if (width < 1 || height < 1) {
-    return null;
-  }
-  const mask = new Float32Array(width * height);
-  const angleDeg = Number(adjustments?.linearMaskAngle ?? 0);
-  const angle = (angleDeg * Math.PI) / 180;
-  const dirX = Math.cos(angle);
-  const dirY = Math.sin(angle);
-  const feather = clampUnit(Number(adjustments?.linearMaskFeather ?? 55) / 100);
-  const offset = Math.max(-1, Math.min(1, Number(adjustments?.linearMaskOffset ?? 0) / 100));
-  const span = Math.max(0.03, 0.25 + feather * 0.5);
-  for (let y = 0; y < height; y += 1) {
-    const ny = height > 1 ? y / (height - 1) - 0.5 : 0;
-    for (let x = 0; x < width; x += 1) {
-      const nx = width > 1 ? x / (width - 1) - 0.5 : 0;
-      const p = nx * dirX + ny * dirY - offset * 0.5;
-      const t = clampUnit((p + span) / (span * 2));
-      mask[y * width + x] = t * t * (3 - 2 * t);
-    }
-  }
-  return mask;
-}
-
-function buildRadialMaskBuffer(width, height, adjustments) {
-  if (width < 1 || height < 1) {
-    return null;
-  }
-  const mask = new Float32Array(width * height);
-  const cx = clampUnit(Number(adjustments?.radialMaskCenterX ?? 50) / 100);
-  const cy = clampUnit(Number(adjustments?.radialMaskCenterY ?? 50) / 100);
-  const radius = Math.max(0.04, Math.min(1, Number(adjustments?.radialMaskRadius ?? 35) / 100));
-  const feather = clampUnit(Number(adjustments?.radialMaskFeather ?? 55) / 100);
-  const inner = Math.max(0, radius * (1 - feather * 0.92));
-  for (let y = 0; y < height; y += 1) {
-    const ny = height > 1 ? y / (height - 1) : 0;
-    for (let x = 0; x < width; x += 1) {
-      const nx = width > 1 ? x / (width - 1) : 0;
-      const d = Math.hypot(nx - cx, ny - cy);
-      let w = 0;
-      if (d <= inner) {
-        w = 1;
-      } else if (d < radius) {
-        const t = 1 - (d - inner) / Math.max(1e-5, radius - inner);
-        w = t * t * (3 - 2 * t);
-      }
-      mask[y * width + x] = w;
-    }
-  }
-  return mask;
-}
-
-function buildLocalMaskSignature(width, height, adjustments) {
-  const mode = String(adjustments?.localMaskMode ?? 'brush');
-  if (mode === 'linear') {
-    return `linear:${width}x${height}:${Math.round(Number(adjustments?.linearMaskAngle ?? 0) * 10)}:${Math.round(
-      Number(adjustments?.linearMaskFeather ?? 55) * 10
-    )}:${Math.round(Number(adjustments?.linearMaskOffset ?? 0) * 10)}`;
-  }
-  if (mode === 'radial') {
-    return `radial:${width}x${height}:${Math.round(Number(adjustments?.radialMaskCenterX ?? 50) * 10)}:${Math.round(
-      Number(adjustments?.radialMaskCenterY ?? 50) * 10
-    )}:${Math.round(Number(adjustments?.radialMaskRadius ?? 35) * 10)}:${Math.round(
-      Number(adjustments?.radialMaskFeather ?? 55) * 10
-    )}`;
-  }
-  if (mode === 'luma') {
-    return `luma:${Math.round(Number(adjustments?.lumaMaskMin ?? 0) * 10)}:${Math.round(
-      Number(adjustments?.lumaMaskMax ?? 100) * 10
-    )}:${Math.round(Number(adjustments?.lumaMaskFeather ?? 35) * 10)}`;
-  }
-  if (mode === 'color') {
-    return `color:${Math.round(Number(adjustments?.colorMaskHueCenter ?? 210) * 10)}:${Math.round(
-      Number(adjustments?.colorMaskHueWidth ?? 90) * 10
-    )}:${Math.round(Number(adjustments?.colorMaskFeather ?? 35) * 10)}:${Math.round(
-      Number(adjustments?.colorMaskChromaMin ?? 0) * 10
-    )}:${Math.round(Number(adjustments?.colorMaskChromaMax ?? 100) * 10)}`;
-  }
-  if (mode === 'depth') {
-    const digestRaw = adjustments?.depthProxyDigest;
-    const digest =
-      digestRaw != null && String(digestRaw).trim() !== ''
-        ? String(digestRaw).trim().slice(0, 80)
-        : 'luma';
-    const dms = String(adjustments?.depthMapSource ?? 'luminance').slice(0, 32);
-    return `depth:${Math.round(Number(adjustments?.depthMaskMin ?? 0) * 10)}:${Math.round(
-      Number(adjustments?.depthMaskMax ?? 100) * 10
-    )}:${Math.round(Number(adjustments?.depthMaskFeather ?? 35) * 10)}:${dms}:${digest}:${buildBrushMaskSignature(
-      width,
-      height,
-      adjustments?.brushMaskStrokes
-    )}`;
-  }
-  return `brush:${buildBrushMaskSignature(width, height, adjustments?.brushMaskStrokes)}`;
-}
-
-/**
- * Same mask stack resolution as the render loop (for export / diagnostics).
- * @param {Map} maskCache — reuse brushMask buffers when provided (e.g. brushMaskCacheRef.current).
- */
-function buildLocalMaskStackSnapshot(width, height, adjustments, maskCache) {
-  const cache = maskCache instanceof Map ? maskCache : new Map();
-  const brushMaskEnabled = Boolean(adjustments?.brushMaskEnabled);
-  const localMaskEntries = (() => {
-    const stack = Array.isArray(adjustments?.localMasks) ? adjustments.localMasks : [];
-    const soloIndex = Number(adjustments?.localMaskSoloIndex ?? -1);
-    const activeIdx = Math.max(
-      0,
-      Math.min(stack.length > 0 ? stack.length - 1 : 0, Number(adjustments?.activeLocalMaskIndex ?? 0))
-    );
-    const current = {
-      enabled: adjustments?.localMaskEnabled !== false,
-      mode: String(adjustments?.localMaskMode ?? 'brush'),
-      opacity: Number(adjustments?.localMaskOpacity ?? 100),
-      blend: String(adjustments?.localMaskBlend ?? 'normal'),
-      exposure: Number(adjustments?.brushMaskExposure ?? 0),
-      brush: {
-        strokes: Array.isArray(adjustments?.brushMaskStrokes) ? adjustments.brushMaskStrokes : [],
-      },
-      linear: {
-        angle: Number(adjustments?.linearMaskAngle ?? 0),
-        feather: Number(adjustments?.linearMaskFeather ?? 55),
-        offset: Number(adjustments?.linearMaskOffset ?? 0),
-      },
-      radial: {
-        centerX: Number(adjustments?.radialMaskCenterX ?? 50),
-        centerY: Number(adjustments?.radialMaskCenterY ?? 50),
-        radius: Number(adjustments?.radialMaskRadius ?? 35),
-        feather: Number(adjustments?.radialMaskFeather ?? 55),
-      },
-      luma: {
-        min: Number(adjustments?.lumaMaskMin ?? 0),
-        max: Number(adjustments?.lumaMaskMax ?? 100),
-        feather: Number(adjustments?.lumaMaskFeather ?? 35),
-      },
-      color: {
-        hueCenter: Number(adjustments?.colorMaskHueCenter ?? 210),
-        hueWidth: Number(adjustments?.colorMaskHueWidth ?? 90),
-        feather: Number(adjustments?.colorMaskFeather ?? 35),
-        chromaMin: Number(adjustments?.colorMaskChromaMin ?? 0),
-        chromaMax: Number(adjustments?.colorMaskChromaMax ?? 100),
-      },
-      depth: {
-        min: Number(adjustments?.depthMaskMin ?? 0),
-        max: Number(adjustments?.depthMaskMax ?? 100),
-        feather: Number(adjustments?.depthMaskFeather ?? 35),
-        mapSource: String(adjustments?.depthMapSource ?? 'luminance'),
-      },
-    };
-    if (!brushMaskEnabled) {
-      return [];
-    }
-    if (stack.length === 0) {
-      return [current];
-    }
-    const merged = stack.map((entry, idx) => (idx === activeIdx ? current : entry));
-    if (Number.isInteger(soloIndex) && soloIndex >= 0 && soloIndex < merged.length) {
-      return [merged[soloIndex]];
-    }
-    return merged.filter((entry) => entry?.enabled !== false);
-  })();
-
-  const localMaskStack = localMaskEntries
-    .map((entry, maskIndex) => {
-      const exposure = Number(entry?.exposure ?? entry?.brushMaskExposure ?? 0);
-      const opacity = Math.max(0, Math.min(1, Number(entry?.opacity ?? entry?.localMaskOpacity ?? 100) / 100));
-      if (Math.abs(exposure) < 0.01 || opacity <= 0.0001) {
-        return null;
-      }
-      const mode = String(entry?.mode ?? entry?.localMaskMode ?? 'brush');
-      const signature = buildLocalMaskSignature(width, height, {
-        ...entry,
-        localMaskMode: mode,
-        linearMaskAngle: entry?.linear?.angle ?? entry?.linearMaskAngle,
-        linearMaskFeather: entry?.linear?.feather ?? entry?.linearMaskFeather,
-        linearMaskOffset: entry?.linear?.offset ?? entry?.linearMaskOffset,
-        radialMaskCenterX: entry?.radial?.centerX ?? entry?.radialMaskCenterX,
-        radialMaskCenterY: entry?.radial?.centerY ?? entry?.radialMaskCenterY,
-        radialMaskRadius: entry?.radial?.radius ?? entry?.radialMaskRadius,
-        radialMaskFeather: entry?.radial?.feather ?? entry?.radialMaskFeather,
-        brushMaskStrokes: entry?.brush?.strokes ?? entry?.brushMaskStrokes,
-        lumaMaskMin: entry?.luma?.min ?? entry?.lumaMaskMin,
-        lumaMaskMax: entry?.luma?.max ?? entry?.lumaMaskMax,
-        lumaMaskFeather: entry?.luma?.feather ?? entry?.lumaMaskFeather,
-        colorMaskHueCenter: entry?.color?.hueCenter ?? entry?.colorMaskHueCenter,
-        colorMaskHueWidth: entry?.color?.hueWidth ?? entry?.colorMaskHueWidth,
-        colorMaskFeather: entry?.color?.feather ?? entry?.colorMaskFeather,
-        colorMaskChromaMin: entry?.color?.chromaMin ?? entry?.colorMaskChromaMin,
-        colorMaskChromaMax: entry?.color?.chromaMax ?? entry?.colorMaskChromaMax,
-        depthMaskMin: entry?.depth?.min ?? entry?.depthMaskMin,
-        depthMaskMax: entry?.depth?.max ?? entry?.depthMaskMax,
-        depthMaskFeather: entry?.depth?.feather ?? entry?.depthMaskFeather,
-        depthMapSource: entry?.depth?.mapSource ?? adjustments?.depthMapSource ?? 'luminance',
-        depthProxyDigest:
-          adjustments?.depthProxyDigest ??
-          entry?.depthProxyDigest ??
-          (typeof entry?.depth?.digest === 'string' ? entry.depth.digest : null),
-      });
-      const cacheKey = `${maskIndex}:${signature}`;
-      let buffer = cache.get(cacheKey) ?? null;
-      if (!(buffer instanceof Float32Array) || buffer.length !== width * height) {
-        if (mode === 'linear') {
-          buffer = buildLinearMaskBuffer(width, height, {
-            linearMaskAngle: entry?.linear?.angle ?? entry?.linearMaskAngle,
-            linearMaskFeather: entry?.linear?.feather ?? entry?.linearMaskFeather,
-            linearMaskOffset: entry?.linear?.offset ?? entry?.linearMaskOffset,
-          });
-        } else if (mode === 'radial') {
-          buffer = buildRadialMaskBuffer(width, height, {
-            radialMaskCenterX: entry?.radial?.centerX ?? entry?.radialMaskCenterX,
-            radialMaskCenterY: entry?.radial?.centerY ?? entry?.radialMaskCenterY,
-            radialMaskRadius: entry?.radial?.radius ?? entry?.radialMaskRadius,
-            radialMaskFeather: entry?.radial?.feather ?? entry?.radialMaskFeather,
-          });
-        } else {
-          buffer = buildBrushMaskBuffer(
-            width,
-            height,
-            Array.isArray(entry?.brush?.strokes ?? entry?.brushMaskStrokes)
-              ? entry?.brush?.strokes ?? entry?.brushMaskStrokes
-              : []
-          );
-        }
-        if (buffer instanceof Float32Array) {
-          cache.set(cacheKey, buffer);
-          if (cache.size > 12) {
-            const firstKey = cache.keys().next().value;
-            cache.delete(firstKey);
-          }
-        }
-      }
-      return {
-        buffer: buffer instanceof Float32Array ? buffer : null,
-        exposure,
-        opacity,
-        mode,
-        lumaMin: Number(entry?.luma?.min ?? entry?.lumaMaskMin ?? 0) / 100,
-        lumaMax: Number(entry?.luma?.max ?? entry?.lumaMaskMax ?? 100) / 100,
-        lumaFeather: Number(entry?.luma?.feather ?? entry?.lumaMaskFeather ?? 35) / 100,
-        colorHueCenter: Number(entry?.color?.hueCenter ?? entry?.colorMaskHueCenter ?? 210),
-        colorHueWidth: Number(entry?.color?.hueWidth ?? entry?.colorMaskHueWidth ?? 90),
-        colorFeather: Number(entry?.color?.feather ?? entry?.colorMaskFeather ?? 35) / 100,
-        colorChromaMin: Number(entry?.color?.chromaMin ?? entry?.colorMaskChromaMin ?? 0) / 100,
-        colorChromaMax: Number(entry?.color?.chromaMax ?? entry?.colorMaskChromaMax ?? 100) / 100,
-        depthMin: Number(entry?.depth?.min ?? entry?.depthMaskMin ?? 0) / 100,
-        depthMax: Number(entry?.depth?.max ?? entry?.depthMaskMax ?? 100) / 100,
-        depthFeather: Number(entry?.depth?.feather ?? entry?.depthMaskFeather ?? 35) / 100,
-        blend: String(entry?.blend ?? entry?.localMaskBlend ?? 'normal'),
-        ...(mode === 'depth'
-          ? {
-              depthProxyBuffer:
-                entry?.depthProxyBuffer instanceof Float32Array ? entry.depthProxyBuffer : null,
-            }
-          : {}),
-      };
-    })
-    .filter(Boolean);
-
-  const graphOpNorm = normalizeLocalMaskGraphOp(adjustments?.localMaskGraphOp);
-  let graphCombineActive = false;
-  let graphIdxA = 0;
-  let graphIdxB = 1;
-  if (Boolean(adjustments?.localMaskGraphEnabled) && brushMaskEnabled && localMaskStack.length >= 2) {
-    graphIdxA = Math.max(
-      0,
-      Math.min(localMaskStack.length - 1, Math.round(Number(adjustments?.localMaskGraphIndexA ?? 0)))
-    );
-    graphIdxB = Math.max(
-      0,
-      Math.min(localMaskStack.length - 1, Math.round(Number(adjustments?.localMaskGraphIndexB ?? 1)))
-    );
-    graphCombineActive = graphIdxA !== graphIdxB;
-    if (graphCombineActive && (!localMaskStack[graphIdxA] || !localMaskStack[graphIdxB])) {
-      graphCombineActive = false;
-    }
-  }
-
-  return {
-    localMaskStack,
-    graphCombineActive,
-    graphIdxA,
-    graphIdxB,
-    graphOpNorm,
-    brushMaskEnabled,
-  };
-}
 
 /**
  * Grayscale ImageData of local mask weights at export resolution (source-aligned).
@@ -2584,7 +2409,7 @@ function buildExportMaskGrayscaleImageData(width, height, transformedSource, adj
     return null;
   }
 
-  const snap = buildLocalMaskStackSnapshot(width, height, adjustments, maskCache);
+  const snap = buildLocalMaskStackSnapshot(width, height, adjustments, maskCache, transformedSource);
   if (!snap.localMaskStack.length) {
     return null;
   }
@@ -2627,12 +2452,27 @@ function buildExportMaskGrayscaleImageData(width, height, transformedSource, adj
   } else if (mode === 'radial') {
     buffer = buildRadialMaskBuffer(width, height, adjustments);
   } else if (mode === 'brush') {
-    buffer = buildBrushMaskBuffer(width, height, adjustments?.brushMaskStrokes ?? []);
+    buffer = buildBrushMaskBuffer(
+      width,
+      height,
+      adjustments?.brushMaskStrokes ?? [],
+      adjustments?.brushMaskPaths ?? [],
+      buildMaskBrushPathStyle(adjustments),
+      transformedSource
+    );
   } else if (mode === 'luma') {
+    const brushBuf = buildBrushMaskBuffer(
+      width,
+      height,
+      adjustments?.brushMaskStrokes ?? [],
+      adjustments?.brushMaskPaths ?? [],
+      buildMaskBrushPathStyle(adjustments),
+      transformedSource
+    );
     buffer = new Float32Array(width * height);
     const data = transformedSource.data;
     const maskEntry = {
-      buffer: null,
+      buffer: brushBuf instanceof Float32Array ? brushBuf : null,
       mode: 'luma',
       lumaMin: Number(adjustments?.lumaMaskMin ?? 0) / 100,
       lumaMax: Number(adjustments?.lumaMaskMax ?? 100) / 100,
@@ -2649,10 +2489,18 @@ function buildExportMaskGrayscaleImageData(width, height, transformedSource, adj
       );
     }
   } else if (mode === 'color') {
+    const brushBuf = buildBrushMaskBuffer(
+      width,
+      height,
+      adjustments?.brushMaskStrokes ?? [],
+      adjustments?.brushMaskPaths ?? [],
+      buildMaskBrushPathStyle(adjustments),
+      transformedSource
+    );
     buffer = new Float32Array(width * height);
     const data = transformedSource.data;
     const maskEntry = {
-      buffer: null,
+      buffer: brushBuf instanceof Float32Array ? brushBuf : null,
       mode: 'color',
       colorHueCenter: Number(adjustments?.colorMaskHueCenter ?? 210),
       colorHueWidth: Number(adjustments?.colorMaskHueWidth ?? 90),
@@ -2671,7 +2519,14 @@ function buildExportMaskGrayscaleImageData(width, height, transformedSource, adj
       );
     }
   } else if (mode === 'depth') {
-    const brushBuf = buildBrushMaskBuffer(width, height, adjustments?.brushMaskStrokes ?? []);
+    const brushBuf = buildBrushMaskBuffer(
+      width,
+      height,
+      adjustments?.brushMaskStrokes ?? [],
+      adjustments?.brushMaskPaths ?? [],
+      buildMaskBrushPathStyle(adjustments),
+      transformedSource
+    );
     buffer = new Float32Array(width * height);
     const data = transformedSource.data;
     const useLumaProxy =
@@ -2854,9 +2709,10 @@ function applyFrame(context, canvas, type, seed = 1, variantIndex = null) {
         fileIndex: variantIndex,
         opacity: 0.95,
         blendMode: 'screen',
-        matchOrientation: true,
-        strictOrientation: true,
+        matchOrientation: false,
+        strictOrientation: false,
         randomizeTransform: false,
+        pinFullCanvas: true,
       });
 
       if (!overlayApplied) {
@@ -2891,6 +2747,26 @@ function applyFrame(context, canvas, type, seed = 1, variantIndex = null) {
       context.strokeStyle = 'rgba(255,255,255,0.06)';
       context.lineWidth = 1;
       context.strokeRect(edge, edge, width - edge * 2, height - edge * 2);
+      break;
+    }
+    case 'sprocket-35': {
+      const m = Math.min(width, height);
+      const rail = Math.max(8, Math.round(m * 0.032));
+      const holeW = Math.max(5, Math.round(rail * 0.38));
+      const holeH = Math.max(6, Math.round(rail * 0.52));
+      const step = holeH + Math.max(6, Math.round(rail * 0.45));
+      context.fillStyle = '#121210';
+      context.fillRect(0, 0, rail, height);
+      context.fillRect(width - rail, 0, rail, height);
+      context.fillStyle = '#dcd6cc';
+      const padY = step * 0.45;
+      const hx0 = Math.round((rail - holeW) / 2);
+      const hx1 = width - rail + hx0;
+      for (let y = padY; y < height - holeH - padY * 0.5; y += step) {
+        const ry = Math.round(y);
+        context.fillRect(hx0, ry, holeW, holeH);
+        context.fillRect(hx1, ry, holeW, holeH);
+      }
       break;
     }
     default:
@@ -2998,33 +2874,31 @@ function getInteractiveWorkerProxyMaxDimension(baseMax, interactionKind = 'idle'
   const normalizedBase = Math.max(360, Math.round(baseMax || 0));
   const kind = String(interactionKind || 'idle');
 
+  let result = normalizedBase;
   if (kind === 'curve') {
-    return Math.max(360, Math.round(normalizedBase * 0.7));
-  }
-
-  if (
+    result = Math.max(360, Math.round(normalizedBase * 0.7));
+  } else if (
     kind.startsWith('slider:userGrain') ||
     kind.startsWith('slider:chromAb') ||
     kind.startsWith('slider:bloom') ||
     kind.startsWith('slider:halation') ||
-    kind.startsWith('slider:anamorph')
+    kind.startsWith('slider:anamorph') ||
+    kind.startsWith('slider:gateWeave') ||
+    kind.startsWith('slider:doubleExposureAmount')
   ) {
-    return Math.max(360, Math.round(normalizedBase * 0.68));
-  }
-
-  if (
+    result = Math.max(360, Math.round(normalizedBase * 0.68));
+  } else if (
     kind.startsWith('slider:mixer-') ||
     kind.startsWith('slider:grade-') ||
     kind.startsWith('slider:calibration-')
   ) {
-    return Math.max(360, Math.round(normalizedBase * 0.74));
+    result = Math.max(360, Math.round(normalizedBase * 0.74));
+  } else if (kind.startsWith('slider:')) {
+    result = Math.max(360, Math.round(normalizedBase * 0.8));
   }
 
-  if (kind.startsWith('slider:')) {
-    return Math.max(360, Math.round(normalizedBase * 0.8));
-  }
-
-  return normalizedBase;
+  const scaled = Math.round(result * DRAG_PROXY_SCALE);
+  return Math.max(280, scaled);
 }
 
 function applyOrderedPreviewDither(data, width, height, amount = 0.75) {
@@ -3068,7 +2942,35 @@ function hasDeferredPreviewEffects(film, adjustments) {
       (adjustments?.halation ?? 0) > 0 ||
       (adjustments?.anamorph ?? 0) > 0 ||
       (adjustments?.frame && adjustments.frame !== 'none') ||
-      (adjustments?.leak && adjustments.leak !== 'none')
+      (adjustments?.leak && adjustments.leak !== 'none') ||
+      (adjustments?.gateWeave ?? 0) > 0 ||
+      (adjustments?.doubleExposureAmount ?? 0) > 0
+  );
+}
+
+/**
+ * Tylko to wymusza CPU przy przeciąganiu — efekty bez ścieżki WebGL fast preview (dust/leak/ramka)
+ * lub legacy stack kliszy bez LUT. Ziarno / winieta / chromAb / halation są w `fastPreviewRenderer`.
+ */
+function hasCpuOnlyDeferredPreviewEffects(film, adjustments) {
+  const profileUsesPreviewLut = Boolean(film?.previewLutFile);
+  const filmTextureStackNeedsCpu =
+    !profileUsesPreviewLut &&
+    ((film?.texture ?? 0) !== 0 ||
+      (film?.clarity ?? 0) !== 0 ||
+      (film?.grain ?? 0) !== 0 ||
+      (film?.vignette ?? 0) !== 0);
+
+  const rasterOverlaysNeedCpu =
+    (adjustments?.dust ?? 0) > 0 ||
+    (adjustments?.leak && adjustments.leak !== 'none') ||
+    (adjustments?.frame && adjustments.frame !== 'none');
+
+  return Boolean(
+    filmTextureStackNeedsCpu ||
+      rasterOverlaysNeedCpu ||
+      (adjustments?.gateWeave ?? 0) > 0 ||
+      (adjustments?.doubleExposureAmount ?? 0) > 0
   );
 }
 
@@ -3125,6 +3027,9 @@ function buildWorkerAdjustmentsPayload(adjustments, profileLutStatus = 'idle') {
     halHue: adjustments.halHue ?? 0,
     anamorph: adjustments.anamorph ?? 0,
     streakLen: adjustments.streakLen ?? 50,
+    gateWeave: adjustments.gateWeave ?? 0,
+    doubleExposureAmount: adjustments.doubleExposureAmount ?? 0,
+    doubleExposureBlendMode: adjustments.doubleExposureBlendMode ?? 'screen',
     userCurves: adjustments.userCurves ?? IDENTITY_CURVES,
     isAdjusting: Boolean(adjustments.isAdjusting),
     interactionKind: adjustments.interactionKind ?? 'idle',
@@ -3146,6 +3051,11 @@ function getPresentationDimensions(width, height, rotation = 0) {
   return { width, height };
 }
 
+/**
+ * Prezentacja na canvasie: `rotation` / `flipped` to wyłącznie narzędzia użytkownika (Film Lab).
+ * Orientacja EXIF ma być rozwiązana wcześniej przez `createImageBitmap(..., { imageOrientation: 'from-image' })`,
+ * nie przez podwójne obracanie tu.
+ */
 function drawPresentedImage(
   context,
   image,
@@ -3364,6 +3274,14 @@ function hasColorGradeAdjustments(colorGrade) {
   );
 }
 
+function hasActiveCreativeFilmProfile(film, adjustments) {
+  return Boolean(
+    film &&
+    !film.isInputProfile &&
+    (adjustments?.strength ?? 100) > 0.01
+  );
+}
+
 function canUseFastPreviewPath(
   film,
   adjustments,
@@ -3377,7 +3295,7 @@ function canUseFastPreviewPath(
 
   const allowApproximateDuringAdjust = Boolean(options.allowApproximateDuringAdjust);
   const interactionKind = String(adjustments?.interactionKind ?? 'idle');
-  const hasActiveProfile = !film?.isInputProfile && (adjustments?.strength ?? 100) > 0.01;
+  const hasActiveProfile = hasActiveCreativeFilmProfile(film, adjustments);
 
   if (allowApproximateDuringAdjust) {
     if (shouldForceCpuPreviewDuringAdjust(interactionKind)) {
@@ -3388,13 +3306,13 @@ function canUseFastPreviewPath(
       return false;
     }
 
-    // Do not use approximate fast path when any deferred effect is active.
-    // This keeps all creative effects visible while dragging sliders.
-    if (PRESERVE_FULL_EFFECT_STACK_DURING_ADJUST && hasDeferredPreviewEffects(film, adjustments)) {
+    // Pełny CPU tylko gdy są efekty bez odwzorowania w WebGL (np. dust/leak/ramka / stary profil bez LUT).
+    if (PRESERVE_FULL_EFFECT_STACK_DURING_ADJUST && hasCpuOnlyDeferredPreviewEffects(film, adjustments)) {
       return false;
     }
-    // During drag, prefer the fast path unconditionally to keep UI responsive.
-    // If LUT is still loading/failed, renderer uses analytic profile fallback.
+
+    // Zezwól na WebGL fast preview przy przeciąganiu suwaków, nawet z aktywnym profilem,
+    // aby uniknąć blokowania głównego wątku (eliminacja lagowania suwaków).
     return true;
   }
 
@@ -3418,6 +3336,8 @@ function canUseFastPreviewPath(
     Math.abs(adjustments.dust ?? 0) > 0.01 ||
     Math.abs(adjustments.halation ?? 0) > 0.01 ||
     Math.abs(adjustments.anamorph ?? 0) > 0.01 ||
+    Math.abs(adjustments.gateWeave ?? 0) > 0.01 ||
+    Math.abs(adjustments.doubleExposureAmount ?? 0) > 0.01 ||
     (adjustments.leak && adjustments.leak !== 'none') ||
     (adjustments.frame && adjustments.frame !== 'none')
   ) {
@@ -3456,6 +3376,10 @@ function buildFastPreviewAdjustments(film, adjustments, profileLutStatus = 'idle
     isHslInteraction || isGradeInteraction || isCalibrationInteraction;
 
   next.showClipping = Boolean(adjustments?.showClipping);
+  next.clipLimiterPreview = Boolean(adjustments?.clipLimiterPreview);
+  if (adjustments?.bloomLabAccurate === false) {
+    next.bloomLabAccurate = false;
+  }
 
   const strength = (adjustments?.strength ?? 100) / 100;
   const effectiveProfileStrength = strength;
@@ -3767,6 +3691,9 @@ function buildFastPreviewAdjustments(film, adjustments, profileLutStatus = 'idle
     next.fastLookLut = null;
   }
 
+  delete next.enginePreviewInteractionKind;
+  delete next.enginePreviewDamageNormRect;
+
   return next;
 }
 
@@ -3801,6 +3728,7 @@ export function useFilmLabEngine(
 ) {
   const rawBackendPreference = options?.rawBackendPreference ?? null;
   const rawLinearStageOverride = options?.rawLinearStageOverride ?? null;
+  const curveInteractionLiveRef = options?.curveInteractionLiveRef ?? null;
   const adaptivePivotRef = useRef(0.18);
   const canvasRef = useRef(null);
   const previewSourceRef = useRef(null);
@@ -3825,6 +3753,8 @@ export function useFilmLabEngine(
   const proxyLutExportCallbackRef = useRef(null);
   const proxyRequestIdRef = useRef(0);
   const proxyLastPresentedRequestIdRef = useRef(0);
+  /** renderEpoch z momentu `postMessage` — odrzuca prezentację proxy po zmianie suwaka / ghost clear. */
+  const proxyRenderEpochByRequestIdRef = useRef(new Map());
   const previewE2eIntentT0Ref = useRef(null);
   const previewE2eHostSchedRafT0Ref = useRef(null);
   const proxyE2eHostSchedRafByRequestIdRef = useRef(new Map());
@@ -3855,6 +3785,13 @@ export function useFilmLabEngine(
   const cpuRenderInFlightRef = useRef(false);
   const fastRenderInFlightRef = useRef(false);
   const previewRerunRequestedRef = useRef(false);
+  /**
+   * Po `RAW_BRIDGE_UNAVAILABLE` blokuje ponowne `ingestUploadSource` dla tego samego pliku
+   * (nieskończona pętla: nowy `File` z OPFS + błąd mostka + handoff z Pro).
+   */
+  const rawBridgeIngestCircuitRef = useRef({ uploadKey: '', tripped: false });
+  /** Nowy obiekt `File` (np. ponowny wybór tego samego zdjęcia) → ponowna próba ingestu po mostku. */
+  const prevIngestUploadedFileRef = useRef(null);
   const brushMaskCacheRef = useRef(new Map());
   /** Per-frame scratch: Rec.709 luma 0–1 dla trybu maski depth + depthMapSource=luminance (proxy ONNX-ready). */
   const depthLumaMaterializeRef = useRef(null);
@@ -3872,11 +3809,18 @@ export function useFilmLabEngine(
   const depthOnnxInferSeqRef = useRef(0);
   /** Ostatni `toneAdj` z pętli CPU preview — walidacja async ONNX po zmianie źródła mapy. */
   const latestToneAdjForDepthOnnxRef = useRef(null);
+  /** Phase C: druga płytka do double exposure (`drawImage` na końcowy canvas). */
+  const doubleExposureOverlayRef = useRef(null);
   const scheduleProgressiveRenderRef = useRef(null);
   const previewHydrationFrameRef = useRef(null);
   const deferredRenderRef = useRef(null);
   const fullResPrewarmIdleRef = useRef(null);
   const renderTokenRef = useRef(0);
+  /**
+   * Epoka harmonogramu (`renderEpoch` / „renderId”) — odrzuca spóźnione ramki async (`renderFastPreview` WebGPU,
+   * proxy worker); podbijana przy `syncBlackOutDevelopPresentationSurfaces` i `scheduleProgressiveRender`.
+   */
+  const previewScheduleEpochRef = useRef(0);
   const batchAdjustmentsOverrideRef = useRef({ active: false, value: null });
   const effectSeedRef = useRef({
     dust: Math.floor(Math.random() * 1_000_000_000),
@@ -3896,6 +3840,14 @@ export function useFilmLabEngine(
     sourceKey: 0,
   });
 
+  const developUploadSourceKey = useMemo(
+    () => getDevelopUploadSourceKey(uploadedFile, uploadedImage),
+    [uploadedFile, uploadedImage]
+  );
+  const developUploadSourceKeyRef = useRef('');
+  developUploadSourceKeyRef.current = developUploadSourceKey;
+  const prevDevelopUploadSourceKeyRef = useRef('');
+
   isAdjustingSnapshotRef.current = Boolean(adjustments?.isAdjusting);
   isPanningSnapshotRef.current = Boolean(options?.e2eIsPanning);
 
@@ -3907,6 +3859,9 @@ export function useFilmLabEngine(
   const [isProcessing, setIsProcessing] = useState(false);
   const [imageMeta, setImageMeta] = useState(null);
   const [renderVersion, setRenderVersion] = useState(0);
+  const [doubleExposurePlateReady, setDoubleExposurePlateReady] = useState(false);
+  /** `none` | `file` (wybrany plik) | `opfs` (przywrócony cache przeglądarki). */
+  const [doubleExposurePlateOrigin, setDoubleExposurePlateOrigin] = useState('none');
   const [pipelineInfo, setPipelineInfo] = useState(createIdlePipelineInfo);
   const latestFrameQualityRef = useRef({
     quality: 'idle',
@@ -4077,6 +4032,8 @@ export function useFilmLabEngine(
     data: null,
     status: 'idle',
   });
+  /** Ostatni gotowy cube LUT dla danego pliku — gdy React chwilowo zeruje `profileLut`, CPU nadal korzysta z kostki (bez „zimnego” podglądu przy dragu). */
+  const profileCubeLutReadyCacheRef = useRef({ file: null, lut: null });
   const shouldBootProxyWorker = Boolean(uploadedImage || uploadedFile);
 
   const profileLutMatchesActive = Boolean(
@@ -4265,18 +4222,19 @@ export function useFilmLabEngine(
           const wCtx = wgpuHostUniformCtxRef.current;
           const wFilm = wCtx.activeFilm || {};
           const wAdj = wCtx.adjustments || {};
+          const wAdjMerged = mergeLiveUserCurves(wAdj, curveInteractionLiveRef);
           const wProfStatus = wCtx.profileLutStatus || 'idle';
           const wProfileLut = wCtx.profileLut;
           const plSize =
             wProfileLut && Number(wProfileLut.size) > 1 ? Math.floor(Number(wProfileLut.size)) : 0;
           const plData = wProfileLut?.srgbData ?? wProfileLut?.data ?? null;
-          const fastPrev = buildFastPreviewAdjustments(wFilm, wAdj, wProfStatus);
+          const fastPrev = buildFastPreviewAdjustments(wFilm, wAdjMerged, wProfStatus);
           const lookN = normalizeFastLookLutForWorker(fastPrev?.fastLookLut);
           const uFull = buildProxyWebGpuUBlockFloat32({
             film: wFilm,
             adjustments: {
-              ...buildWorkerAdjustmentsPayload(wAdj, wProfStatus),
-              pivot: wAdj?.pivot ?? 0.18,
+              ...buildWorkerAdjustmentsPayload(wAdjMerged, wProfStatus),
+              pivot: wAdjMerged?.pivot ?? 0.18,
             },
             profileLutSize: plSize,
             profileLutData: plData,
@@ -4315,10 +4273,14 @@ export function useFilmLabEngine(
                 ? String(tr.readbackChroma)
                 : null,
           }));
-        } catch {
+        } catch (e) {
           if (cancelled) {
             return;
           }
+          console.warn('[FilmLab][Engine] main-thread WebGPU host probe / device', {
+            message: e instanceof Error ? e.message : String(e),
+            name: e instanceof Error ? e.name : typeof e,
+          });
           mainThreadHostWgpuSourceProbeKeyRef.current = key;
           setRenderDebugInfo((c) => ({
             ...c,
@@ -4389,6 +4351,17 @@ export function useFilmLabEngine(
       cancelled = true;
     };
   }, [activeFilm?.previewLutFile]);
+
+  useEffect(() => {
+    const file = activeFilm?.previewLutFile ?? null;
+    if (!file) {
+      profileCubeLutReadyCacheRef.current = { file: null, lut: null };
+      return;
+    }
+    if (profileLutStatus === 'ready' && profileLut?.srgbData && profileLut?.size) {
+      profileCubeLutReadyCacheRef.current = { file, lut: profileLut };
+    }
+  }, [activeFilm?.previewLutFile, profileLut, profileLutStatus]);
 
   useEffect(() => {
     if (profileLutStatus !== 'ready' || !profileLut?.srgbData || !profileLut?.size) {
@@ -4878,6 +4851,22 @@ export function useFilmLabEngine(
         }
         return;
       }
+
+      const epochForRequest = proxyRenderEpochByRequestIdRef.current.get(requestId);
+      if (epochForRequest !== undefined) {
+        proxyRenderEpochByRequestIdRef.current.delete(requestId);
+      }
+      if (
+        epochForRequest !== undefined &&
+        epochForRequest !== previewScheduleEpochRef.current
+      ) {
+        proxyE2eHostSchedRafByRequestIdRef.current.delete(requestId);
+        if (message.bitmap && typeof message.bitmap.close === 'function') {
+          message.bitmap.close();
+        }
+        return;
+      }
+
       proxyLastPresentedRequestIdRef.current = requestId;
       const frameBackend = String(message?.backend ?? 'cpu');
       const frameGpuImpl =
@@ -5306,6 +5295,7 @@ export function useFilmLabEngine(
       proxyRequestIdRef.current = 0;
       proxyLastPresentedRequestIdRef.current = 0;
       proxyRequestStartTimesRef.current.clear();
+      proxyRenderEpochByRequestIdRef.current.clear();
       previewE2eSamplesByPathRef.current.clear();
       previewE2eFrameCostSamplesByPathRef.current.clear();
       setRenderDebugInfo((current) => ({
@@ -5502,13 +5492,34 @@ export function useFilmLabEngine(
       displayPreviewApproximations = false,
     }) => {
       const batchOv = batchAdjustmentsOverrideRef.current;
-      const adjustmentsForRender =
+      let adjustmentsForRender =
         batchOv?.active && batchOv?.value != null && typeof batchOv.value === 'object'
           ? batchOv.value
           : adjustments;
+      adjustmentsForRender = mergeIngressCalibrationIntoAdjustments(adjustmentsForRender);
+      const applyPhaseCDoubleExposure = () => {
+        const amt = clamp(Number(adjustmentsForRender?.doubleExposureAmount ?? 0) / 100, 0, 1);
+        if (amt <= 0) {
+          return;
+        }
+        const ov = doubleExposureOverlayRef.current;
+        if (!ov) {
+          return;
+        }
+        applyDoubleExposureBlend(
+          context,
+          canvas,
+          ov,
+          amt,
+          adjustmentsForRender?.doubleExposureBlendMode === 'multiply' ? 'multiply' : 'screen'
+        );
+      };
       const film = activeFilm ?? {};
       const isRawPipeline = pipelineInfo?.pipelineKind === PIPELINE_KIND.RAW;
-      const userCurves = adjustmentsForRender?.userCurves ?? IDENTITY_CURVES;
+      const userCurves = resolveCurveInteractionUserCurves(
+        adjustmentsForRender,
+        curveInteractionLiveRef
+      );
       const curveLumaMix = resolveCurveLumaMix(adjustmentsForRender?.curveLumaMix);
       let transformedSource = transformSourceImageData(
         source,
@@ -5597,11 +5608,23 @@ export function useFilmLabEngine(
       // right after asynchronous profile LUT hydration. For RAW we keep a deterministic
       // curve-based profile fallback in CPU preview and skip direct cube sampling.
       const canUseCpuProfileLut = !isRawPipeline;
+      const previewLutFileKey = film.previewLutFile ?? null;
+      const cachedCubeForProfileFile =
+        previewLutFileKey &&
+        profileCubeLutReadyCacheRef.current.file === previewLutFileKey
+          ? profileCubeLutReadyCacheRef.current.lut
+          : null;
+      const cubeLutForCpuRender = profileLut ?? cachedCubeForProfileFile;
       const hasProfileLut = Boolean(
-        canUseCpuProfileLut && profileLut && profileLutStatus === 'ready'
+        canUseCpuProfileLut &&
+          cubeLutForCpuRender &&
+          (profileLutStatus === 'ready' || Boolean(cachedCubeForProfileFile))
       );
       const waitingForProfileLut = Boolean(
-        canUseCpuProfileLut && activeFilm?.previewLutFile && profileLutStatus === 'loading'
+        canUseCpuProfileLut &&
+          previewLutFileKey &&
+          profileLutStatus === 'loading' &&
+          !cubeLutForCpuRender
       );
       const shouldBypassProfileCpuColor = waitingForProfileLut;
       const profileNoLutBoost = hasProfileLut ? 1 : 1.05;
@@ -5765,6 +5788,8 @@ export function useFilmLabEngine(
         CLIPPING_SHADOW_LUMA_FLOOR,
         clippingShadowThreshold * 2.2
       );
+      const clipLimiterPreview = Boolean(adjustmentsForRender?.clipLimiterPreview);
+      const CLIP_LIMITER_BAND = 14;
       const decodeStats = pipelineInfo?.capabilities?.decodeStats ?? null;
       const rawColorPipeline = pipelineInfo?.capabilities?.colorPipeline ?? null;
       const rawLinearStageEnabled =
@@ -5815,7 +5840,8 @@ export function useFilmLabEngine(
         width,
         height,
         toneAdjForMask,
-        brushMaskCacheRef.current
+        brushMaskCacheRef.current,
+        transformedSource
       );
       const brushMaskEnabled = maskSnap.brushMaskEnabled;
       const localMaskStack = maskSnap.localMaskStack;
@@ -5931,7 +5957,7 @@ export function useFilmLabEngine(
 
         if (hasProfileLut && lutStrength > 0) {
           const [lutRed, lutGreen, lutBlue] = sampleCubeLut(
-            profileLut,
+            cubeLutForCpuRender,
             redIndex,
             greenIndex,
             blueIndex
@@ -5965,6 +5991,7 @@ export function useFilmLabEngine(
         greenIndex = clamp(Math.round(green));
         blueIndex = clamp(Math.round(blue));
 
+        // 1D LUT użytkownika przed saturacją / maskami / wizualizacją clippingu (finalRed poniżej).
         red = sampleHighResCurveLut(userHighResLut.r, red);
         green = sampleHighResCurveLut(userHighResLut.g, green);
         blue = sampleHighResCurveLut(userHighResLut.b, blue);
@@ -6125,11 +6152,14 @@ export function useFilmLabEngine(
             if (combined > 0.0001) {
               const blendScale =
                 maskEntry.blend === 'add' ? 1.35 : maskEntry.blend === 'subtract' ? -1 : 1;
-              const localGain = Math.pow(
-                2,
-                (maskEntry.exposure / 100) * combined * maskEntry.opacity * 0.75 * blendScale
+              [red, green, blue] = applyLocalMaskRgbTone(
+                red,
+                green,
+                blue,
+                maskEntry,
+                combined,
+                blendScale
               );
-              [red, green, blue] = applyExposureGainWithShoulder(red, green, blue, localGain);
             }
           }
         } else if (localMaskStack.length > 0) {
@@ -6138,11 +6168,7 @@ export function useFilmLabEngine(
             if (maskWeight <= 0.0001) continue;
             const blendScale =
               maskEntry.blend === 'add' ? 1.35 : maskEntry.blend === 'subtract' ? -1 : 1;
-            const localGain = Math.pow(
-              2,
-              (maskEntry.exposure / 100) * maskWeight * maskEntry.opacity * 0.75 * blendScale
-            );
-            [red, green, blue] = applyExposureGainWithShoulder(red, green, blue, localGain);
+            [red, green, blue] = applyLocalMaskRgbTone(red, green, blue, maskEntry, maskWeight, blendScale);
           }
         }
 
@@ -6192,14 +6218,50 @@ export function useFilmLabEngine(
         }
 
         if (showClipping) {
+          const maxCh = Math.max(finalRed, finalGreen, finalBlue);
+          const minCh = Math.min(finalRed, finalGreen, finalBlue);
+          const warnHiNear =
+            clipLimiterPreview &&
+            !isHighlightClipped &&
+            maxCh >= clippingHighlightThreshold - CLIP_LIMITER_BAND;
+          const warnShNear =
+            clipLimiterPreview &&
+            !isShadowClipped &&
+            finalLuma <= clippingShadowLumaGate + CLIP_LIMITER_BAND * 1.35 &&
+            minCh <= clippingShadowThreshold + CLIP_LIMITER_BAND;
+
           if (isHighlightClipped) {
             data[index] = 255;
             data[index + 1] = 0;
             data[index + 2] = 0;
+          } else if (warnHiNear) {
+            const span = Math.max(1, CLIP_LIMITER_BAND);
+            const t = clampUnit((maxCh - (clippingHighlightThreshold - CLIP_LIMITER_BAND)) / span);
+            const mix = t * 0.42;
+            const wr = 255;
+            const wg = 198;
+            const wb = 72;
+            data[index] = clamp(Math.round(finalRed * (1 - mix) + wr * mix));
+            data[index + 1] = clamp(Math.round(finalGreen * (1 - mix) + wg * mix));
+            data[index + 2] = clamp(Math.round(finalBlue * (1 - mix) + wb * mix));
           } else if (isShadowClipped) {
             data[index] = 0;
             data[index + 1] = 0;
             data[index + 2] = 255;
+          } else if (warnShNear) {
+            const span = Math.max(1, CLIP_LIMITER_BAND + 6);
+            const d = Math.min(
+              span,
+              Math.max(0, clippingShadowThreshold + CLIP_LIMITER_BAND - minCh)
+            );
+            const t = clampUnit(d / span);
+            const mix = t * 0.38;
+            const wr = 56;
+            const wg = 168;
+            const wb = 228;
+            data[index] = clamp(Math.round(finalRed * (1 - mix) + wr * mix));
+            data[index + 1] = clamp(Math.round(finalGreen * (1 - mix) + wg * mix));
+            data[index + 2] = clamp(Math.round(finalBlue * (1 - mix) + wb * mix));
           } else {
             data[index] = finalRed;
             data[index + 1] = finalGreen;
@@ -6223,6 +6285,11 @@ export function useFilmLabEngine(
 
       if (shouldAbortRender()) {
         return false;
+      }
+
+      const gateWeaveAmt = clamp(Number(adjustmentsForRender?.gateWeave ?? 0) / 100, 0, 1);
+      if (gateWeaveAmt > 0) {
+        applyGateWeaveToImageData(imageData, gateWeaveAmt, effectSeedRef.current.frame ?? 1);
       }
 
       if (isPreviewQuality) {
@@ -6370,7 +6437,12 @@ export function useFilmLabEngine(
       }
 
       if (quality !== 'full') {
-        if (!isInteractivePreview || PRESERVE_FULL_EFFECT_STACK_DURING_ADJUST) {
+        const applyPreviewGradeExtras =
+          !isInteractivePreview ||
+          PRESERVE_FULL_EFFECT_STACK_DURING_ADJUST ||
+          shouldForceCpuPreviewDuringAdjust(String(adjustmentsForRender?.interactionKind ?? 'idle'));
+
+        if (applyPreviewGradeExtras) {
           if (profileTexture !== 0) {
             applyClarity(context, canvas, fxCanvasRef, profileTexture * 0.55, {
               blurScale: 0.006,
@@ -6438,12 +6510,12 @@ export function useFilmLabEngine(
           }
 
           if ((adjustmentsForRender?.bloom ?? 0) > 0) {
-            applyBloom(
-              context,
-              canvas,
-              fxCanvasRef,
-              Math.min(1, (adjustmentsForRender.bloom ?? 0) / 100)
-            );
+            const bloomAmt = Math.min(1, (adjustmentsForRender.bloom ?? 0) / 100);
+            if (adjustmentsForRender?.bloomLabAccurate !== false) {
+              applyBloomLabLuminance(context, canvas, fxCanvasRef, bloomAmt);
+            } else {
+              applyBloom(context, canvas, fxCanvasRef, bloomAmt);
+            }
           }
 
           const previewGrainAmount = (adjustmentsForRender?.userGrain ?? 0) / 100;
@@ -6488,6 +6560,55 @@ export function useFilmLabEngine(
             );
           }
         }
+
+        if (
+          isInteractivePreview &&
+          !PRESERVE_FULL_EFFECT_STACK_DURING_ADJUST &&
+          !shouldForceCpuPreviewDuringAdjust(String(adjustmentsForRender?.interactionKind ?? 'idle')) &&
+          ((adjustmentsForRender?.dust ?? 0) > 0 ||
+            (adjustmentsForRender?.leak && adjustmentsForRender.leak !== 'none') ||
+            (adjustmentsForRender?.frame &&
+              adjustmentsForRender.frame !== 'none' &&
+              adjustmentsForRender.frame !== 'raw-sprocket'))
+        ) {
+          if (adjustmentsForRender?.leak && adjustmentsForRender.leak !== 'none') {
+            applyLightLeak(
+              context,
+              canvas,
+              adjustmentsForRender.leak,
+              effectSeedRef.current.leak,
+              adjustmentsForRender?.leak === 'raw-leakedge'
+                ? adjustmentsForRender?.rawLeakVariant ?? null
+                : null
+            );
+          }
+
+          if ((adjustmentsForRender?.dust ?? 0) > 0) {
+            applyDust(
+              context,
+              canvas,
+              (adjustmentsForRender.dust ?? 0) / 100,
+              effectSeedRef.current.dust,
+              adjustmentsForRender?.dustVariant ?? null
+            );
+          }
+
+          if (
+            adjustmentsForRender?.frame &&
+            adjustmentsForRender.frame !== 'none' &&
+            adjustmentsForRender.frame !== 'raw-sprocket'
+          ) {
+            applyFrame(
+              context,
+              canvas,
+              adjustmentsForRender.frame,
+              effectSeedRef.current.frame,
+              adjustmentsForRender.frame === 'filmstrip' ? adjustmentsForRender?.frameVariant ?? null : null
+            );
+          }
+        }
+
+        applyPhaseCDoubleExposure();
 
         if (includeCompare && adjustmentsForRender?.compareMode) {
           applyCompare(context, canvas, { data: originalSourceData, width, height });
@@ -6557,7 +6678,12 @@ export function useFilmLabEngine(
       }
 
       if ((adjustmentsForRender?.bloom ?? 0) > 0) {
-        applyBloom(context, canvas, fxCanvasRef, (adjustmentsForRender.bloom ?? 0) / 100);
+        const bloomAmtFull = Math.min(1, (adjustmentsForRender.bloom ?? 0) / 100);
+        if (adjustmentsForRender?.bloomLabAccurate !== false) {
+          applyBloomLabLuminance(context, canvas, fxCanvasRef, bloomAmtFull);
+        } else {
+          applyBloom(context, canvas, fxCanvasRef, bloomAmtFull);
+        }
       }
 
       if ((adjustmentsForRender?.dust ?? 0) > 0) {
@@ -6606,6 +6732,8 @@ export function useFilmLabEngine(
         );
       }
 
+      applyPhaseCDoubleExposure();
+
       if (includeCompare && adjustmentsForRender?.compareMode) {
         applyCompare(context, canvas, { data: originalSourceData, width, height });
         applyLevelAndCropTransform(context, canvas, fxCanvasRef, adjustmentsForRender);
@@ -6621,6 +6749,7 @@ export function useFilmLabEngine(
       profileLut,
       profileLutStatus,
       rawLinearStageOverride,
+      curveInteractionLiveRef,
     ]
   );
 
@@ -6638,6 +6767,7 @@ export function useFilmLabEngine(
       uploadedImage,
       renderIntent: 'full',
       rawBackendPreference,
+      rawColorimetryPolicy: normalizeRawColorimetryPolicy(adjustments?.rawColorimetryPolicy),
     })
       .then(({ asset }) => {
         if (!asset?.image) {
@@ -6709,7 +6839,13 @@ export function useFilmLabEngine(
 
     fullSourcePromiseRef.current = buildPromise;
     return buildPromise;
-  }, [pipelineInfo?.pipelineKind, rawBackendPreference, uploadedFile, uploadedImage]);
+  }, [
+    adjustments?.rawColorimetryPolicy,
+    pipelineInfo?.pipelineKind,
+    rawBackendPreference,
+    uploadedFile,
+    uploadedImage,
+  ]);
 
   const cancelScheduledPreviewWork = useCallback((options = {}) => {
     const keepAnimationFrame = Boolean(options.keepAnimationFrame);
@@ -6737,6 +6873,34 @@ export function useFilmLabEngine(
     cancelIdleCallbackSafe(deferredRenderRef.current);
     deferredRenderRef.current = null;
   }, []);
+
+  /** Przy zmianie assetu Develop: czyść widoczne bufory + unieważnij tokeny/epokę (anti-ghost, anti-stale). */
+  const syncBlackOutDevelopPresentationSurfaces = useCallback(() => {
+    previewSourceRef.current = null;
+    const fillBlack = (el) => {
+      if (!el?.getContext) {
+        return;
+      }
+      const cw = Math.max(1, Number(el.width) || 1);
+      const ch = Math.max(1, Number(el.height) || 1);
+      const ctx = el.getContext('2d');
+      if (!ctx) {
+        return;
+      }
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.fillStyle = '#0a0a0c';
+      ctx.fillRect(0, 0, cw, ch);
+    };
+    fillBlack(canvasRef.current);
+    fillBlack(sourceCanvasRef.current);
+    renderTokenRef.current += 1;
+    previewScheduleEpochRef.current += 1;
+  }, []);
+
+  useEffect(() => {
+    setFilmLabDevelopGhostClear(syncBlackOutDevelopPresentationSurfaces);
+    return () => setFilmLabDevelopGhostClear(null);
+  }, [syncBlackOutDevelopPresentationSurfaces]);
 
   const ensurePreviewSourceData = useCallback(() => {
     if (previewSourceRef.current) {
@@ -6815,26 +6979,29 @@ export function useFilmLabEngine(
       }
 
       const renderToken = ++renderTokenRef.current;
-
-      let fastPreviewAdjustments = null;
-      try {
-        fastPreviewAdjustments = buildFastPreviewAdjustments(
-          activeFilm,
-          adjustments,
-          profileLutStatus
-        );
-      } catch (error) {
-        console.error('[FilmLab] fast preview adjustments failed, fallback to CPU preview', error);
-        setIsProcessing(false);
-        return false;
-      }
-      fastPreviewAdjustments.fastSeed = sourceVersionRef.current * 37.7;
-      fastPreviewAdjustments.fastPivot = adaptivePivotRef.current;
+      const scheduleEpoch = previewScheduleEpochRef.current;
 
       animationFrameRef.current = requestAnimationFrame(() => {
         animationFrameRef.current = null;
 
         if (renderTokenRef.current !== renderToken) {
+          return;
+        }
+
+        let dragMergedAdjustments;
+        let fastPreviewAdjustments;
+        try {
+          dragMergedAdjustments = mergeLiveUserCurves(adjustments, curveInteractionLiveRef);
+          fastPreviewAdjustments = buildFastPreviewAdjustments(
+            activeFilm,
+            dragMergedAdjustments,
+            profileLutStatus
+          );
+          fastPreviewAdjustments.fastSeed = sourceVersionRef.current * 37.7;
+          fastPreviewAdjustments.fastPivot = adaptivePivotRef.current;
+        } catch (error) {
+          console.error('[FilmLab] fast preview adjustments failed, fallback to CPU preview', error);
+          setIsProcessing(false);
           return;
         }
 
@@ -6848,6 +7015,9 @@ export function useFilmLabEngine(
         let usedMainThreadWebGpuAb = false;
         let usedMainThreadWebGpuAbSourceTexFormat = null;
         const runFastPath = async () => {
+          const fastPreviewDamageScope = inferFastPreviewDamageScopeFromInteractionKind(
+            String(dragMergedAdjustments?.interactionKind ?? adjustments?.interactionKind ?? 'idle')
+          );
           const abArmed =
             ENABLE_MAIN_PREVIEW_WEBGPU_AB &&
             String(renderDebugInfo?.mainThreadWebGpuPreviewAbDecision ?? '').startsWith('armed_probe_ok');
@@ -6864,8 +7034,8 @@ export function useFilmLabEngine(
                 const uFull = buildProxyWebGpuUBlockFloat32({
                   film: activeFilm || {},
                   adjustments: {
-                    ...buildWorkerAdjustmentsPayload(adjustments, profileLutStatus),
-                    pivot: adjustments?.pivot ?? 0.18,
+                    ...buildWorkerAdjustmentsPayload(dragMergedAdjustments, profileLutStatus),
+                    pivot: dragMergedAdjustments?.pivot ?? 0.18,
                   },
                   profileLutSize: plSize,
                   profileLutData: plData,
@@ -6897,7 +7067,11 @@ export function useFilmLabEngine(
                     mainThreadWebGpuPreviewAbDecision: 'armed_runtime_fallback',
                   }));
                 }
-              } catch {
+              } catch (e) {
+                console.warn('[FilmLab][Engine] main-thread WebGPU fast render path', {
+                  message: e instanceof Error ? e.message : String(e),
+                  name: e instanceof Error ? e.name : typeof e,
+                });
                 setRenderDebugInfo((current) => ({
                   ...current,
                   mainThreadWebGpuPreviewAbDecision: 'armed_runtime_error',
@@ -6916,6 +7090,8 @@ export function useFilmLabEngine(
                   width: sourceCanvas.width,
                   height: sourceCanvas.height,
                   adjustments: fastPreviewAdjustments,
+                  damageScope: fastPreviewDamageScope,
+                  damageNormRect: dragMergedAdjustments?.enginePreviewDamageNormRect ?? undefined,
                 })
               : null;
           }
@@ -6927,6 +7103,10 @@ export function useFilmLabEngine(
           })
           .finally(() => {
             fastRenderInFlightRef.current = false;
+
+            if (previewScheduleEpochRef.current !== scheduleEpoch) {
+              return;
+            }
 
             if (!processedCanvas) {
               setIsProcessing(false);
@@ -7017,7 +7197,7 @@ export function useFilmLabEngine(
 
         applyLevelAndCropTransform(visibleContext, visibleCanvas, fxCanvasRef, adjustments);
 
-        if (renderTokenRef.current !== renderToken) {
+        if (renderTokenRef.current !== renderToken || previewScheduleEpochRef.current !== scheduleEpoch) {
           return;
         }
 
@@ -7119,6 +7299,7 @@ export function useFilmLabEngine(
       profileLut,
       profileLutStatus,
       renderDebugInfo?.mainThreadWebGpuPreviewAbDecision,
+      curveInteractionLiveRef,
     ]
   );
 
@@ -7135,26 +7316,38 @@ export function useFilmLabEngine(
     }
 
     let renderSource = previewSource;
-    if (preferFullResPreviewRef.current) {
-      if (fullSourceRef.current) {
-        renderSource = fullSourceRef.current;
-      } else if (!fullSourcePromiseRef.current) {
-        buildFullResolutionSource()
-          .then((fullSource) => {
-            if (!preferFullResPreviewRef.current || !fullSource) {
-              return;
-            }
-            const rerun = scheduleProgressiveRenderRef.current;
-            if (typeof rerun === 'function') {
-              rerun({ quality: 'full', showProcessing: false, coalesce: false });
-            }
-          })
-          .catch((error) => {
-            if (import.meta?.env?.DEV) {
-              console.warn('[FilmLab] Full-resolution preview hydration failed, using preview source.', error);
-            }
-          });
-      }
+    /**
+     * Pełny ImageData z natywnego dekodu (upload) — preferuj **gdy już jest w pamięci**:
+     * pixel-peep (>1:1) lub końcowy `quality:'full'` po bezczynności. Nigdy nie wymuszaj
+     * `buildFullResolutionSource` w trakcie `isAdjusting` — to >100ms blokady wątku na 24-50MP.
+     */
+    const isAdjustingNow = Boolean(adjustments?.isAdjusting);
+    const preferFullBuffer =
+      Boolean(preferFullResPreviewRef.current) || String(quality) === 'full';
+
+    if (preferFullBuffer && fullSourceRef.current) {
+      renderSource = fullSourceRef.current;
+    } else if (
+      preferFullBuffer &&
+      !fullSourceRef.current &&
+      !fullSourcePromiseRef.current &&
+      !isAdjustingNow
+    ) {
+      buildFullResolutionSource()
+        .then((fullSource) => {
+          if (!fullSource) {
+            return;
+          }
+          const rerun = scheduleProgressiveRenderRef.current;
+          if (typeof rerun === 'function') {
+            rerun({ quality: 'full', showProcessing: false, coalesce: false });
+          }
+        })
+        .catch((error) => {
+          if (import.meta?.env?.DEV) {
+            console.warn('[FilmLab] Full-resolution preview hydration failed, using preview source.', error);
+          }
+        });
     }
 
     const canvas = canvasRef.current;
@@ -7297,6 +7490,10 @@ export function useFilmLabEngine(
   );
 
   const renderProxyWithWorker = useCallback(() => {
+    if (String(adjustments?.interactionKind ?? '') === 'curve') {
+      return false;
+    }
+
     if (proxyWorkerFailedRef.current) {
       return false;
     }
@@ -7353,10 +7550,12 @@ export function useFilmLabEngine(
       cropRectH: Number(adjustments?.cropRectH),
     };
     
+    const workerMergedAdjustments = mergeLiveUserCurves(adjustments, curveInteractionLiveRef);
+
     // Compute fast adjustments within this scope to get the Look-LUT
     const fastPreviewAdjustments = buildFastPreviewAdjustments(
       activeFilm,
-      adjustments,
+      workerMergedAdjustments,
       profileLutStatus
     );
 
@@ -7372,7 +7571,7 @@ export function useFilmLabEngine(
       proxyMax,
       film: buildWorkerFilmPayload(activeFilm),
       adjustments: {
-        ...buildWorkerAdjustmentsPayload(adjustments, profileLutStatus),
+        ...buildWorkerAdjustmentsPayload(workerMergedAdjustments, profileLutStatus),
         fastLookLut: workerFastLookLut,
         pivot: adaptivePivotRef.current,
       },
@@ -7418,6 +7617,16 @@ export function useFilmLabEngine(
       try {
         const requestStartTimes = proxyRequestStartTimesRef.current;
         requestStartTimes.set(Number(queuedPayload.requestId), nowMs());
+        proxyRenderEpochByRequestIdRef.current.set(
+          Number(queuedPayload.requestId),
+          previewScheduleEpochRef.current
+        );
+        if (proxyRenderEpochByRequestIdRef.current.size > 48) {
+          const firstKey = proxyRenderEpochByRequestIdRef.current.keys().next().value;
+          if (firstKey != null) {
+            proxyRenderEpochByRequestIdRef.current.delete(firstKey);
+          }
+        }
         if (requestStartTimes.size > 24) {
           const staleIds = Array.from(requestStartTimes.keys())
             .sort((left, right) => left - right)
@@ -7441,33 +7650,72 @@ export function useFilmLabEngine(
     });
 
     return true;
-  }, [activeFilm, adjustments, profileLutStatus, reportRenderPipelineError]);
+  }, [
+    activeFilm,
+    adjustments,
+    profileLutStatus,
+    reportRenderPipelineError,
+    curveInteractionLiveRef,
+  ]);
 
   const scheduleProgressiveRender = useCallback(() => {
     if (!sourceCanvasRef.current) {
       return;
     }
+    previewScheduleEpochRef.current += 1;
     const schedT0 = nowMs();
     previewE2eIntentT0Ref.current = schedT0;
     if (isEnvE2eHostSchedRaf()) {
       previewE2eHostSchedRafT0Ref.current = schedT0;
     }
 
+    const curveLive = isCurveInteractionLive(curveInteractionLiveRef);
+    /** Maska pędzlem nie ustawia `isAdjusting` — bez tego spada do `runCpuPreview` zamiast fast WebGL + damage rect. */
+    const maskBrushLive =
+      adjustments?.enginePreviewInteractionKind === ENGINE_PREVIEW_INTERACTION_MASK_BRUSH ||
+      Boolean(adjustments?.enginePreviewDamageNormRect);
+    const effectiveAdjusting = Boolean(adjustments?.isAdjusting) || curveLive || maskBrushLive;
+    const dragKindFromRefOrState = curveLive
+      ? 'curve'
+      : String(adjustments?.interactionKind ?? 'idle');
+    const adjustmentsMergedForDrag = mergeLiveUserCurves(adjustments, curveInteractionLiveRef);
+
     if (preferFullResPreviewRef.current) {
       cancelScheduledPreviewWork();
+      const fullResKind = dragKindFromRefOrState;
+      /**
+       * Pixel-peep (≥1:1) + aktywne suwaki: pełny CPU na 24-50MP zacina UI (>200ms/klatka).
+       * Podczas drag — fast WebGL preview na buforze podglądu; pełen pixel-peep render
+       * uruchamiamy dopiero po `isAdjusting === false` (`runCpuPreview` → `scheduleFullRender`).
+       */
+      if (
+        effectiveAdjusting &&
+        !shouldForceCpuPreviewDuringAdjust(fullResKind) &&
+        canUseFastPreviewPath(activeFilm, adjustmentsMergedForDrag, profileLut, profileLutStatus, {
+          allowApproximateDuringAdjust: true,
+        }) &&
+        renderFastPreview({ showProcessing: false, coalesce: true })
+      ) {
+        return;
+      }
+
+      const coalesceFullResDrag =
+        effectiveAdjusting && !shouldForceCpuPreviewDuringAdjust(fullResKind);
       renderPreview({
         quality: 'full',
         showProcessing: false,
-        coalesce: Boolean(adjustments?.isAdjusting),
+        coalesce: coalesceFullResDrag,
       });
       return;
     }
 
-    const isRawPipeline = pipelineInfo?.pipelineKind === PIPELINE_KIND.RAW;
-
-    if (adjustments?.isAdjusting) {
+    if (effectiveAdjusting) {
       // Primary drag path: deterministic fast preview pipeline (WebGL).
       cancelScheduledPreviewWork({ keepAnimationFrame: true });
+      const dragInteractionKind = dragKindFromRefOrState;
+      /** Pełny CPU (`renderPreview`): coalesce + bump renderToken przerywa pętlę pikseli → artefakty (np. magenta). */
+      const coalesceCpuPreviewFrame =
+        !shouldForceCpuPreviewDuringAdjust(dragInteractionKind);
       const hasActiveProfile =
         !activeFilm?.isInputProfile && (adjustments?.strength ?? 100) > 0.01;
       const profileReadyForFastDrag =
@@ -7477,14 +7725,17 @@ export function useFilmLabEngine(
 
       // If profile LUT isn't ready yet, keep deterministic CPU preview until hydration completes.
       if (hasActiveProfile && !profileReadyForFastDrag) {
-        renderPreview({ quality: 'preview', showProcessing: false, coalesce: true });
+        renderPreview({
+          quality: 'preview',
+          showProcessing: false,
+          coalesce: coalesceCpuPreviewFrame,
+        });
         return;
       }
 
       if (
-        !isRawPipeline &&
         profileReadyForFastDrag &&
-        canUseFastPreviewPath(activeFilm, adjustments, profileLut, profileLutStatus, {
+        canUseFastPreviewPath(activeFilm, adjustmentsMergedForDrag, profileLut, profileLutStatus, {
           allowApproximateDuringAdjust: true,
         }) &&
         renderFastPreview({ showProcessing: false, coalesce: true })
@@ -7492,19 +7743,22 @@ export function useFilmLabEngine(
         return;
       }
 
-      // Fallback
+      // Fallback: worker off-main-thread (także RAW + profil — bufor po dekodzie to zwykły canvas).
+      // Worker nie składa nakładek raster (klisza / rysy / leak): przy aktywnych — pełny CPU (`renderPreview`).
       if (
-        !hasActiveProfile &&
         ENABLE_WORKER_DRAG_PREVIEW &&
-        !isRawPipeline &&
-        !(PRESERVE_FULL_EFFECT_STACK_DURING_ADJUST && hasDeferredPreviewEffects(activeFilm, adjustments)) &&
+        !hasCpuOnlyDeferredPreviewEffects(activeFilm, adjustments) &&
         !adjustments?.compareMode &&
         renderProxyWithWorker()
       ) {
         return;
       }
 
-      renderPreview({ quality: 'preview', showProcessing: false, coalesce: true });
+      renderPreview({
+        quality: 'preview',
+        showProcessing: false,
+        coalesce: coalesceCpuPreviewFrame,
+      });
       return;
     }
 
@@ -7539,10 +7793,134 @@ export function useFilmLabEngine(
     profileLut,
     profileLutStatus,
     renderFastPreview,
-    pipelineInfo?.pipelineKind,
     renderPreview,
     renderProxyWithWorker,
+    curveInteractionLiveRef,
   ]);
+
+  const setDoubleExposureOverlay = useCallback((source) => {
+    const dispose = () => {
+      const prev = doubleExposureOverlayRef.current;
+      if (prev && typeof prev.close === 'function') {
+        try {
+          prev.close();
+        } catch {
+          /* ignore */
+        }
+      }
+      doubleExposureOverlayRef.current = null;
+      setDoubleExposurePlateReady(false);
+      setDoubleExposurePlateOrigin('none');
+    };
+
+    if (source == null) {
+      dispose();
+      void removeDoubleExposurePlateFromOpfs(developUploadSourceKeyRef.current);
+      setRenderVersion((v) => v + 1);
+      queueMicrotask(() => {
+        scheduleProgressiveRenderRef.current?.();
+      });
+      return;
+    }
+
+    const applyBitmap = (bmp) => {
+      dispose();
+      doubleExposureOverlayRef.current = bmp;
+      setDoubleExposurePlateReady(true);
+      setDoubleExposurePlateOrigin('file');
+      setRenderVersion((v) => v + 1);
+      const persistKey = developUploadSourceKeyRef.current;
+      if (persistKey) {
+        void writeDoubleExposurePlateToOpfs(persistKey, bmp);
+      }
+      queueMicrotask(() => {
+        scheduleProgressiveRenderRef.current?.();
+      });
+    };
+
+    if (typeof ImageBitmap !== 'undefined' && source instanceof ImageBitmap) {
+      applyBitmap(source);
+      return;
+    }
+
+    const pending =
+      typeof source === 'object' && source !== null && typeof source.then === 'function'
+        ? source
+        : createImageBitmap(source);
+
+    Promise.resolve(pending)
+      .then((bmp) => {
+        if (!(bmp instanceof ImageBitmap)) {
+          throw new Error('FilmLab: double exposure expected ImageBitmap');
+        }
+        applyBitmap(bmp);
+      })
+      .catch(() => {
+        dispose();
+      });
+  }, []);
+
+  useEffect(() => {
+    const prev = prevDevelopUploadSourceKeyRef.current;
+    if (prev !== developUploadSourceKey) {
+      if (prev !== '') {
+        const bmp = doubleExposureOverlayRef.current;
+        if (bmp && typeof bmp.close === 'function') {
+          try {
+            bmp.close();
+          } catch {
+            /* ignore */
+          }
+        }
+        doubleExposureOverlayRef.current = null;
+        setDoubleExposurePlateReady(false);
+        setDoubleExposurePlateOrigin('none');
+      }
+      prevDevelopUploadSourceKeyRef.current = developUploadSourceKey;
+    }
+  }, [developUploadSourceKey]);
+
+  useEffect(() => {
+    if (!developUploadSourceKey || !imageMeta) {
+      return undefined;
+    }
+
+    let cancelled = false;
+
+    (async () => {
+      const blob = await readDoubleExposurePlateBlobFromOpfs(developUploadSourceKey);
+      if (cancelled || !blob) {
+        return;
+      }
+      if (doubleExposureOverlayRef.current) {
+        return;
+      }
+      try {
+        const bmp = await createImageBitmap(blob);
+        if (cancelled) {
+          bmp.close?.();
+          return;
+        }
+        if (doubleExposureOverlayRef.current) {
+          bmp.close?.();
+          return;
+        }
+        doubleExposureOverlayRef.current = bmp;
+        setDoubleExposurePlateReady(true);
+        setDoubleExposurePlateOrigin('opfs');
+        setRenderVersion((v) => v + 1);
+        queueMicrotask(() => {
+          scheduleProgressiveRenderRef.current?.();
+        });
+      } catch {
+        /* ignore corrupt cache */
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [developUploadSourceKey, imageMeta]);
 
   useEffect(() => {
     scheduleProgressiveRenderRef.current = scheduleProgressiveRender;
@@ -7621,12 +7999,26 @@ export function useFilmLabEngine(
         width: 0,
         height: 0,
       };
+      {
+        const prevDe = doubleExposureOverlayRef.current;
+        if (prevDe && typeof prevDe.close === 'function') {
+          try {
+            prevDe.close();
+          } catch {
+            /* ignore */
+          }
+        }
+        doubleExposureOverlayRef.current = null;
+        setDoubleExposurePlateReady(false);
+        setDoubleExposurePlateOrigin('none');
+      }
       sourceCanvasRef.current = null;
       proxyWorkerSourceReadyRef.current = false;
       proxySourceIdRef.current = 0;
       proxyRequestIdRef.current = 0;
       proxyLastPresentedRequestIdRef.current = 0;
       proxyRequestStartTimesRef.current.clear();
+      proxyRenderEpochByRequestIdRef.current.clear();
       setRenderDebugInfo((current) => ({
         ...current,
         proxySourceReady: false,
@@ -7738,6 +8130,28 @@ export function useFilmLabEngine(
       setRenderVersion((value) => value + 1);
       previewRerunRequestedRef.current = false;
       return;
+    }
+
+    if (uploadedFile !== prevIngestUploadedFileRef.current) {
+      prevIngestUploadedFileRef.current = uploadedFile ?? null;
+      rawBridgeIngestCircuitRef.current.tripped = false;
+    }
+
+    const uploadSourceKey =
+      uploadedFile instanceof File
+        ? `file:${uploadedFile.name}:${uploadedFile.size}:${uploadedFile.lastModified}`
+        : uploadedImage
+          ? 'uploaded-image-inline'
+          : '';
+    if (uploadSourceKey) {
+      if (rawBridgeIngestCircuitRef.current.uploadKey !== uploadSourceKey) {
+        rawBridgeIngestCircuitRef.current = {
+          uploadKey: uploadSourceKey,
+          tripped: false,
+        };
+      } else if (rawBridgeIngestCircuitRef.current.tripped) {
+        return () => {};
+      }
     }
 
     let cancelled = false;
@@ -7867,6 +8281,7 @@ export function useFilmLabEngine(
             proxyRequestIdRef.current = 0;
             proxyLastPresentedRequestIdRef.current = 0;
             proxyRequestStartTimesRef.current.clear();
+            proxyRenderEpochByRequestIdRef.current.clear();
             proxyWorkerSourceReadyRef.current = false;
             setRenderDebugInfo((current) => ({
               ...current,
@@ -7956,14 +8371,20 @@ export function useFilmLabEngine(
       uploadedImage,
       renderIntent: 'preview',
       rawBackendPreference,
+      rawColorimetryPolicy: normalizeRawColorimetryPolicy(adjustments?.rawColorimetryPolicy),
     })
       .then(({ asset, pipelineInfo: nextPipelineInfo }) => {
         if (cancelled) {
           asset?.close?.();
+          setIsProcessing(false);
           return;
         }
 
         const applied = applyPreviewAsset(asset, nextPipelineInfo);
+
+        if (applied) {
+          rawBridgeIngestCircuitRef.current.tripped = false;
+        }
 
         if (!applied) {
           previewSourceRef.current = null;
@@ -7973,6 +8394,17 @@ export function useFilmLabEngine(
           setIsProcessing(false);
           setRenderVersion((value) => value + 1);
           previewRerunRequestedRef.current = false;
+
+          if (
+            uploadSourceKey &&
+            nextPipelineInfo &&
+            isRawBridgeUnavailablePipelineInfo(nextPipelineInfo)
+          ) {
+            rawBridgeIngestCircuitRef.current = {
+              uploadKey: uploadSourceKey,
+              tripped: true,
+            };
+          }
 
           // When the pipeline reports an error (e.g. RAW decoder couldn't open
           // the file), surface it via the error banner so the user sees
@@ -8005,6 +8437,12 @@ export function useFilmLabEngine(
       })
       .catch((error) => {
         if (!cancelled) {
+          if (uploadSourceKey && isRawBridgeUnavailableIngestError(error)) {
+            rawBridgeIngestCircuitRef.current = {
+              uploadKey: uploadSourceKey,
+              tripped: true,
+            };
+          }
           const errorMessage = normalizeUnknownError(
             error,
             'Nie udało się przygotować źródła.'
@@ -8021,6 +8459,7 @@ export function useFilmLabEngine(
           proxyRequestIdRef.current = 0;
           proxyLastPresentedRequestIdRef.current = 0;
           proxyRequestStartTimesRef.current.clear();
+          proxyRenderEpochByRequestIdRef.current.clear();
           setRenderDebugInfo((current) => ({
             ...current,
             proxySourceReady: false,
@@ -8086,6 +8525,7 @@ export function useFilmLabEngine(
       cancelled = true;
     };
   }, [
+    adjustments?.rawColorimetryPolicy,
     cancelScheduledPreviewWork,
     rawBackendPreference,
     reportRenderPipelineError,
@@ -8275,6 +8715,7 @@ export function useFilmLabEngine(
         const requestedFf =
           typeof fileFormat === 'string' ? fileFormat.trim().toLowerCase() : '';
         const exportAsPsd = requestedFf === 'psd';
+        const exportAsDng = requestedFf === 'dng';
 
         const manifestArtifacts = [];
 
@@ -8290,6 +8731,11 @@ export function useFilmLabEngine(
             layerName: `${filmName} export`,
           });
           ff = 'psd';
+        } else if (exportAsDng) {
+          applyOutputSharpening(exportContext, exportCanvas.width, exportCanvas.height, sharpeningStrength);
+          const { encodeFilmLabExportDngDerivativeLightFromCanvas } = await import('./filmLabExportDngVariantA.js');
+          encoded = encodeFilmLabExportDngDerivativeLightFromCanvas(exportCanvas);
+          ff = 'dng';
         } else {
           ff = normalizeFilmLabExportFileFormat(fileFormat);
           encoded = await exportEnc.encodeFilmLabExportCanvas(exportCanvas, exportContext, {
@@ -8301,7 +8747,7 @@ export function useFilmLabEngine(
           });
         }
 
-        const rasterFf = exportAsPsd ? 'jpeg' : ff;
+        const rasterFf = exportAsPsd || exportAsDng ? 'jpeg' : ff;
 
         exportEnc.triggerBrowserDownload(
           encoded.bytes,
@@ -8484,38 +8930,41 @@ export function useFilmLabEngine(
           );
         }
 
-        const manifestLossyQ = manifestLossyQualityForFilmLabExport(ff, lossyQuality);
-        const manifestPayload = {
-          ...buildFilmLabExportManifestRootBase({
-            moduleName: 'useFilmLabEngine.exportImage',
-            mode: 'single',
-            exportSessionId,
-            artifactEntries: manifestArtifacts,
-            serviceBuildTag: SERVICE_BUILD_TAG,
-            serviceBuildLabel: SERVICE_BUILD_LABEL,
-            viewportBuildMarker: VIEWPORT_BUILD_MARKER,
-          }),
-          film: {
-            id: activeFilm?.id ?? null,
-            name: activeFilm?.name ?? null,
-          },
-          export: {
-            sizeProfile,
-            fileFormat: ff,
-            pipelineKind,
-            includeLocalMaskPng,
-            includeBeforeAfter,
-            includeRecipeJson,
-            ...(manifestLossyQ !== undefined ? { lossyQuality: manifestLossyQ } : {}),
-          },
-        };
-        await attachFilmLabExportManifestDigest(manifestPayload, { sha256HexFromBytes });
-        const manifestBytes = new TextEncoder().encode(JSON.stringify(manifestPayload, null, 2));
-        exportEnc.triggerBrowserDownload(
-          manifestBytes,
-          'application/json',
-          `mindfullens_${safeFilmName}_manifest.json`
-        );
+        // Avoid a second OS "save" dialog after the main export: manifest is for support/debug when sidecars are requested.
+        if (includeRecipeJson) {
+          const manifestLossyQ = manifestLossyQualityForFilmLabExport(ff, lossyQuality);
+          const manifestPayload = {
+            ...buildFilmLabExportManifestRootBase({
+              moduleName: 'useFilmLabEngine.exportImage',
+              mode: 'single',
+              exportSessionId,
+              artifactEntries: manifestArtifacts,
+              serviceBuildTag: SERVICE_BUILD_TAG,
+              serviceBuildLabel: SERVICE_BUILD_LABEL,
+              viewportBuildMarker: VIEWPORT_BUILD_MARKER,
+            }),
+            film: {
+              id: activeFilm?.id ?? null,
+              name: activeFilm?.name ?? null,
+            },
+            export: {
+              sizeProfile,
+              fileFormat: ff,
+              pipelineKind,
+              includeLocalMaskPng,
+              includeBeforeAfter,
+              includeRecipeJson,
+              ...(manifestLossyQ !== undefined ? { lossyQuality: manifestLossyQ } : {}),
+            },
+          };
+          await attachFilmLabExportManifestDigest(manifestPayload, { sha256HexFromBytes });
+          const manifestBytes = new TextEncoder().encode(JSON.stringify(manifestPayload, null, 2));
+          exportEnc.triggerBrowserDownload(
+            manifestBytes,
+            'application/json',
+            `mindfullens_${safeFilmName}_manifest.json`
+          );
+        }
 
         exportCanvas.width = 1;
         exportCanvas.height = 1;
@@ -8804,6 +9253,10 @@ export function useFilmLabEngine(
     cancelBatch,
     batchState,
     depthOnnxInferenceUi,
+    requestCurvePreviewFrame: scheduleProgressiveRender,
+    setDoubleExposureOverlay,
+    doubleExposurePlateReady,
+    doubleExposurePlateOrigin,
   };
 }
 

@@ -37,23 +37,25 @@ import {
   markDamPreviewWebgpuPermanent,
 } from './filmLabDamPreviewWebgpuGate.js';
 import { scheduleSmartPreviewGenerationIdle } from './dam/filmLabSmartPreview.js';
+import { isLikelyCameraRawFilename } from './dam/filmLabEmbeddedJpegExtract.js';
+import { dispatchFilmLabOpfsPreviewReady } from './filmLabOpfsPreviewReadyEvent.js';
 
 /** One persistent catalog per app / OPFS tree (Lightroom-style inbox), not per uploaded file. */
 const FILM_LAB_CATALOG_SESSION_ID = 'film-lab-default-catalog-v1';
 
 /**
  * Równoległość ekstrakcji embedded JPEG z RAW (`writeRawEmbeddedThumbnailIfPossible` na głównym wątku).
- * Bez limitu N plików = N× skan + presja pamięci. Wzór: min(4, max(1, floor(hw/2))) — spójne z celem „Ethos” parallel ingest.
+ * Bez limitu N plików = N× skan + presja pamięci. Wzór: min(4, max(2, 1+floor(hw/2))) — krótsza kolejka „OCZEKUJE”.
  */
 function getRawEmbeddedExtractMaxParallel() {
   if (typeof navigator === 'undefined' || !Number.isFinite(Number(navigator.hardwareConcurrency))) {
-    return 2;
+    return 3;
   }
   const hc = Math.floor(Number(navigator.hardwareConcurrency));
   if (hc < 1) {
     return 1;
   }
-  return Math.max(1, Math.min(4, Math.floor(hc / 2)));
+  return Math.min(4, Math.max(2, 1 + Math.floor(hc / 2)));
 }
 
 function buildEmptyCatalogDocument() {
@@ -94,6 +96,8 @@ export function useFilmLabCatalogProLibraryWorkspace({
   exifMeta,
   imageMeta,
   imageUrl = null,
+  /** W Edycji wstrzymaj tło: kolejka embedded nie zjada workera/OPFS (priorytet Develop). */
+  pauseBackgroundEmbeddedExtract = false,
 }) {
   const [catalogDocument, setCatalogDocument] = useState(() => buildEmptyCatalogDocument());
   const [activeCollectionId, setActiveCollectionId] = useState('inbox');
@@ -106,6 +110,10 @@ export function useFilmLabCatalogProLibraryWorkspace({
   const sessionId = FILM_LAB_CATALOG_SESSION_ID;
 
   const sourceFileByAssetIdRef = useRef(new Map());
+  const pauseBackgroundEmbeddedExtractRef = useRef(pauseBackgroundEmbeddedExtract);
+  useEffect(() => {
+    pauseBackgroundEmbeddedExtractRef.current = Boolean(pauseBackgroundEmbeddedExtract);
+  }, [pauseBackgroundEmbeddedExtract]);
 
   const resolvedPreviewAssetId = useMemo(() => {
     const assets = catalogDocument?.assets;
@@ -241,6 +249,9 @@ export function useFilmLabCatalogProLibraryWorkspace({
   const rawEmbeddedExtractActiveCountRef = useRef(0);
 
   const drainRawEmbeddedQueue = useCallback(() => {
+    if (pauseBackgroundEmbeddedExtractRef.current) {
+      return;
+    }
     const maxParallel = getRawEmbeddedExtractMaxParallel();
     while (rawEmbeddedExtractActiveCountRef.current < maxParallel) {
       const next = rawEmbeddedExtractQueueRef.current.shift();
@@ -379,6 +390,7 @@ export function useFilmLabCatalogProLibraryWorkspace({
             }
           }
           setPreviewEpoch((e) => e + 1);
+          dispatchFilmLabOpfsPreviewReady(next.id);
           scheduleSmartPreviewGenerationIdle(sessionId, next.id, {
             onWritten: ({ width, height }) => {
               patchAssetDamPreviewTier(next.id, 'smart', {
@@ -409,6 +421,56 @@ export function useFilmLabCatalogProLibraryWorkspace({
     })();
     }
   }, [sessionId, patchAssetDamPreviewTier]);
+
+  useEffect(() => {
+    if (!pauseBackgroundEmbeddedExtract) {
+      drainRawEmbeddedQueue();
+    }
+  }, [pauseBackgroundEmbeddedExtract, drainRawEmbeddedQueue]);
+
+  /**
+   * Widoczny kafelek bez tieru OPFS — przesuń ten asset na **początek** kolejki ekstrakcji embedded,
+   * żeby nie czekał na FIFO całej paczki importu (stąd pion „po 30 s” i dziury w siatce).
+   */
+  const prioritizeRawEmbeddedExtract = useCallback(
+    (assetId) => {
+      const id = String(assetId ?? '');
+      if (!id) {
+        return;
+      }
+      const q = rawEmbeddedExtractQueueRef.current;
+      const idx = q.findIndex((e) => String(e?.id) === id);
+      if (idx >= 0) {
+        const [row] = q.splice(idx, 1);
+        q.unshift(row);
+      } else {
+        const list = assetsForColdStartRef.current ?? [];
+        const asset = list.find((a) => String(a?.id) === id);
+        if (!asset) {
+          return;
+        }
+        const sourceName = String(asset?.sourceName ?? '');
+        if (!sourceName || !isLikelyCameraRawFilename(sourceName)) {
+          return;
+        }
+        const memFile = sourceFileByAssetIdRef.current.get(id);
+        q.unshift(
+          memFile instanceof File
+            ? { id, file: memFile }
+            : {
+                id,
+                file: null,
+                catalogAssetMeta: {
+                  sourceName: asset.sourceName,
+                  sourceLastModified: asset.sourceLastModified,
+                },
+              }
+        );
+      }
+      drainRawEmbeddedQueue();
+    },
+    [drainRawEmbeddedQueue]
+  );
 
   /**
    * COLD-START re-extract pass.
@@ -536,6 +598,7 @@ export function useFilmLabCatalogProLibraryWorkspace({
             writeRasterImportThumbnailIfPossible(sessionId, id, file).then((ok) => {
               if (ok) {
                 setPreviewEpoch((e) => e + 1);
+                dispatchFilmLabOpfsPreviewReady(id);
                 scheduleSmartPreviewGenerationIdle(sessionId, id, {
                   onWritten: ({ width, height }) => {
                     patchAssetDamPreviewTier(id, 'smart', {
@@ -665,6 +728,7 @@ export function useFilmLabCatalogProLibraryWorkspace({
       if (existingStd && existingStd.size > 0) {
         if (!cancelled) {
           setPreviewEpoch((e) => e + 1);
+          dispatchFilmLabOpfsPreviewReady(assetId);
         }
         return;
       }
@@ -674,6 +738,7 @@ export function useFilmLabCatalogProLibraryWorkspace({
         const emb = embRes?.blob ?? null;
         if (emb && emb.size > 0 && !cancelled) {
           await writeDamPreviewBlob(sessionId, assetId, 'embedded', emb);
+          dispatchFilmLabOpfsPreviewReady(assetId);
           let ew = 0;
           let eh = 0;
           try {
@@ -771,6 +836,7 @@ export function useFilmLabCatalogProLibraryWorkspace({
       });
       if (!cancelled) {
         setPreviewEpoch((e) => e + 1);
+        dispatchFilmLabOpfsPreviewReady(assetId);
       }
     })();
 
@@ -926,5 +992,6 @@ export function useFilmLabCatalogProLibraryWorkspace({
     removeCatalogAssets,
     clearEntireCatalog,
     patchAssetDamPreviewTier,
+    prioritizeRawEmbeddedExtract,
   };
 }

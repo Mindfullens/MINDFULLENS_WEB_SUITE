@@ -199,8 +199,16 @@ export async function decodeRawWithLibrawWasm(file, context = {}) {
     }
 
     const raw = new LibRaw();
-    const cameraProfileMode = getLibrawCameraProfileFromEnv();
-    const useCameraMatrix = getLibrawUseCameraMatrixFromEnv();
+    const policy = String(context?.rawColorimetryPolicy ?? 'auto').trim().toLowerCase();
+    let useCameraMatrix = getLibrawUseCameraMatrixFromEnv();
+    let embedCameraProfile = getLibrawCameraProfileFromEnv() === 'embed';
+    if (policy === 'camera_embed') {
+      useCameraMatrix = 3;
+      embedCameraProfile = true;
+    } else if (policy === 'generic_matrix') {
+      useCameraMatrix = 0;
+      embedCameraProfile = false;
+    }
     const openOpts = {
       outputColor: 1,
       outputBps: 8,
@@ -208,7 +216,7 @@ export async function decodeRawWithLibrawWasm(file, context = {}) {
       useCameraWb: false,
       useAutoWb: false,
       useCameraMatrix,
-      ...(cameraProfileMode === 'embed' ? { cameraProfile: 'embed' } : {}),
+      ...(embedCameraProfile ? { cameraProfile: 'embed' } : {}),
     };
 
     await raw.open(bytes, openOpts);

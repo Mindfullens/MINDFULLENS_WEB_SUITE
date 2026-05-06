@@ -22,12 +22,36 @@ function snapshotComparable(asset) {
  * @param {object | null} [input.imageMeta]
  * @returns {object | null} — cloned document or `null` if unchanged / invalid
  */
+function findAssetIndexForUploadedFile(doc, uploadedFile) {
+  if (!uploadedFile || !(uploadedFile instanceof File)) {
+    return -1;
+  }
+  const exact = doc.assets.findIndex(
+    (a) =>
+      a &&
+      String(a.sourceName ?? '') === String(uploadedFile.name) &&
+      Number(a.sourceSize) === uploadedFile.size &&
+      Number(a.sourceLastModified) === uploadedFile.lastModified
+  );
+  if (exact >= 0) {
+    return exact;
+  }
+  /** OPFS/restored File objects may not preserve lastModified — match name + size */
+  return doc.assets.findIndex(
+    (a) =>
+      a &&
+      String(a.sourceName ?? '') === String(uploadedFile.name) &&
+      Number(a.sourceSize) === uploadedFile.size
+  );
+}
+
 export function mergeCatalogDocumentWithPipelineSnapshot(doc, { uploadedFile, hasImage, exifMeta, imageMeta }) {
   if (!doc || typeof doc !== 'object' || !Array.isArray(doc.assets) || doc.assets.length === 0) {
     return null;
   }
-  const idx = doc.assets.findIndex((a) => a?.id === 'asset_1');
-  const i = idx >= 0 ? idx : 0;
+  const byFile = findAssetIndexForUploadedFile(doc, uploadedFile);
+  const byLegacy = doc.assets.findIndex((a) => a?.id === 'asset_1');
+  const i = byFile >= 0 ? byFile : byLegacy >= 0 ? byLegacy : 0;
   const asset = doc.assets[i];
   if (!asset || typeof asset !== 'object') {
     return null;

@@ -8,6 +8,14 @@ export const ADAPTIVE_PRESET_V1_SCHEMA = 'mindfullens.adaptive-preset.v1';
 /** Conservative allow-list: global develop + crop snapshot fields (no arbitrary nested execution). */
 export const ADAPTIVE_PRESET_PATCH_KEYS = new Set([
   'strength',
+  'filmFormatId',
+  'inputWorkflowMode',
+  'orangeMaskCorrection',
+  'pushPullEv',
+  'rawColorimetryPolicy',
+  'filmToneResponseShape',
+  'emulsionReciprocityComp',
+  'emulsionEdgeAcutance',
   'exposure',
   'contrast',
   'highlights',
@@ -151,7 +159,7 @@ export function recomputeAiAssistMasksHeuristic(adjustments, activeCropRectNorm)
     const entry = stack[i];
     if (!entry || entry.source !== 'ai-assist') continue;
     const kind = entry.ai?.kind;
-    if (kind !== 'sky' && kind !== 'subject') continue;
+    if (kind !== 'sky' && kind !== 'subject' && kind !== 'background') continue;
     const { mask } = analyzeLocalMaskAiAssistPresetSync({
       kind,
       maskIndex: assistOrdinal,

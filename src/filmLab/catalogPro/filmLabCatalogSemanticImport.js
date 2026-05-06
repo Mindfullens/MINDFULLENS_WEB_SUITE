@@ -105,6 +105,11 @@ export function buildCatalogExifSnapshot(exifMeta, imageMeta) {
     focalLength: exifMeta?.focalLength ?? null,
     dateTaken: exifMeta?.dateTaken ?? null,
     orientation: exifMeta?.orientationLabel ?? null,
+    /** Numeryczny tag EXIF (1–8) — potrzebny do obracania miniatury gdy embedded JPEG nie ma własnego EXIF. */
+    orientationTag:
+      Number.isFinite(Number(exifMeta?.orientationTag)) && Number(exifMeta.orientationTag) >= 1
+        ? Math.round(Number(exifMeta.orientationTag))
+        : null,
     dimensions:
       imageMeta?.width && imageMeta?.height
         ? `${Math.round(Number(imageMeta.width))}×${Math.round(Number(imageMeta.height))}`

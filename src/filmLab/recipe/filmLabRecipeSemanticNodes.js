@@ -18,7 +18,8 @@ export function buildSemanticNodesForSlotLike(slotLike, idPrefix, slotIndex) {
   const aiNodes = [];
   if (slotLike.source === 'ai-assist') {
     const kind = String(slotLike?.ai?.kind ?? '').toLowerCase();
-    const aiKind = kind === 'sky' || kind === 'subject' ? kind : 'unknown';
+    const aiKind =
+      kind === 'sky' || kind === 'subject' || kind === 'background' ? kind : 'unknown';
     const confidenceRaw = Number(slotLike?.ai?.confidence);
     aiNodes.push({
       id: `${idPrefix}_semantic_ai_hint`,
@@ -49,7 +50,7 @@ export function buildSemanticNodesForSlotLike(slotLike, idPrefix, slotIndex) {
         type: 'semantic.brush_strokes.v1',
         slotIndex,
         strokeCount: strokes.length,
-        radius: Number(slotLike.brush?.radius ?? 80),
+        radius: Number(slotLike.brush?.radius ?? 32),
         feather: Number(slotLike.brush?.feather ?? 65),
         erase: Boolean(slotLike.brush?.erase),
         edgeSensitivity: Math.max(0, Math.min(100, Number(slotLike.brush?.edgeSensitivity ?? 0))),
@@ -139,7 +140,7 @@ export function buildSemanticNodesForSlotLike(slotLike, idPrefix, slotIndex) {
         type: 'semantic.brush_strokes.v1',
         slotIndex,
         strokeCount: strokes.length,
-        radius: Number(slotLike.brush?.radius ?? 80),
+        radius: Number(slotLike.brush?.radius ?? 32),
         feather: Number(slotLike.brush?.feather ?? 65),
         erase: Boolean(slotLike.brush?.erase),
         edgeSensitivity: Math.max(0, Math.min(100, Number(slotLike.brush?.edgeSensitivity ?? 0))),

@@ -147,6 +147,46 @@ function clamp01(x) {
 }
 
 /**
+ * Best-effort: treat first spatial output as per-pixel mask logits / probabilities (ONNX semantic seg).
+ */
+function tryExtractSpatialAlphaFromOnnxTensor(tensor) {
+  const data = tensor?.data;
+  if (!data || typeof data.length !== 'number' || data.length < 4) {
+    return null;
+  }
+  const dims = Array.isArray(tensor.dims) ? tensor.dims.map((d) => (typeof d === 'bigint' ? Number(d) : Number(d))) : [];
+  let w = 0;
+  let h = 0;
+  if (dims.length >= 2) {
+    h = Math.floor(dims[dims.length - 2]);
+    w = Math.floor(dims[dims.length - 1]);
+  }
+  if (!Number.isFinite(w) || !Number.isFinite(h) || w < 2 || h < 2 || w * h > data.length) {
+    const n = data.length;
+    const s = Math.floor(Math.sqrt(n));
+    if (s < 2 || s * s !== n) {
+      return null;
+    }
+    w = s;
+    h = s;
+  }
+  const out = new Float32Array(w * h);
+  for (let i = 0; i < w * h; i += 1) {
+    let v = Number(data[i]);
+    if (!Number.isFinite(v)) {
+      v = 0;
+    }
+    if (v < 0 || v > 1) {
+      v = clamp01(1 / (1 + Math.exp(-v)));
+    } else {
+      v = clamp01(v);
+    }
+    out[i] = v;
+  }
+  return { width: w, height: h, data: out };
+}
+
+/**
  * Skalar pewności z pierwszego wyjścia (średnia z wartości tensora; logity ~ squash).
  *
  * @param {import('onnxruntime-web').Tensor} tensor
@@ -313,6 +353,15 @@ export async function trySemanticAiMaskOnnxAnalysis(payload) {
   const sync = analyzeLocalMaskAiAssistPresetSync(payload);
   const merged = mergeHeuristicAndOnnxConfidence(sync.confidence, onnxConf);
   const built = buildAiAssistMaskWithConfidence(payload, merged);
+  const spatialAlpha = tryExtractSpatialAlphaFromOnnxTensor(firstTensor);
+  if (spatialAlpha) {
+    built.mask.rasterAlpha = spatialAlpha;
+    built.mask.mode = 'brush';
+    built.mask.brush = {
+      ...(built.mask.brush && typeof built.mask.brush === 'object' ? built.mask.brush : {}),
+      strokes: [],
+    };
+  }
 
   const result = {
     mask: built.mask,

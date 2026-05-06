@@ -4,7 +4,7 @@
  * Loads each file from a FileList, renders it through the full Film-Lab
  * pipeline (renderToContext → output sharpening → EXIF on JPEG path),
  * encodes each frame with `encodeFilmLabExportCanvas` / `encodeFilmLabExportImageData`
- * using the caller’s `fileFormat` (raster IDs or experimental `psd`; see `FILM_LAB_EXPORT_MODAL_FORMAT_IDS`), optionally adds
+ * using the caller’s `fileFormat` (raster IDs lub eksperymentalne `psd` / `dng`; patrz `FILM_LAB_EXPORT_MODAL_FORMAT_IDS`), optionally adds
  * before/mask/recipe sidecars, builds `mindfullens_batch_*_manifest.json` (with digest),
  * and triggers a single browser download when the batch ZIP is ready.
  */
@@ -177,8 +177,10 @@ export async function processBatch({
 
   const requestedFf = typeof fileFormat === 'string' ? fileFormat.trim().toLowerCase() : '';
   const batchExportAsPsd = requestedFf === 'psd';
-  const normalizedFormat = batchExportAsPsd ? 'psd' : normalizeFilmLabExportFileFormat(fileFormat);
-  const rasterFormatForSidecars = batchExportAsPsd ? 'jpeg' : normalizedFormat;
+  const batchExportAsDng = requestedFf === 'dng';
+  const normalizedFormat =
+    batchExportAsPsd ? 'psd' : batchExportAsDng ? 'dng' : normalizeFilmLabExportFileFormat(fileFormat);
+  const rasterFormatForSidecars = batchExportAsPsd || batchExportAsDng ? 'jpeg' : normalizedFormat;
   const manifestEntries = [];
 
   let addedCount = 0;
@@ -256,6 +258,11 @@ export async function processBatch({
           applyOutputSharpening(exportContext, exportCanvas.width, exportCanvas.height, sharpeningStrength);
           const { encodeFilmLabExportPsdFromCanvas } = await import('./filmLabExportPsdFromCanvas.js');
           return encodeFilmLabExportPsdFromCanvas(exportCanvas, { layerName: `${filmName} export` });
+        }
+        if (batchExportAsDng) {
+          applyOutputSharpening(exportContext, exportCanvas.width, exportCanvas.height, sharpeningStrength);
+          const { encodeFilmLabExportDngDerivativeLightFromCanvas } = await import('./filmLabExportDngVariantA.js');
+          return encodeFilmLabExportDngDerivativeLightFromCanvas(exportCanvas);
         }
         return encodeFilmLabExportCanvas(exportCanvas, exportContext, {
           filmName,

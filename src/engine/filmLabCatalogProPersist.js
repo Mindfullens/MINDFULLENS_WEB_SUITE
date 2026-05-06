@@ -94,6 +94,14 @@ export function normalizeLoadedFilmLabCatalogDocument(raw) {
     if (!('exif' in next)) {
       next.exif = null;
     }
+    if (!next.preview || typeof next.preview !== 'object') {
+      next.preview = { embedded: null, standard: null };
+    } else {
+      next.preview = {
+        embedded: next.preview.embedded ?? null,
+        standard: next.preview.standard ?? null,
+      };
+    }
     return next;
   });
   return {

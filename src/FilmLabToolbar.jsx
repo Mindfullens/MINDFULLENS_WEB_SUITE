@@ -30,6 +30,7 @@ export default function FilmLabToolbar({
   isPreviewFullMode,
   togglePreviewFullMode,
   toggleClipping,
+  toggleClipLimiterPreview,
   isMetadataPanelOpen,
   onToggleMetadataPanel,
   showRuntimeStatus,
@@ -75,15 +76,6 @@ export default function FilmLabToolbar({
       ) : null}
       <div className="toolbar" ref={toolbarRef}>
         <div className="toolbar-left">
-          <ToolButton onClick={() => fileInputRef.current?.click()}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <path d="M17 8l-5-5-5 5" />
-              <path d="M12 3v12" />
-            </svg>
-            {t('filmLab.toolbar.upload')}
-          </ToolButton>
-
           {hasImage ? (
             <ToolButton onClick={() => fileInputRef.current?.click()}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -166,6 +158,13 @@ export default function FilmLabToolbar({
             {t('filmLab.toolbar.clipping')}
           </ToolButton>
           <ToolButton
+            active={Boolean(adjustments?.clipLimiterPreview)}
+            onClick={toggleClipLimiterPreview}
+            title={t('filmLab.toolbar.clipLimiterTitle')}
+          >
+            {t('filmLab.toolbar.clipLimiter')}
+          </ToolButton>
+          <ToolButton
             active={Boolean(adjustments?.cmykSoftProofEnabled)}
             onClick={() =>
               updateAdjustment?.('cmykSoftProofEnabled', !adjustments?.cmykSoftProofEnabled)
@@ -188,48 +187,6 @@ export default function FilmLabToolbar({
           >
             {t('filmLab.toolbar.status')}
           </ToolButton>
-          <ToolButton
-            active={adjustments?.uiMode === 'pro'}
-            onClick={() =>
-              updateAdjustment?.('uiMode', adjustments?.uiMode === 'pro' ? 'simple' : 'pro')
-            }
-            title={t('filmLab.toolbar.uiModeTitle')}
-          >
-            {adjustments?.uiMode === 'pro' ? t('filmLab.toolbar.uiModePro') : t('filmLab.toolbar.uiModeSimple')}
-          </ToolButton>
-          <ToolButton
-            active={Boolean(adjustments?.brushMaskEnabled)}
-            onClick={() => updateAdjustment?.('brushMaskEnabled', !adjustments?.brushMaskEnabled)}
-            title={
-              adjustments?.localMaskMode === 'depth'
-                ? t('filmLab.toolbar.brushTitleDepth')
-                : t('filmLab.toolbar.brushTitle')
-            }
-          >
-            {adjustments?.localMaskMode === 'linear'
-              ? t('filmLab.toolbar.maskLinear')
-              : adjustments?.localMaskMode === 'radial'
-                ? t('filmLab.toolbar.maskRadial')
-                : adjustments?.localMaskMode === 'depth'
-                  ? t('filmLab.toolbar.maskDepth')
-                  : t('filmLab.toolbar.maskBrush')}
-          </ToolButton>
-          <ToolButton
-            onClick={() => updateAdjustment?.('brushMaskStrokes', [])}
-            disabled={!Array.isArray(adjustments?.brushMaskStrokes) || adjustments.brushMaskStrokes.length === 0}
-            title={t('filmLab.toolbar.brushResetTitle')}
-          >
-            {t('filmLab.toolbar.brushReset')}
-          </ToolButton>
-          <ToolButton
-            active={Boolean(adjustments?.brushMaskErase)}
-            onClick={() => updateAdjustment?.('brushMaskErase', !adjustments?.brushMaskErase)}
-            disabled={!adjustments?.brushMaskEnabled}
-            title={t('filmLab.toolbar.eraseTitle')}
-          >
-            {t('filmLab.toolbar.erase')}
-          </ToolButton>
-
           <ToolButton
             onClick={applyAutoExposure}
             title={t('filmLab.toolbar.autoExpTitle', { key: SHORTCUT_KEYS.autoExposure })}
@@ -359,7 +316,15 @@ export default function FilmLabToolbar({
               e.target.value = '';
             }}
           />
-          <button className="btn-export-top" type="button" onClick={onOpenExportModal}>
+          <button
+            className="btn-export-top"
+            type="button"
+            title={t('filmLab.toolbar.saveTitle')}
+            aria-label={hasActiveSource ? undefined : t('filmLab.toolbar.saveDisabledAria')}
+            aria-keyshortcuts={hasActiveSource ? 'Control+E Meta+E' : undefined}
+            disabled={!hasActiveSource}
+            onClick={onOpenExportModal}
+          >
             {t('filmLab.toolbar.save')}
           </button>
         </div>

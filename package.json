@@ -59,20 +59,22 @@
     "test:e2e": "playwright test",
     "test:e2e:install-browsers": "playwright install chromium",
     "test:cmyk-soft-proof": "node scripts/test-film-lab-cmyk-soft-proof.mjs",
+    "test:phase-c-passes": "node scripts/test-film-lab-phase-c-passes.mjs",
     "test:depth-proxy-digest": "node scripts/test-film-lab-depth-proxy-digest.mjs",
     "test:depth-onnx-inference": "node scripts/test-film-lab-depth-onnx-inference.mjs",
+    "test:film-lab-export-dng-variant-a": "node scripts/test-film-lab-export-dng-variant-a.mjs",
     "test:recipe-layer-blend": "node scripts/test-recipe-layer-blend.mjs",
     "test:retouch-pass": "node scripts/test-film-lab-retouch-pass.mjs",
     "test:film-lab-ui-mode": "node scripts/test-film-lab-ui-mode.mjs",
     "test:adaptive-preset-v1": "node scripts/test-adaptive-preset-v1.mjs",
     "test:proxy": "npm run test:proxy-webgpu && npm run test:proxy-downscale && npm run test:proxy-tiles",
-    "test": "npm run test:regression && npm run test:recipe-envelope && npm run test:recipe-import && npm run test:recipe-warning-ui && npm run test:i18n-parity && npm run test:film-lab-export-gates && npm run test:crop-geometry && npm run test:deep-audit && npm run test:gh-pages-base && npm run test:static-deploy-assets && npm run test:env-example-parity && npm run test:proxy && npm run test:e2e-pointer && npm run test:fast-preview-webgl2 && npm run test:runtime-env && npm run test:runtime-tier && npm run test:catalog-dam && npm run test:mask-binding && npm run test:onnx-adapter && npm run test:local-mask-p1 && npm run test:depth-proxy-digest && npm run test:depth-onnx-inference && npm run test:cmyk-soft-proof && npm run test:recipe-layer-blend && npm run test:vite-toolchain",
+    "test": "npm run test:regression && npm run test:recipe-envelope && npm run test:recipe-import && npm run test:recipe-warning-ui && npm run test:i18n-parity && npm run test:film-lab-export-gates && npm run test:crop-geometry && npm run test:deep-audit && npm run test:gh-pages-base && npm run test:static-deploy-assets && npm run test:env-example-parity && npm run test:proxy && npm run test:e2e-pointer && npm run test:fast-preview-webgl2 && npm run test:runtime-env && npm run test:runtime-tier && npm run test:catalog-dam && npm run test:mask-binding && npm run test:onnx-adapter && npm run test:local-mask-p1 && npm run test:depth-proxy-digest && npm run test:depth-onnx-inference && npm run test:cmyk-soft-proof && npm run test:phase-c-passes && npm run test:recipe-layer-blend && npm run test:vite-toolchain",
     "predev": "npm run profiles:generate",
     "prebuild": "npm run profiles:generate",
     "postbuild": "npm run test:dist-outputs",
     "lint": "eslint --cache --cache-location .eslintcache \"src/**/*.{js,jsx}\" \"scripts/**/*.{js,mjs}\" vite.config.js eslint.config.mjs",
     "lint:fix": "npm run lint -- --fix",
-    "ci": "npm run lint && npm run test:regression && npm run test:recipe-envelope && npm run test:recipe-import && npm run test:recipe-warning-ui && npm run test:i18n-parity && npm run test:film-lab-export-gates && npm run test:crop-geometry && npm run test:deep-audit && npm run test:gh-pages-base && npm run test:static-deploy-assets && npm run test:env-example-parity && npm run test:proxy && npm run test:e2e-pointer && npm run test:fast-preview-webgl2 && npm run test:runtime-env && npm run test:runtime-tier && npm run test:catalog-dam && npm run test:mask-binding && npm run test:onnx-adapter && npm run test:local-mask-p1 && npm run test:depth-proxy-digest && npm run test:depth-onnx-inference && npm run test:cmyk-soft-proof && npm run test:recipe-layer-blend && npm run test:retouch-pass && npm run test:film-lab-ui-mode && npm run test:adaptive-preset-v1 && npm run test:vite-toolchain && npm run test:raw-reference && npm run build && npm run audit",
+    "ci": "npm run lint && npm run test:regression && npm run test:recipe-envelope && npm run test:recipe-import && npm run test:recipe-warning-ui && npm run test:i18n-parity && npm run test:film-lab-export-gates && npm run test:crop-geometry && npm run test:deep-audit && npm run test:gh-pages-base && npm run test:static-deploy-assets && npm run test:env-example-parity && npm run test:proxy && npm run test:e2e-pointer && npm run test:fast-preview-webgl2 && npm run test:runtime-env && npm run test:runtime-tier && npm run test:catalog-dam && npm run test:mask-binding && npm run test:onnx-adapter && npm run test:local-mask-p1 && npm run test:depth-proxy-digest && npm run test:depth-onnx-inference && npm run test:cmyk-soft-proof && npm run test:phase-c-passes && npm run test:recipe-layer-blend && npm run test:retouch-pass && npm run test:film-lab-ui-mode && npm run test:adaptive-preset-v1 && npm run test:vite-toolchain && npm run test:raw-reference && npm run build && npm run audit",
     "check": "npm run ci",
     "ci:smoke": "npm run ci && npm run profiles:verify-source",
     "preflight": "npm run lint && npm test",
@@ -135,7 +137,9 @@
     "libraw-wasm": "^1.1.2",
     "piexifjs": "^1.0.6",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "react-window": "^1.8.11",
+    "utif": "^3.1.0"
   },
   "optionalDependencies": {
     "onnxruntime-web": "^1.23.2"
@@ -154,7 +158,6 @@
     "pngjs": "^7.0.0",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.14",
-    "utif": "^3.1.0",
     "vite": "^6.4.2"
   }
 }

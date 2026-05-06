@@ -1,4 +1,6 @@
 export const SHORTCUT_KEYS = {
+  /** Cmd/Ctrl+E — opens Film Lab export modal (when a source is loaded). */
+  exportModal: 'E',
   compare: {
     primary: '\\',
     fallback: 'Y',
@@ -13,15 +15,13 @@ export const SHORTCUT_KEYS = {
   help: '?',
   metadata: 'I',
   metadataMode: 'M',
-  rawLinearStage: 'L',
-  localMaskPrev: '[',
-  localMaskNext: ']',
-  localMaskDuplicate: 'D',
+  /** Alt+M — wycisz aktywną maskę lokalną (Develop). */
   localMaskMute: 'M',
+  /** Alt+S — solo na aktywnym slocie maski. */
   localMaskSolo: 'S',
+  /** Alt+O — przełącz podgląd overlay maski (vs globalny O = crop overlay). */
   localMaskOverlay: 'O',
-  localMaskMoveUp: 'ArrowUp',
-  localMaskMoveDown: 'ArrowDown',
+  rawLinearStage: 'L',
   oneToOne: '.',
   zoomIn: '+',
   zoomOut: '-',
@@ -39,7 +39,7 @@ export function resolveShortcutAction({
   hasImage = false,
   zoom = 1,
   panKeyStep = 40,
-  studioWorkspace = null,
+  studioWorkspace: _studioWorkspace = null,
 } = {}) {
   const pressed = String(key || '').toLowerCase();
   const physicalCode = String(code || '');
@@ -53,19 +53,6 @@ export function resolveShortcutAction({
 
   if (repeat && !allowsRepeat) {
     return null;
-  }
-
-  /** HME Stage 9 — zakładka Maski: M / Shift+M / X (bez Alt/Ctrl/Meta), gdy jest obraz. */
-  if (studioWorkspace === 'masks' && hasImage && !hasModifierKey) {
-    if (pressed === 'm') {
-      if (shiftKey) {
-        return { type: 'localMaskStudioShiftM', preventDefault: true };
-      }
-      return { type: 'localMaskToggleOverlay', preventDefault: true };
-    }
-    if (!shiftKey && pressed === 'x') {
-      return { type: 'localMaskStudioEraseToggle', preventDefault: true };
-    }
   }
 
   const isCompareShortcut =
@@ -102,7 +89,22 @@ export function resolveShortcutAction({
     return { type: 'autoColor', preventDefault: true };
   }
 
-  if (!hasModifierKey && pressed === SHORTCUT_KEYS.overlayCycle.toLowerCase()) {
+  // Crop overlay: Shift+O = rotate 90° (physical KeyO — works when layout emits ó/Ó instead of o).
+  if (
+    !metaKey &&
+    !ctrlKey &&
+    !altKey &&
+    shiftKey &&
+    physicalCode === 'KeyO'
+  ) {
+    return { type: 'rotateCropOverlay', preventDefault: true };
+  }
+
+  if (
+    !hasModifierKey &&
+    !shiftKey &&
+    (pressed === SHORTCUT_KEYS.overlayCycle.toLowerCase() || physicalCode === 'KeyO')
+  ) {
     return { type: 'cycleOverlayMode', preventDefault: true };
   }
 
@@ -126,69 +128,23 @@ export function resolveShortcutAction({
     return { type: 'cycleMetadataMode', preventDefault: true };
   }
 
-  if (!hasModifierKey && shiftKey && pressed === SHORTCUT_KEYS.rawLinearStage.toLowerCase()) {
-    return { type: 'cycleRawLinearStage', preventDefault: true };
-  }
-
-  if (altKey && !metaKey && !ctrlKey && !shiftKey && pressed === SHORTCUT_KEYS.localMaskPrev) {
-    return { type: 'localMaskPrev', preventDefault: true };
-  }
-  if (altKey && !metaKey && !ctrlKey && !shiftKey && pressed === SHORTCUT_KEYS.localMaskNext) {
-    return { type: 'localMaskNext', preventDefault: true };
-  }
   if (
     altKey &&
     !metaKey &&
     !ctrlKey &&
-    !shiftKey &&
-    pressed === SHORTCUT_KEYS.localMaskDuplicate.toLowerCase()
-  ) {
-    return { type: 'localMaskDuplicate', preventDefault: true };
-  }
-  if (
-    altKey &&
-    !metaKey &&
-    !ctrlKey &&
-    !shiftKey &&
     pressed === SHORTCUT_KEYS.localMaskMute.toLowerCase()
   ) {
     return { type: 'localMaskToggleMute', preventDefault: true };
   }
-  if (
-    altKey &&
-    !metaKey &&
-    !ctrlKey &&
-    !shiftKey &&
-    pressed === SHORTCUT_KEYS.localMaskSolo.toLowerCase()
-  ) {
+  if (altKey && !metaKey && !ctrlKey && pressed === SHORTCUT_KEYS.localMaskSolo.toLowerCase()) {
     return { type: 'localMaskToggleSolo', preventDefault: true };
   }
-  if (
-    altKey &&
-    !metaKey &&
-    !ctrlKey &&
-    !shiftKey &&
-    pressed === SHORTCUT_KEYS.localMaskOverlay.toLowerCase()
-  ) {
+  if (altKey && !metaKey && !ctrlKey && pressed === SHORTCUT_KEYS.localMaskOverlay.toLowerCase()) {
     return { type: 'localMaskToggleOverlay', preventDefault: true };
   }
-  if (
-    altKey &&
-    !metaKey &&
-    !ctrlKey &&
-    shiftKey &&
-    pressed === SHORTCUT_KEYS.localMaskMoveUp.toLowerCase()
-  ) {
-    return { type: 'localMaskMoveUp', preventDefault: true };
-  }
-  if (
-    altKey &&
-    !metaKey &&
-    !ctrlKey &&
-    shiftKey &&
-    pressed === SHORTCUT_KEYS.localMaskMoveDown.toLowerCase()
-  ) {
-    return { type: 'localMaskMoveDown', preventDefault: true };
+
+  if (!hasModifierKey && shiftKey && pressed === SHORTCUT_KEYS.rawLinearStage.toLowerCase()) {
+    return { type: 'cycleRawLinearStage', preventDefault: true };
   }
 
   if (!hasModifierKey && (key === SHORTCUT_KEYS.help || (pressed === '/' && shiftKey))) {

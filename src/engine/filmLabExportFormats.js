@@ -5,20 +5,21 @@
  * optional-scenario matrix / semantics in `filmLabExportManifestReaderExamples.js`;
  * `filmLab.exportModal.format.<id>` in `en.json` + `pl.json` (see `test-film-lab-export-format-i18n.mjs` + `FILM_LAB_EXPORT_MODAL_FORMAT_IDS`);
  * if lossy: `opts.lossyQuality` in encoder + modal slider + prefs.
- * **PSD** is modal + `exportImage` / `batchProcessor` only (not in `FILM_LAB_EXPORT_RASTER_FORMAT_IDS` / digest optional scenarios).
+ * **PSD** / **DNG (derivative light)** — modal + `exportImage` / `batchProcessor` only (not in `FILM_LAB_EXPORT_RASTER_FORMAT_IDS`).
  */
 
 export const FILM_LAB_EXPORT_RASTER_FORMAT_IDS = Object.freeze(['jpeg', 'png', 'webp', 'tiff', 'avif']);
 
 export const FILM_LAB_EXPORT_RASTER_FORMAT_SET = new Set(FILM_LAB_EXPORT_RASTER_FORMAT_IDS);
 
-/** Modal pills = raster codecs + PSD. */
-export const FILM_LAB_EXPORT_MODAL_FORMAT_IDS = Object.freeze([...FILM_LAB_EXPORT_RASTER_FORMAT_IDS, 'psd']);
+/** Modal pills = raster codecs + PSD + DNG (wariant A). */
+export const FILM_LAB_EXPORT_MODAL_FORMAT_IDS = Object.freeze([...FILM_LAB_EXPORT_RASTER_FORMAT_IDS, 'psd', 'dng']);
 
-/** `optionalScenarios[].export.fileFormat` whitelist in manifest digest reader examples (raster + PSD). */
+/** `optionalScenarios[].export.fileFormat` whitelist in manifest digest reader examples (raster + PSD + DNG). */
 export const FILM_LAB_EXPORT_MANIFEST_OPTIONAL_SCENARIO_FILE_FORMAT_IDS = Object.freeze([
   ...FILM_LAB_EXPORT_RASTER_FORMAT_IDS,
   'psd',
+  'dng',
 ]);
 
 export const FILM_LAB_EXPORT_MANIFEST_OPTIONAL_SCENARIO_FILE_FORMAT_SET = new Set(
@@ -45,11 +46,14 @@ export function normalizeFilmLabExportFileFormat(fileFormat, fallback = 'jpeg') 
   return FILM_LAB_EXPORT_RASTER_FORMAT_SET.has(id) ? id : fallback;
 }
 
-/** Experimental PSD export (same render path as raster; not listed in `FILM_LAB_EXPORT_RASTER_FORMAT_IDS`). */
+/** PSD / DNG — eksperymentalne formaty modala (ten sam tor renderu co raster). */
 export function normalizeFilmLabExportModalFileFormat(fileFormat, fallback = 'jpeg') {
   const id = typeof fileFormat === 'string' ? fileFormat.trim().toLowerCase() : '';
   if (id === 'psd') {
     return 'psd';
+  }
+  if (id === 'dng') {
+    return 'dng';
   }
   return normalizeFilmLabExportFileFormat(fileFormat, fallback);
 }
@@ -66,6 +70,10 @@ export function defaultFilmLabExportLossyQualityForFormat(fileFormat) {
  * @returns {number|undefined} omitted for PNG/TIFF
  */
 export function manifestLossyQualityForFilmLabExport(fileFormat, lossyQuality) {
+  const raw = typeof fileFormat === 'string' ? fileFormat.trim().toLowerCase() : '';
+  if (raw === 'psd' || raw === 'dng') {
+    return undefined;
+  }
   const ff = normalizeFilmLabExportFileFormat(fileFormat);
   if (!FILM_LAB_EXPORT_LOSSY_FORMAT_SET.has(ff)) {
     return undefined;

@@ -9,4 +9,5 @@ export const FILM_LAB_EXPORT_GATE_STEPS = Object.freeze([
   'scripts/test-film-lab-export-canonical-roles.mjs',
   'scripts/test-film-lab-export-manifest-artifact-row.mjs',
   'scripts/test-film-lab-export-format-i18n.mjs',
+  'scripts/test-film-lab-export-dng-variant-a.mjs',
 ]);

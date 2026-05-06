@@ -33,6 +33,7 @@ export function useFilmLabEngineSidecar({
   isAdjusting,
   isPanning,
   userCurves,
+  curveInteractionLiveRef,
 }) {
   const {
     canvasRef,
@@ -51,10 +52,15 @@ export function useFilmLabEngineSidecar({
     renderVersion,
     setPreferFullResPreview,
     depthOnnxInferenceUi,
+    requestCurvePreviewFrame,
+    setDoubleExposureOverlay,
+    doubleExposurePlateReady,
+    doubleExposurePlateOrigin,
   } = useFilmLabEngine(imageUrl, uploadedFile, activeFilm, engineAdjustments, {
     rawBackendPreference,
     rawLinearStageOverride,
     e2eIsPanning: Boolean(isPanning),
+    curveInteractionLiveRef,
   });
 
   const hasActiveSource = Boolean(uploadedFile || imageUrl);
@@ -192,5 +198,9 @@ export function useFilmLabEngineSidecar({
     copyRecipeDocumentJson,
     recipeClipboardFeedback,
     depthOnnxInferenceUi,
+    requestCurvePreviewFrame,
+    setDoubleExposureOverlay,
+    doubleExposurePlateReady,
+    doubleExposurePlateOrigin,
   };
 }

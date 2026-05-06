@@ -2,6 +2,7 @@
  * Regresja: Etap 6 — katalog PRO + semantic import + merge z potokiem (bez przeglądarki).
  */
 import assert from 'node:assert/strict';
+import { buildDamPreviewVirtualPath, damPreviewTierFileName } from '../src/filmLab/opfs/filmLabDamPreviewPaths.js';
 import { buildCatalogExifSnapshot, buildCatalogSemanticIndexFromImport } from '../src/filmLab/catalogPro/filmLabCatalogSemanticImport.js';
 import { mergeCatalogDocumentWithPipelineSnapshot } from '../src/filmLab/catalogPro/filmLabCatalogPipelineMerge.js';
 import { buildCatalogProDocument, withCatalogProFingerprint } from '../src/filmLab/catalogPro/filmLabCatalogProDocument.js';
@@ -39,6 +40,10 @@ assert.ok(merged);
 assert.equal(merged.assets[0].hasDecodedFrame, true);
 assert.ok(Array.isArray(merged.assets[0].semanticIndex.tags));
 assert.ok(merged.assets[0].exif);
+
+assert.equal(damPreviewTierFileName('smart'), 'smart.webp');
+assert.match(buildDamPreviewVirtualPath('sess', 'aid', 'smart'), /smart\.webp$/);
+assert.match(buildDamPreviewVirtualPath('sess', 'aid', 'embedded'), /embedded\.jpg$/);
 
 const merged2 = mergeCatalogDocumentWithPipelineSnapshot(merged, {
   uploadedFile: { name: 'raw.cr3', type: 'application/octet-stream', size: 1200, lastModified: 1 },
