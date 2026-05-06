@@ -8,11 +8,21 @@ const fixtureCopy = path.join(_root, 'tests/fixtures/e2e-two-tone-copy.png');
 
 test.describe('Film Lab — Develop z katalogu', () => {
   test('szybkie przełączanie dwóch assetów na filmstripie nie psuje podglądu', async ({ page }) => {
-    test.setTimeout(120_000);
+    /** Lazy `FilmLab` + ciężki graf modułów — w CI potrafi przekroczyć 120 s bez jawnego waita na shell. */
+    test.setTimeout(180_000);
 
-    await page.goto('/film-lab?workspace=library');
+    await page.goto('/film-lab?workspace=library', { waitUntil: 'load' });
+    await page.waitForLoadState('domcontentloaded');
 
-    await page.locator('[data-testid="film-lab-source-file-input"]').setInputFiles([fixturePng, fixtureCopy]);
+    /**
+     * `film-lab-source-file-input` jest w `FilmLabShell` dopiero po załadowaniu chunka i mountcie.
+     * Czekamy na stabilny marker UI (nav), żeby uniknąć „wiszenia” na ukrytym inpucie przy błędzie bundla / Suspense.
+     */
+    await expect(page.locator('.film-lab-studio-nav-inner')).toBeVisible({ timeout: 120_000 });
+
+    const fileInput = page.getByTestId('film-lab-source-file-input');
+    await expect(fileInput).toBeAttached({ timeout: 60_000 });
+    await fileInput.setInputFiles([fixturePng, fixtureCopy], { timeout: 60_000 });
 
     const filmstrip = page.locator('.film-lab-library-filmstrip-host [role="listbox"]').first();
     await expect(filmstrip).toHaveAttribute('data-asset-count', '2', { timeout: 90_000 });

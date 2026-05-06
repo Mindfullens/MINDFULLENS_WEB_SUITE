@@ -1,4 +1,8 @@
-import { FixedSizeList as List } from 'react-window';
+/**
+ * Named import `import { FixedSizeList } from 'react-window'` potrafi się sypać przy bundlu
+ * (Rolldown/Rollup: „not exported” z `dist/react-window.js`). Namespace jest interoperacyjny z CJS/ESM.
+ */
+import * as ReactWindow from 'react-window';
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   cancelImageWorkerRequest,
@@ -12,6 +16,8 @@ import { getCssTransformForExifOrientation } from './filmLabExifCssTransform.js'
 import { isDamPreviewWebgpuPermanent, markDamPreviewWebgpuPermanent } from './filmLabDamPreviewWebgpuGate.js';
 import { useI18n } from '../i18n';
 import { FILMLAB_OPFS_PREVIEW_READY } from './filmLabOpfsPreviewReadyEvent.js';
+
+const List = ReactWindow.FixedSizeList;
 
 const CELL_W = 76;
 const CELL_GAP = 6;

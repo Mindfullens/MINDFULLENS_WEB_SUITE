@@ -5,9 +5,12 @@ import path from 'node:path';
 import { execFile, execSync } from 'node:child_process';
 import { promisify } from 'node:util';
 import { randomUUID } from 'node:crypto';
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { normalizeViteBase } from './scripts/lib/gh-pages-base.mjs';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 function viteProcessEnvFlag(name) {
   const v = process.env[name];
@@ -412,6 +415,19 @@ export default defineConfig({
   /** SPA — `/film-lab` i inne ścieżki klienckie muszą padać na `index.html` (dev + preview). */
   appType: 'spa',
   base: normalizeViteBase(process.env.VITE_BASE ?? ''),
+  /** `react-window` (CJS/exports) — jawny preload dla spójnego rozwiązania eksportów w dev i buildzie. */
+  optimizeDeps: {
+    include: ['react-window'],
+  },
+  /**
+   * Wymuszenie `dist/index.esm.js` — Rollup w CI potrafił wskazywać inny plik w `dist/`
+   * (log: „not exported” z `react-window.js`), choć pakiet deklaruje `module` → `index.esm.js`.
+   */
+  resolve: {
+    alias: {
+      'react-window': path.resolve(__dirname, 'node_modules/react-window/dist/index.esm.js'),
+    },
+  },
   define: {
     'import.meta.env.VITE_FILM_LAB_GIT_SHA': JSON.stringify(getFilmLabGitShortSha()),
   },
