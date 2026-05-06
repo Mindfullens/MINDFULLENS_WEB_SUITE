@@ -1,6 +1,6 @@
 {
   "schema": "mindfullens.raw-reference-trend.v1",
-  "generatedAt": "2026-05-06T08:08:46.826Z",
+  "generatedAt": "2026-05-01T21:06:19.001Z",
   "entryCount": 39,
   "trendSummary": {
     "highlightClipRatio": {
@@ -25,12 +25,12 @@
     }
   },
   "comparison": {
-    "previousGeneratedAt": "2026-05-06T07:35:23.143Z",
+    "previousGeneratedAt": "2026-04-27T07:41:02.561Z",
     "trendDelta": {
       "highlightClipRatio": {
-        "meanDelta": 0,
-        "meanDeltaPct": 0,
-        "direction": "stable",
+        "meanDelta": -0.0061892560396914695,
+        "meanDeltaPct": -14.387174670921842,
+        "direction": "better",
         "isRegression": false
       },
       "shadowClipRatio": {
@@ -46,9 +46,9 @@
         "isRegression": false
       },
       "riskScore": {
-        "meanDelta": 0,
-        "meanDeltaPct": 0,
-        "direction": "stable",
+        "meanDelta": -0.012155745489078829,
+        "meanDeltaPct": -7.552148526846852,
+        "direction": "better",
         "isRegression": false
       }
     },
