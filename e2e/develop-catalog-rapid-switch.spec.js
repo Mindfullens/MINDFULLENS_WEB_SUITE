@@ -27,10 +27,25 @@ test.describe('Film Lab — Develop z katalogu', () => {
     /**
      * Warstwa Biblioteki musi być aktywna (`is-route-active`); inaczej ma `visibility:hidden`
      * i asercje Playwright na potomkach mogą zwracać „element(s) not found”.
+     *
+     * W CI po imporcie część przebiegów zostaje na Develop — `toBeVisible` na `.is-route-active`
+     * wtedy trafia w 0 elementów. Poll + klik w pierwszą zakładkę (Biblioteka) stabilizuje route.
      */
-    await expect(page.locator('.film-lab-route-layer--library.is-route-active')).toBeVisible({
-      timeout: 60_000,
-    });
+    await expect(page.locator('.film-lab-route-layer--library')).toBeAttached({ timeout: 60_000 });
+    await expect
+      .poll(
+        async () => {
+          const active = await page.evaluate(() => {
+            const el = document.querySelector('.film-lab-route-layer--library');
+            return Boolean(el?.classList.contains('is-route-active'));
+          });
+          if (active) return true;
+          await page.locator('.film-lab-studio-nav-inner button').nth(0).click();
+          return false;
+        },
+        { timeout: 120_000, intervals: [200, 400, 800, 1600] }
+      )
+      .toBe(true);
 
     /**
      * `toHaveAttribute` na locatorze czeka na widoczny element — ukryta warstwa route psuje CI.
