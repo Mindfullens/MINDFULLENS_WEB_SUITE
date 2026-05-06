@@ -83,3 +83,37 @@
 **Blokada release:** **D2-P0-01** nadal może być otwarta — D4 nie zastępuje decyzji o PR #9.
 
 **Polityka zestawów (nadal D2-P1-02):** `reference-set-v1` = 16 kadrów (golden manual); RAW gate = 39 raportów (regresja techniczna). Oba mogą być zielone równolegle; jedna pisemna polityka „co jest gate’em release” pozostaje do ustalenia.
+
+---
+
+## D5 — release readiness (2026-05-06)
+
+**Stan wejścia:** `main` lokalnie **zielony** (`preflight`, `ci`, RAW gate w D4). **PR #9** nadal **OPEN** — to osobna ścieżka (Vite 8 / Tailwind 4), nie blokuje wydania **obecnej** linii na `main`, o ile świadomie ją publikujesz jako „0.1.x / Vite 6”.
+
+### Decyzja (wypełnij przed tagiem)
+
+| Opcja | Kiedy | Działanie |
+| --- | --- | --- |
+| **A — Release z obecnego `main`** | Chcesz opublikować to, co jest na `main` (Vite 6, Tailwind 3). | Poniżej checklista A; **PR #9** zostaw na później lub zamknij z notatką. |
+| **B — Najpierw toolchain z PR #9** | Chcesz produkcję na Vite 8 / Tailwind 4. | Zmerguj lub zrebasuj PR po review; powtórz **D4** na wynikowym `main`; dopiero potem tag. |
+| **C — Odłożenie** | Brak czasu na decyzję o #9 i brak presji na release. | Brak tagu; utrzymaj D2-P1-02/P1 w backlogu. |
+
+**Rekomendacja robocza:** **A** — opublikuj stabilną linię z `main`; **B** jako osobny release po zielonym CI na zmergowanym toolchainie.
+
+### Checklista A (release z bieżącego `main`)
+
+- [ ] `git push origin main` (lokalna gałąź była **ahead** względem `origin` — zsynchronizuj).
+- [ ] Na GitHubie: **Actions** zielone na ostatnim commicie `main`.
+- [ ] (Opcjonalnie) Utwórz **GitHub Release** / tag semver zgodny z `package.json` (`0.1.0` lub podbicie patch).
+- [ ] Notatka w release: D1–D4 (reference set freeze, bramki, PR #9 nadal open jeśli dotyczy).
+- [ ] 24–48 h: szybki rzut na Issues + ewentualny rollback plan (revert commit).
+
+### Zamknięcie D2-P0-01 (PR #9)
+
+| Działanie | Status |
+| --- | --- |
+| Merge PR #9 | _TBD — owner_ |
+| Zamknij bez merge (uzasadnienie w PR) | _TBD — owner_ |
+| Zostaw OPEN na kolejny sprint | **Stan na 2026-05-06** |
+
+Po wyborze jednej ścieżki zaktualizuj tabelę w **D3** i usuń nieaktualne wiersze w kolejnym commicie.
