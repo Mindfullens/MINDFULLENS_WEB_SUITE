@@ -420,13 +420,15 @@ export default defineConfig({
     include: ['react-window'],
   },
   /**
-   * Wymuszenie `dist/index.esm.js` — Rollup w CI potrafił wskazywać inny plik w `dist/`
-   * (log: „not exported” z `react-window.js`), choć pakiet deklaruje `module` → `index.esm.js`.
+   * Wymuszenie korzenia pakietu — sam plik `dist/index.esm.js` jako alias potrafił psuć subpath;
+   * samo `dist/react-window.js` (stary UMD) nie eksportuje named exportów dla Rollupa.
+   * Katalog + `package.json` (`module` → `index.esm.js`) daje stabilne rozwiązanie w dev i buildzie.
    */
   resolve: {
     alias: {
-      'react-window': path.resolve(__dirname, 'node_modules/react-window/dist/index.esm.js'),
+      'react-window': path.resolve(__dirname, 'node_modules/react-window'),
     },
+    dedupe: ['react-window'],
   },
   define: {
     'import.meta.env.VITE_FILM_LAB_GIT_SHA': JSON.stringify(getFilmLabGitShortSha()),
