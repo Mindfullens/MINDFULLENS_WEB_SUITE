@@ -1,4 +1,5 @@
-import { getPipelineLabel, PIPELINE_KIND, PIPELINE_STATUS } from './engine/pipeline/constants.js';
+import { PIPELINE_KIND, PIPELINE_STATUS } from './engine/pipeline/constants.js';
+import { useI18n } from './i18n';
 
 export default function FilmLabCanvasSourcePanels({
   hasActiveSource,
@@ -6,15 +7,21 @@ export default function FilmLabCanvasSourcePanels({
   fileInputRef,
   pipelineInfo,
 }) {
+  const { t } = useI18n();
+  const pipelineTitle = !pipelineInfo
+    ? t('filmLab.sourcePanel.pipelineIdle')
+    : pipelineInfo.pipelineKind === PIPELINE_KIND.RAW
+      ? t('filmLab.sourcePanel.pipelineRaw')
+      : t('filmLab.sourcePanel.pipelineBitmap');
   return (
     <>
       {!hasActiveSource ? (
         <div className="upload-zone" onClick={() => fileInputRef.current?.click()}>
           <div className="upload-icon">◎</div>
-          <div className="upload-text">Wgraj swoje zdjęcie</div>
-          <div className="upload-sub">JPG · PNG · WebP · TIFF · RAW / DNG</div>
+          <div className="upload-text">{t('filmLab.sourcePanel.uploadTitle')}</div>
+          <div className="upload-sub">{t('filmLab.sourcePanel.uploadSub')}</div>
           <button className="btn-browse" type="button">
-            Wybierz z dysku
+            {t('filmLab.sourcePanel.browse')}
           </button>
         </div>
       ) : null}
@@ -24,11 +31,11 @@ export default function FilmLabCanvasSourcePanels({
           <div className="upload-icon">
             {pipelineInfo?.pipelineKind === PIPELINE_KIND.RAW ? 'RAW' : '…'}
           </div>
-          <div className="upload-text">{getPipelineLabel(pipelineInfo)}</div>
+          <div className="upload-text">{pipelineTitle}</div>
           <div className="upload-sub">
             {pipelineInfo?.status === PIPELINE_STATUS.DECODER_MISSING
-              ? 'Architektura RAW/DNG jest gotowa, ale dekoder nie jest jeszcze podłączony.'
-              : pipelineInfo?.message || 'Przygotowywanie źródła…'}
+              ? t('filmLab.sourcePanel.rawDecoderPending')
+              : pipelineInfo?.message || t('filmLab.sourcePanel.preparingSource')}
           </div>
         </div>
       ) : null}

@@ -1145,6 +1145,7 @@ self.addEventListener('message', (event) => {
         renderIntent: payload?.renderIntent ?? 'preview',
         baseUrl: payload?.baseUrl ?? '/',
         backendPreference: payload?.backendPreference ?? null,
+        rawColorimetryPolicy: payload?.rawColorimetryPolicy ?? 'auto',
       }
     )
       .then((result) => {

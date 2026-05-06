@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { markFilmLabE2eKeyboardE2eIntent } from './previewE2ePointerMark.js';
 
-/** Cmd/Ctrl+C / Cmd/Ctrl+V for recipe copy-paste when focus is not in a form field. */
+/** Cmd/Ctrl+C / Cmd/Ctrl+V for edit clipboard when focus is not in a form field. Shift+Cmd/Ctrl+V nie jest tutaj obsługiwane — zarezerwowane dla wklejania recipe (Render Debug). */
 export function useFilmLabClipboardShortcuts({ copyToClipboard, pasteFromClipboard }) {
   useEffect(() => {
     const handleCopyPasteShortcuts = (event) => {
@@ -28,7 +28,7 @@ export function useFilmLabClipboardShortcuts({ copyToClipboard, pasteFromClipboa
         return;
       }
 
-      if (pressed === 'v') {
+      if (pressed === 'v' && !event.shiftKey) {
         event.preventDefault();
         markFilmLabE2eKeyboardE2eIntent();
         pasteFromClipboard();

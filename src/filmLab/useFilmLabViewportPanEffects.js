@@ -3,12 +3,13 @@ import { FIT_UI_ZOOM } from './viewportZoom.js';
 
 /**
  * Zoom/pan maintenance: reset pan at fit zoom, clamp pan on stage resize, re-sync fit at viewport changes,
- * and drop full-res preview when the image source changes.
+ * prefer full-res preview gdy pixel-peep (≥ 1:1), wyłącz gdy brak obrazu.
  */
 export function useFilmLabViewportPanEffects({
   fitZoom,
   zoom,
   hasImage,
+  isPixelPeepZoom = false,
   setPreferFullResPreview,
   panOffsetRef,
   setPanOffset,
@@ -38,8 +39,12 @@ export function useFilmLabViewportPanEffects({
   }, [fitZoom, zoom, panOffsetRef, panDragRef, setIsPanning, setPanOffset]);
 
   useEffect(() => {
-    setPreferFullResPreview(false);
-  }, [hasImage, setPreferFullResPreview]);
+    if (!hasImage) {
+      setPreferFullResPreview(false);
+      return;
+    }
+    setPreferFullResPreview(Boolean(isPixelPeepZoom));
+  }, [hasImage, isPixelPeepZoom, setPreferFullResPreview]);
 
   useEffect(() => {
     if (!hasImage) {

@@ -1,5 +1,6 @@
 import { FILE_INPUT_ACCEPT } from './engine/pipeline/constants.js';
 import { SHORTCUT_KEYS } from './engine/shortcutActions.js';
+import { useI18n } from './i18n';
 
 export function ToolButton({ active = false, children, ...props }) {
   return (
@@ -29,6 +30,7 @@ export default function FilmLabToolbar({
   isPreviewFullMode,
   togglePreviewFullMode,
   toggleClipping,
+  toggleClipLimiterPreview,
   isMetadataPanelOpen,
   onToggleMetadataPanel,
   showRuntimeStatus,
@@ -53,7 +55,10 @@ export default function FilmLabToolbar({
   onBatchFilesPicked,
   onOpenExportModal,
   cancelBatch,
+  updateAdjustment,
 }) {
+  const { t } = useI18n();
+
   return (
     <div className="toolbar-stack">
       {sessionRestoreNotice ? (
@@ -63,7 +68,7 @@ export default function FilmLabToolbar({
             type="button"
             className="session-autosave-banner-dismiss"
             onClick={onDismissSessionNotice}
-            aria-label="Zamknij powiadomienie"
+            aria-label={t('filmLab.toolbar.dismissBanner')}
           >
             ×
           </button>
@@ -71,15 +76,6 @@ export default function FilmLabToolbar({
       ) : null}
       <div className="toolbar" ref={toolbarRef}>
         <div className="toolbar-left">
-          <ToolButton onClick={() => fileInputRef.current?.click()}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <path d="M17 8l-5-5-5 5" />
-              <path d="M12 3v12" />
-            </svg>
-            Wgraj
-          </ToolButton>
-
           {hasImage ? (
             <ToolButton onClick={() => fileInputRef.current?.click()}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -88,7 +84,7 @@ export default function FilmLabToolbar({
                 <path d="M3.5 9a9 9 0 0 1 14.8-3.4L23 10" />
                 <path d="M1 14l4.6 4.4A9 9 0 0 0 20.5 15" />
               </svg>
-              Zmień
+              {t('filmLab.toolbar.change')}
             </ToolButton>
           ) : null}
 
@@ -97,13 +93,16 @@ export default function FilmLabToolbar({
           <ToolButton
             active={adjustments.compareMode}
             onClick={toggleCompare}
-            title={`Przed/Po (${SHORTCUT_KEYS.compare.primary} lub ${SHORTCUT_KEYS.compare.fallback})`}
+            title={t('filmLab.toolbar.compareTitle', {
+              primary: SHORTCUT_KEYS.compare.primary,
+              fallback: SHORTCUT_KEYS.compare.fallback,
+            })}
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <rect x="3" y="3" width="18" height="18" rx="2" />
               <path d="M12 3v18" />
             </svg>
-            Przed/Po
+            {t('filmLab.toolbar.compare')}
           </ToolButton>
 
           <ToolButton active={adjustments.flipped} onClick={toggleFlip}>
@@ -112,7 +111,7 @@ export default function FilmLabToolbar({
               <path d="M16 3h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-3" />
               <path d="M12 3v18" />
             </svg>
-            Odbij
+            {t('filmLab.toolbar.flip')}
           </ToolButton>
 
           <ToolButton onClick={rotateImage}>
@@ -120,33 +119,33 @@ export default function FilmLabToolbar({
               <path d="M23 4v6h-6" />
               <path d="M20.49 15A9 9 0 1 1 18 7.5L23 10" />
             </svg>
-            Obrót
+            {t('filmLab.toolbar.rotate')}
           </ToolButton>
         </div>
 
         <div className="toolbar-center">
-          <ToolButton onClick={() => stepZoom(-1)} title="Oddal (−)">
+          <ToolButton onClick={() => stepZoom(-1)} title={t('filmLab.toolbar.zoomOutTitle')}>
             −
           </ToolButton>
           <div className="zoom-display">{displayedZoomPercent}%</div>
-          <ToolButton onClick={() => stepZoom(1)} title="Przybliż (+)">
+          <ToolButton onClick={() => stepZoom(1)} title={t('filmLab.toolbar.zoomInTitle')}>
             +
           </ToolButton>
-          <ToolButton active={!isZoomBeyondFit} onClick={fitClassic} title="Dopasuj (0)">
-            Dopasuj
+          <ToolButton active={!isZoomBeyondFit} onClick={fitClassic} title={t('filmLab.toolbar.fitTitle')}>
+            {t('filmLab.toolbar.fit')}
           </ToolButton>
-          <ToolButton onClick={() => jumpToOneToOne(null)} title="100% = 1:1 piksel">
+          <ToolButton onClick={() => jumpToOneToOne(null)} title={t('filmLab.toolbar.oneToOneTitle')}>
             1:1
           </ToolButton>
-          <ToolButton active={isShortcutHelpOpen} onClick={onToggleShortcutHelp} title="Skróty (?)">
-            Skróty
+          <ToolButton active={isShortcutHelpOpen} onClick={onToggleShortcutHelp} title={t('filmLab.toolbar.shortcutsTitle')}>
+            {t('filmLab.toolbar.shortcuts')}
           </ToolButton>
           <ToolButton
             active={isPreviewFullMode}
             onClick={togglePreviewFullMode}
-            title={`Widok pełny (${SHORTCUT_KEYS.full})`}
+            title={t('filmLab.toolbar.fullTitle', { key: SHORTCUT_KEYS.full })}
           >
-            Full
+            {t('filmLab.toolbar.full')}
           </ToolButton>
         </div>
 
@@ -154,36 +153,51 @@ export default function FilmLabToolbar({
           <ToolButton
             active={adjustments.showClipping}
             onClick={toggleClipping}
-            title={`Podgląd clippingu świateł/cieni (${SHORTCUT_KEYS.clipping})`}
+            title={t('filmLab.toolbar.clippingTitle', { key: SHORTCUT_KEYS.clipping })}
           >
-            Clipping
+            {t('filmLab.toolbar.clipping')}
+          </ToolButton>
+          <ToolButton
+            active={Boolean(adjustments?.clipLimiterPreview)}
+            onClick={toggleClipLimiterPreview}
+            title={t('filmLab.toolbar.clipLimiterTitle')}
+          >
+            {t('filmLab.toolbar.clipLimiter')}
+          </ToolButton>
+          <ToolButton
+            active={Boolean(adjustments?.cmykSoftProofEnabled)}
+            onClick={() =>
+              updateAdjustment?.('cmykSoftProofEnabled', !adjustments?.cmykSoftProofEnabled)
+            }
+            title={t('filmLab.toolbar.cmykSoftProofTitle')}
+          >
+            {t('filmLab.toolbar.cmykSoftProof')}
           </ToolButton>
           <ToolButton
             active={isMetadataPanelOpen}
             onClick={onToggleMetadataPanel}
-            title={`Panel metadanych (${SHORTCUT_KEYS.metadata})`}
+            title={t('filmLab.toolbar.metadataTitle', { key: SHORTCUT_KEYS.metadata })}
           >
-            Metadane
+            {t('filmLab.toolbar.metadata')}
           </ToolButton>
           <ToolButton
             active={showRuntimeStatus}
             onClick={onToggleRuntimeStatus}
-            title="Pokaż/ukryj status renderu i jakości"
+            title={t('filmLab.toolbar.statusTitle')}
           >
-            Status
+            {t('filmLab.toolbar.status')}
           </ToolButton>
-
           <ToolButton
             onClick={applyAutoExposure}
-            title={`Automatyczna ekspozycja (${SHORTCUT_KEYS.autoExposure})`}
+            title={t('filmLab.toolbar.autoExpTitle', { key: SHORTCUT_KEYS.autoExposure })}
           >
-            Auto eksp.
+            {t('filmLab.toolbar.autoExp')}
           </ToolButton>
           <ToolButton
             onClick={applyAutoColor}
-            title={`Automatyczny balans koloru (${SHORTCUT_KEYS.autoColor})`}
+            title={t('filmLab.toolbar.autoColorTitle', { key: SHORTCUT_KEYS.autoColor })}
           >
-            Auto kolor
+            {t('filmLab.toolbar.autoColor')}
           </ToolButton>
 
           <ToolButton onClick={onToolbarReset}>
@@ -191,7 +205,7 @@ export default function FilmLabToolbar({
               <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.7 2.7L3 8" />
               <path d="M3 3v5h5" />
             </svg>
-            Reset
+            {t('filmLab.toolbar.reset')}
           </ToolButton>
 
           <ToolButton onClick={onToolbarUndo}>
@@ -199,30 +213,30 @@ export default function FilmLabToolbar({
               <path d="M1 4v6h6" />
               <path d="M3.5 15A9 9 0 1 0 8.6 4.3L1 10" />
             </svg>
-            Cofnij
+            {t('filmLab.toolbar.undo')}
           </ToolButton>
           <ToolButton onClick={onToolbarRedo} disabled={redoDisabled}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M23 4v6h-6" />
               <path d="M20.5 15A9 9 0 1 1 15.4 4.3L23 10" />
             </svg>
-            Dalej
+            {t('filmLab.toolbar.redo')}
           </ToolButton>
 
-          <ToolButton onClick={copyToClipboard} title="Kopiuj obecne ustawienia suwaków i krzywych">
+          <ToolButton onClick={copyToClipboard} title={t('filmLab.toolbar.copyTitle')}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
               <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
             </svg>
-            {clipboardFeedback === 'copied' ? '✓ Skopiowano' : 'Kopiuj'}
+            {clipboardFeedback === 'copied' ? t('filmLab.toolbar.copied') : t('filmLab.toolbar.copy')}
           </ToolButton>
 
-          <ToolButton onClick={pasteFromClipboard} title="Wklej skopiowane ustawienia">
+          <ToolButton onClick={pasteFromClipboard} title={t('filmLab.toolbar.pasteTitle')}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
               <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
             </svg>
-            {clipboardFeedback === 'pasted' ? '✓ Wklejono' : 'Wklej'}
+            {clipboardFeedback === 'pasted' ? t('filmLab.toolbar.pasted') : t('filmLab.toolbar.paste')}
           </ToolButton>
 
           <button
@@ -231,7 +245,7 @@ export default function FilmLabToolbar({
             onClick={exportCubeLut}
             style={{ background: '#3b82f6', borderColor: '#2563eb', marginRight: '8px' }}
           >
-            Export LUT
+            {t('filmLab.toolbar.exportLut')}
           </button>
 
           <button
@@ -240,9 +254,7 @@ export default function FilmLabToolbar({
             onClick={exportDebugReport}
             disabled={!hasActiveSource}
             title={
-              hasActiveSource
-                ? 'Pobierz raport diagnostyczny renderu (JSON)'
-                : 'Wgraj zdjęcie, aby wygenerować raport diagnostyczny'
+              hasActiveSource ? t('filmLab.toolbar.debugReadyTitle') : t('filmLab.toolbar.debugNeedImageTitle')
             }
             style={{
               background: '#334155',
@@ -253,10 +265,10 @@ export default function FilmLabToolbar({
             }}
           >
             {debugExportFeedback === 'saved'
-              ? 'DIAG OK'
+              ? t('filmLab.toolbar.diagOk')
               : debugExportFeedback === 'error'
-                ? 'DIAG ERR'
-                : 'DIAG JSON'}
+                ? t('filmLab.toolbar.diagErr')
+                : t('filmLab.toolbar.diagJson')}
           </button>
 
           <div className="tool-divider" />
@@ -276,11 +288,16 @@ export default function FilmLabToolbar({
             role="button"
             tabIndex={0}
           >
-            {batchState.isRunning ? `Batch ${batchState.current}/${batchState.total}` : 'Paczka zdjęć'}
+            {batchState.isRunning
+              ? t('filmLab.toolbar.batchProgress', {
+                  current: batchState.current,
+                  total: batchState.total,
+                })
+              : t('filmLab.toolbar.batchPhotos')}
           </label>
           <span
             className={`batch-backend-indicator${isRawBackendForced ? ' forced' : ' auto'}`}
-            title="Aktywny backend RAW dla paczki zdjęć"
+            title={t('filmLab.toolbar.batchBackendTitle')}
           >
             RAW: {rawBackendModeLabel}
           </span>
@@ -299,8 +316,16 @@ export default function FilmLabToolbar({
               e.target.value = '';
             }}
           />
-          <button className="btn-export-top" type="button" onClick={onOpenExportModal}>
-            Zapisz
+          <button
+            className="btn-export-top"
+            type="button"
+            title={t('filmLab.toolbar.saveTitle')}
+            aria-label={hasActiveSource ? undefined : t('filmLab.toolbar.saveDisabledAria')}
+            aria-keyshortcuts={hasActiveSource ? 'Control+E Meta+E' : undefined}
+            disabled={!hasActiveSource}
+            onClick={onOpenExportModal}
+          >
+            {t('filmLab.toolbar.save')}
           </button>
         </div>
 
@@ -308,13 +333,15 @@ export default function FilmLabToolbar({
           <div className="batch-progress-bar-container">
             <div className="batch-progress-text">
               <div className="batch-progress-info">
-                <span>Przetwarzanie: {batchState.currentFile}</span>
+                <span>
+                  {t('filmLab.toolbar.batchProcessing')} {batchState.currentFile}
+                </span>
                 <span>
                   {batchState.current}/{batchState.total}
                 </span>
               </div>
               <div className={`batch-progress-meta${isRawBackendForced ? ' forced' : ' auto'}`}>
-                Backend RAW: <strong>{rawBackendModeLabel}</strong>
+                {t('filmLab.toolbar.batchRawBackend')} <strong>{rawBackendModeLabel}</strong>
               </div>
             </div>
             <div className="batch-progress-track">
@@ -326,7 +353,7 @@ export default function FilmLabToolbar({
               />
             </div>
             <button className="batch-cancel-btn" type="button" onClick={cancelBatch}>
-              Anuluj
+              {t('filmLab.toolbar.batchCancel')}
             </button>
           </div>
         ) : null}

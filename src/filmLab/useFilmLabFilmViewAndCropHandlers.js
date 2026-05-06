@@ -70,6 +70,13 @@ export function useFilmLabFilmViewAndCropHandlers({
     }));
   }, [saveUndo, setAdjustments]);
 
+  const toggleClipLimiterPreview = useCallback(() => {
+    setAdjustments((current) => ({
+      ...current,
+      clipLimiterPreview: !current.clipLimiterPreview,
+    }));
+  }, [setAdjustments]);
+
   const toggleCompare = useCallback(() => {
     if (!hasImage) {
       return;
@@ -175,6 +182,7 @@ export function useFilmLabFilmViewAndCropHandlers({
     setCropLiveRectSafely,
     selectFilm,
     toggleClipping,
+    toggleClipLimiterPreview,
     toggleCompare,
     toggleFlip,
     rotateImage,

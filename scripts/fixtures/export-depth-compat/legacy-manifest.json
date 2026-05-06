@@ -1,0 +1,31 @@
+{
+  "schema": "filmLab.export.manifest.v1",
+  "manifestVersion": 1,
+  "manifestProfile": "pro-export-audit-v1",
+  "mode": "single",
+  "exportSessionId": "00000000-0000-4000-8000-000000000000",
+  "export": {
+    "sizeProfile": "full",
+    "fileFormat": "dng"
+  },
+  "artifacts": [
+    {
+      "variant": "after",
+      "artifactRole": "primary",
+      "fileName": "mindfullens_example_after.dng",
+      "mimeType": "image/x-adobe-dng"
+    },
+    {
+      "variant": "depth_proxy",
+      "artifactRole": "sidecar",
+      "fileName": "mindfullens_example_depth_proxy.json",
+      "mimeType": "application/json"
+    },
+    {
+      "variant": "after_recipe",
+      "artifactRole": "sidecar",
+      "fileName": "mindfullens_example_after_recipe.json",
+      "mimeType": "application/json"
+    }
+  ]
+}

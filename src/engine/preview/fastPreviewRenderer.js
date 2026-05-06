@@ -2,6 +2,11 @@ import { readEnvFlag, readEnvNegated } from '../../filmLab/runtimeEnv.js';
 import { resolveWhiteBalanceGains } from '../whiteBalance.js';
 import { u8RgbaToHalfFloatRgbaForTexImage } from '../webglU8RgbaToHalfFloat.js';
 import { probeWebgl2Rgba16fFboUsable } from '../webgl2Rgba16fFboProbe.js';
+import {
+  FAST_PREVIEW_DAMAGE_SCOPE_FULL,
+  normDamageRectToViewportPx,
+  resolveFastPreviewDamageNormRect,
+} from './fastPreviewConstants.js';
 
 const VERTEX_SHADER_SOURCE = `
 attribute vec2 a_position;
@@ -215,16 +220,23 @@ float apply_contrast_curve(float val, float contrast, float pivot) {
 }
 
 vec3 applyContrast(vec3 color) {
+  // Mediump float (older mobile / integrated GPU) — pow(val / pivot, contrast) z bardzo malym
+  // luma lub ekstremalnym contrast overflowuje do NaN / Inf i renderuje sie jako jaskrawa
+  // zielona lub magenta plama dopoki uzytkownik nie puscli suwaka. Bezpieczne klampy ponizej.
+  float safeContrast = clamp(u_contrast, 0.001, 6.0);
+  float safePivot = max(u_pivot, 0.04);
   if (u_mode == 1) {
     float luma = dot(color, vec3(0.299, 0.587, 0.114));
-    float newLuma = apply_contrast_curve(luma, u_contrast, u_pivot);
-    return color * (newLuma / max(luma, 0.0001));
+    float lumaSafe = max(luma, 0.002);
+    float newLuma = apply_contrast_curve(lumaSafe, safeContrast, safePivot);
+    float scale = clamp(newLuma / lumaSafe, 0.0, 16.0);
+    return clamp(color * scale, 0.0, 16.0);
   } else {
     vec3 result;
-    result.r = apply_contrast_curve(color.r, u_contrast, u_pivot);
-    result.g = apply_contrast_curve(color.g, u_contrast, u_pivot);
-    result.b = apply_contrast_curve(color.b, u_contrast, u_pivot);
-    return result;
+    result.r = apply_contrast_curve(color.r, safeContrast, safePivot);
+    result.g = apply_contrast_curve(color.g, safeContrast, safePivot);
+    result.b = apply_contrast_curve(color.b, safeContrast, safePivot);
+    return clamp(result, 0.0, 16.0);
   }
 }
 
@@ -235,7 +247,8 @@ vec3 applySaturationAndVibrance(vec3 color) {
   float minChannel = min(color.r, min(color.g, color.b));
   float currentSaturation = maxChannel > 0.0 ? (maxChannel - minChannel) / maxChannel : 0.0;
   float saturationMix = u_saturation + u_vibrance * (1.0 - currentSaturation);
-  
+  saturationMix = max(saturationMix, 0.0);
+
   // Highlight Saturation Roll-off
   float rollOffMask = smoothstep(0.75, 1.0, luminance / max(u_max_white, 1.0));
   saturationMix *= (1.0 - rollOffMask);
@@ -785,6 +798,13 @@ function buildFastPreviewRendererForContext(canvas, gl, contextApi) {
       width,
       height,
       adjustments,
+      /** @type {{ x?: number, y?: number, w?: number, h?: number } | undefined} — patrz `resolveFastPreviewDamageNormRect`. */
+      damageNormRect,
+      /**
+       * `full` = grading globalny (zawsze pełny viewport w resolverze).
+       * `local` = ograniczony obszar (np. pędzel maski) — patrz `inferFastPreviewDamageScopeFromInteractionKind`.
+       */
+      damageScope = FAST_PREVIEW_DAMAGE_SCOPE_FULL,
     }) {
       if (!source || !width || !height) {
         return null;
@@ -798,7 +818,11 @@ function buildFastPreviewRendererForContext(canvas, gl, contextApi) {
         canvas.height = height;
       }
 
-      gl.viewport(0, 0, width, height);
+      const effectiveDamage = resolveFastPreviewDamageNormRect(damageNormRect, useFloatFboRgba16f, {
+        scope: damageScope,
+      });
+      const damageViewport = normDamageRectToViewportPx(effectiveDamage, width, height);
+      gl.viewport(damageViewport.x, damageViewport.y, damageViewport.w, damageViewport.h);
       gl.useProgram(program);
 
       gl.activeTexture(gl.TEXTURE0);
@@ -1025,10 +1049,10 @@ function buildFastPreviewRendererForContext(canvas, gl, contextApi) {
       if (useFloatFboRgba16f) {
         ensureFloatFboSize(width, height);
         gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
-        gl.viewport(0, 0, width, height);
+        gl.viewport(damageViewport.x, damageViewport.y, damageViewport.w, damageViewport.h);
         gl.drawArrays(gl.TRIANGLES, 0, 6);
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-        gl.viewport(0, 0, width, height);
+        gl.viewport(damageViewport.x, damageViewport.y, damageViewport.w, damageViewport.h);
         gl.useProgram(blitProgram);
         gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
         gl.enableVertexAttribArray(blitPositionLocation);

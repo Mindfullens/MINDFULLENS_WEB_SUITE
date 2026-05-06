@@ -17,16 +17,18 @@ Ta sekcja **nie zastępuje** szczegółów w §2–§5 — służy szybkiej orie
 
 ### 0.1 Już mamy (nie wracać jako „nowe zadanie”, tylko regresje / utrzymanie)
 
-| Obszar | Stan skrótowy |
-|--------|----------------|
-| **Stabilność / architektura** | Worker proxy, `postMessage` z transferami, scheduler bez pętli, modularny shell (`FilmLabPro` + `src/filmLab/`), undo/redo, auto-save sesji, eksport JPEG/EXIF, batch ZIP — szczegóły §2. |
-| **GPU preview dziś** | WebGL/WebGL2 + CPU w workerze; szybki podgląd główny (`fastPreviewRenderer`) z opcjami FBO 16f / atlas LUT / `highp` przy FBO — §5.1.1 i §189. |
-| **WebGPU — diagnostyka** | `webGpuEnvironment.js` (main + worker), trwałe device w workerze przy `VITE_FILMLAB_WEBGPU_PROXY`, `proxyWebGpuRenderer.js` + WGSL współdzielony z sondą main; panel Render Debug + eksport DIAG (`useFilmLabExportDebugReport`). |
-| **Proxy — limity / kafle** | `proxyComputeSize`, downscale, fit 2D/3D, opcjonalne `PROXY_OUTPUT_TILES` (GPU + composite, WebGPU readback kafelkowy), CPU nominal parity przy wielu kaflach, opcjonalny CPU yield — §3 Etap 1. |
-| **Parity / telemetria** | LUT 3D format W vs main, readback 1×1 **rb0** (main) vs worker (`proxyWorkerWebGpuReadback*`, `webGpuReadbackMainWorkerRgba3Match` w DIAG); E2E v1–v3 + pan/aux/kbd; host sched→rAF opcjonalnie — §189. |
-| **A/B main preview — baseline** | Realny tor WebGPU na wątku głównym pod flagą + rollout health/gate/E2E w badge/DIAG; **powtarzalny protokół pomiaru i arkusz wyników:** §9.12 (`npm run dev:webgpu:main-ab` / `build:preview:webgpu:main-ab`, eksport DIAG). |
-| **Wersja buildu** | Etykieta `SERVICE_BUILD_LABEL` w stosie **Status** na canvasie (pod jakością), nie w stopce — §2, `FilmLabCanvasPipelineOverlays`. |
-| **Jakość / bramki** | `npm run test:deep-audit`, `test:proxy`, testy E2E pointer, regresja Film Lab — §5.1 końcówka. |
+
+| Obszar                          | Stan skrótowy                                                                                                                                                                                                                     |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Stabilność / architektura**   | Worker proxy, `postMessage` z transferami, scheduler bez pętli, modularny shell (`FilmLabPro` + `src/filmLab/`), undo/redo, auto-save sesji, eksport JPEG/EXIF, batch ZIP — szczegóły §2.                                         |
+| **GPU preview dziś**            | WebGL/WebGL2 + CPU w workerze; szybki podgląd główny (`fastPreviewRenderer`) z opcjami FBO 16f / atlas LUT / `highp` przy FBO — §5.1.1 i §189.                                                                                    |
+| **WebGPU — diagnostyka**        | `webGpuEnvironment.js` (main + worker), trwałe device w workerze przy `VITE_FILMLAB_WEBGPU_PROXY`, `proxyWebGpuRenderer.js` + WGSL współdzielony z sondą main; panel Render Debug + eksport DIAG (`useFilmLabExportDebugReport`). |
+| **Proxy — limity / kafle**      | `proxyComputeSize`, downscale, fit 2D/3D, opcjonalne `PROXY_OUTPUT_TILES` (GPU + composite, WebGPU readback kafelkowy), CPU nominal parity przy wielu kaflach, opcjonalny CPU yield — §3 Etap 1.                                  |
+| **Parity / telemetria**         | LUT 3D format W vs main, readback 1×1 **rb0** (main) vs worker (`proxyWorkerWebGpuReadback*`, `webGpuReadbackMainWorkerRgba3Match` w DIAG); E2E v1–v3 + pan/aux/kbd; host sched→rAF opcjonalnie — §189.                           |
+| **A/B main preview — baseline** | Realny tor WebGPU na wątku głównym pod flagą + rollout health/gate/E2E w badge/DIAG; **powtarzalny protokół pomiaru i arkusz wyników:** §9.12 (`npm run dev:webgpu:main-ab` / `build:preview:webgpu:main-ab`, eksport DIAG).      |
+| **Wersja buildu**               | Etykieta `SERVICE_BUILD_LABEL` w stosie **Status** na canvasie (pod jakością), nie w stopce — §2, `FilmLabCanvasPipelineOverlays`.                                                                                                |
+| **Jakość / bramki**             | `npm run test:deep-audit`, `test:proxy`, testy E2E pointer, regresja Film Lab — §5.1 końcówka.                                                                                                                                    |
+
 
 ### 0.2 Nadal otwarte (priorytet wykonawczy)
 
@@ -73,25 +75,27 @@ Te elementy nie powinny wracac jako aktywne zadania implementacyjne. Moga pozost
 - Katalog presetow/film stocks i filtrowanie profili: `src/filmLab/useFilmLabFilmCatalog.js`, `src/engine/filmProfiles.js`.
 - Porownanie Przed/Po przy aktywnym kadrowaniu (level/crop): przed wklejeniem surowego `ImageData` w trybie porownania bufor roboczy jest przywracany do pelnych wymiarow zrodla, zeby uniknac obcinania i zlego aspect w widoku — `applyCompare` w `src/engine/useFilmLabEngine.js`.
 - W trybie `npm run dev` (Vite): rozszerzona etykieta `wersja serwisowa` (timestamp załadowania pl-PL + opcjonalny SHA z `git rev-parse --short HEAD`) jest widoczna po włączeniu **Status** na pasku narzędzi — na dole stosu statusu na canvasie, **pod** wierszem jakości (`FilmLabCanvasPipelineOverlays`, klasa `service-build-badge-stack`); źródło tekstu: `src/filmLab/buildInfo.js`, `vite.config.js` (`import.meta.env.VITE_FILM_LAB_GIT_SHA`).
-- **`FilmLab.jsx`:** cienki re-export do `FilmLabPro.jsx` (ścieżka wejścia bundlera bez duplikacji logiki).
+- `**FilmLab.jsx`:** cienki re-export do `FilmLabPro.jsx` (ścieżka wejścia bundlera bez duplikacji logiki).
 
 ### 2.1 Weryfikacja „już mamy” ↔ stan repo (2026-04-26)
 
 Nie planuj ponownie poniższych — pliki / symbole **istnieją** w drzewie źródeł (próbkowanie `grep` / struktura katalogów):
 
-| Twierdzenie w planie | Gdzie to zweryfikować |
-|----------------------|------------------------|
-| Worker + `processPending`, WebGPU boot w workerze | `src/engine/workers/proxyRenderWorker.js` (`processPending`, `webGpuWorkerBootPromise`) |
-| Transfery `postMessage` + bitmap/pixels | `src/engine/useFilmLabEngine.js`, ten sam worker |
-| Proxy WebGPU renderer + WGSL | `src/engine/workers/proxyWebGpuRenderer.js`, `src/engine/workers/proxyWebGpuShaders.wgsl` |
-| Sonda WebGPU (adapter/device **probe** z `device.destroy` po limitach) | `src/engine/webGpuEnvironment.js` (`getOrProbeWebGpuAdapter`, `getOrProbeWebGpuDevice`) |
+
+| Twierdzenie w planie                                                             | Gdzie to zweryfikować                                                                                                                                                    |
+| -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Worker + `processPending`, WebGPU boot w workerze                                | `src/engine/workers/proxyRenderWorker.js` (`processPending`, `webGpuWorkerBootPromise`)                                                                                  |
+| Transfery `postMessage` + bitmap/pixels                                          | `src/engine/useFilmLabEngine.js`, ten sam worker                                                                                                                         |
+| Proxy WebGPU renderer + WGSL                                                     | `src/engine/workers/proxyWebGpuRenderer.js`, `src/engine/workers/proxyWebGpuShaders.wgsl`                                                                                |
+| Sonda WebGPU (adapter/device **probe** z `device.destroy` po limitach)           | `src/engine/webGpuEnvironment.js` (`getOrProbeWebGpuAdapter`, `getOrProbeWebGpuDevice`)                                                                                  |
 | **Trwały** `GPUDevice` — worker proxy + sonda main (**osobno** od probe powyżej) | `getOrCreatePersistentWebGpuDevice` w workerze (przy `VITE_FILMLAB_WEBGPU_PROXY`); `src/filmLab/filmLabMainThreadWebGpuPreview.js` (etykieta `MAIN_THREAD_DEVICE_LABEL`) |
-| Kafle wyjścia + composite | `src/engine/proxyOutputTileComposite.js`, flagi `VITE_FILMLAB_PROXY_OUTPUT_TILES` w workerze |
-| CPU yield co N wierszy | `getProxyCpuYieldEveryRowCount` / `VITE_FILMLAB_PROXY_CPU_YIELD_EVERY` w `proxyRenderWorker.js` |
-| Readback W vs main (panel + DIAG) | `formatWebGpuReadbackMainWParityLine` w `FilmLabRenderDebugPanel.jsx`; `webGpuReadbackMainWorkerRgba3Match` w `useFilmLabExportDebugReport.js` |
-| Wersja serwisowa w UI | `SERVICE_BUILD_LABEL` w `FilmLabCanvasPipelineOverlays.jsx` + `service-build-badge-stack` w `filmLabPage.css` |
-| RAW **bridge** (nie libraw.wasm) | `src/engine/pipeline/raw/rawPipelineController.js`, `rawDecode.worker.js`, `ingestSource.js` — to jest stan **przejściowy** względem Etapu 2 |
-| **Brak w `src/`:** `libraw.wasm`, SQLite katalogu, zapisu XMP w silniku | `grep` po workspace — nie wdrażać „od zera” bez sprawdzenia; Etap 2/4 nadal otwarte |
+| Kafle wyjścia + composite                                                        | `src/engine/proxyOutputTileComposite.js`, flagi `VITE_FILMLAB_PROXY_OUTPUT_TILES` w workerze                                                                             |
+| CPU yield co N wierszy                                                           | `getProxyCpuYieldEveryRowCount` / `VITE_FILMLAB_PROXY_CPU_YIELD_EVERY` w `proxyRenderWorker.js`                                                                          |
+| Readback W vs main (panel + DIAG)                                                | `formatWebGpuReadbackMainWParityLine` w `FilmLabRenderDebugPanel.jsx`; `webGpuReadbackMainWorkerRgba3Match` w `useFilmLabExportDebugReport.js`                           |
+| Wersja serwisowa w UI                                                            | `SERVICE_BUILD_LABEL` w `FilmLabCanvasPipelineOverlays.jsx` + `service-build-badge-stack` w `filmLabPage.css`                                                            |
+| RAW **bridge** (nie libraw.wasm)                                                 | `src/engine/pipeline/raw/rawPipelineController.js`, `rawDecode.worker.js`, `ingestSource.js` — to jest stan **przejściowy** względem Etapu 2                             |
+| **Brak w `src/`:** `libraw.wasm`, SQLite katalogu, zapisu XMP w silniku          | `grep` po workspace — nie wdrażać „od zera” bez sprawdzenia; Etap 2/4 nadal otwarte                                                                                      |
+
 
 ## 3. Aktywna Roadmapa
 
@@ -277,14 +281,14 @@ Cel sprintu: domknac najwieksza luke wobec LR/C1 w obszarze **interaktywnosci i 
 ### 9.2 Zakres "must ship" na teraz (Etap 1)
 
 1. **Main preview WebGPU path (A/B do obecnego WebGL):**
-   - cel: uruchomienie realnej sciezki kolorystycznej WebGPU dla glownego podgladu, nie tylko sonda;
-   - fallback chain bez zmian: WebGPU -> WebGL2/WebGL -> CPU.
+  - cel: uruchomienie realnej sciezki kolorystycznej WebGPU dla glownego podgladu, nie tylko sonda;
+  - fallback chain bez zmian: WebGPU -> WebGL2/WebGL -> CPU.
 2. **Precyzja i parity (koniec "polowicznego 16f"):**
-   - doprowadzic krytyczne odcinki do spojnego trybu wyzszej precyzji, z czytelnym stanem OFF/ON w panelu i DIAG;
-   - utrzymac zgodnosc looku miedzy worker/main na poziomie akceptowalnym produkcyjnie.
+  - doprowadzic krytyczne odcinki do spojnego trybu wyzszej precyzji, z czytelnym stanem OFF/ON w panelu i DIAG;
+  - utrzymac zgodnosc looku miedzy worker/main na poziomie akceptowalnym produkcyjnie.
 3. **E2E latency contract (jedna prawda o opoznieniu):**
-   - metryka od intencji usera do klatki na canvasie, rozdzielona per sciezka (`previewE2ePath`);
-   - alert progowy pod KPI (16 ms median na docelowym backendzie).
+  - metryka od intencji usera do klatki na canvasie, rozdzielona per sciezka (`previewE2ePath`);
+  - alert progowy pod KPI (16 ms median na docelowym backendzie).
 
 ### 9.3 Definition of Done dla tego sprintu
 
@@ -330,41 +334,41 @@ Kazdy PR z Etapu 1 powinien zawierac krotkie "TAK/NIE":
 
 #### A. Main preview WebGPU (A/B)
 
-- **`src/filmLab/filmLabMainThreadWebGpuPreview.js`**
+- `**src/filmLab/filmLabMainThreadWebGpuPreview.js`**
   - domknac tor "real preview pass", nie tylko probe status;
   - dopisac jawny status przy fallbacku i powod degradacji.
-- **`src/engine/useFilmLabEngine.js`**
+- `**src/engine/useFilmLabEngine.js**`
   - spiac wybor backendu z feature flaga A/B;
   - utrzymac dotychczasowy fallback chain bez zmiany UX.
-- **`src/FilmLabRenderDebugPanel.jsx`**
+- `**src/FilmLabRenderDebugPanel.jsx**`
   - dopisac czytelny wiersz "A/B active backend" i wynik decyzji runtime.
 
 #### B. Precyzja 16f i parity
 
-- **`src/engine/preview/fastPreviewRenderer.js`**
+- `**src/engine/preview/fastPreviewRenderer.js**`
   - zweryfikowac krytyczne miejsca mieszanej precyzji i oznaczyc je telemetrycznie.
-- **`src/engine/workers/proxyGpuRenderer.js`**
+- `**src/engine/workers/proxyGpuRenderer.js**`
   - utrzymac spojny stan 16f vs 8-bit po stronie workera WebGL2;
   - jawnie raportowac OFF/ON precyzji do debug info.
-- **`src/engine/workers/proxyWebGpuRenderer.js`**
+- `**src/engine/workers/proxyWebGpuRenderer.js**`
   - potwierdzic parity readback i formatu tekstur przy wlaczonym WebGPU.
 
 #### C. E2E latency contract
 
-- **`src/engine/useFilmLabEngine.js`**
+- `**src/engine/useFilmLabEngine.js**`
   - finalne metryki E2E per `previewE2ePath` (jedna prawda o opoznieniu).
-- **`src/filmLab/useFilmLabExportDebugReport.js`**
+- `**src/filmLab/useFilmLabExportDebugReport.js**`
   - wyniesc metryki E2E i backend finalny do jednego bloku DIAG.
-- **`src/FilmLabRenderDebugPanel.jsx`**
+- `**src/FilmLabRenderDebugPanel.jsx**`
   - pokazac metryki E2E bez dublowania istniejacych etykiet.
 
 #### D. Testy i zabezpieczenia
 
-- **`scripts/test-proxy-webgpu-wiring.mjs`**
+- `**scripts/test-proxy-webgpu-wiring.mjs**`
   - asercje pod nowe flagi A/B backendu i stan precyzji.
-- **`scripts/test-fast-preview-webgl2-wiring.mjs`**
+- `**scripts/test-fast-preview-webgl2-wiring.mjs**`
   - asercje dla panelu/DIAG po zmianach A/B i E2E.
-- **`scripts/deep-audit-film-lab.mjs`**
+- `**scripts/deep-audit-film-lab.mjs**`
   - sprawdzenie obecnosci nowych pol telemetrycznych i parity.
 
 #### E. Kryteria "done" dla kazdego mini-tasku
@@ -375,22 +379,22 @@ Kazdy PR z Etapu 1 powinien zawierac krotkie "TAK/NIE":
 
 ### 9.8 Kolejnosc realizacji 1 -> N (zaleznosci)
 
-1. **A1 (`filmLabMainThreadWebGpuPreview.js`)**  
-   Najpierw stabilny tor WebGPU main + jawne statusy fallbacku.
-2. **A2 (`useFilmLabEngine.js`)**  
-   Potem przepiecie wyboru backendu pod A/B feature flag (korzysta z A1).
-3. **A3 (`FilmLabRenderDebugPanel.jsx`)**  
-   UI i czytelna widocznosc decyzji runtime (korzysta z A1+A2).
-4. **B1 (`fastPreviewRenderer.js`)**  
-   Audyt i domkniecie precyzji po stronie glownego podgladu.
-5. **B2 (`proxyGpuRenderer.js`) + B3 (`proxyWebGpuRenderer.js`)**  
-   Spojnosc worker/main dla 16f i parity readback.
-6. **C1 (`useFilmLabEngine.js`)**  
-   Kontrakt E2E i metryki per `previewE2ePath` (na koncu zmian backendowych).
-7. **C2 (`useFilmLabExportDebugReport.js`) + C3 (`FilmLabRenderDebugPanel.jsx`)**  
-   Jednolite raportowanie DIAG + UI pod finalny model metryk.
-8. **D (`scripts/*.mjs`)**  
-   Testy wiring/audit dopiero po ustabilizowaniu symboli i nazw pol.
+1. **A1 (`filmLabMainThreadWebGpuPreview.js`)**
+  Najpierw stabilny tor WebGPU main + jawne statusy fallbacku.
+2. **A2 (`useFilmLabEngine.js`)**
+  Potem przepiecie wyboru backendu pod A/B feature flag (korzysta z A1).
+3. **A3 (`FilmLabRenderDebugPanel.jsx`)**
+  UI i czytelna widocznosc decyzji runtime (korzysta z A1+A2).
+4. **B1 (`fastPreviewRenderer.js`)**
+  Audyt i domkniecie precyzji po stronie glownego podgladu.
+5. **B2 (`proxyGpuRenderer.js`) + B3 (`proxyWebGpuRenderer.js`)**
+  Spojnosc worker/main dla 16f i parity readback.
+6. **C1 (`useFilmLabEngine.js`)**
+  Kontrakt E2E i metryki per `previewE2ePath` (na koncu zmian backendowych).
+7. **C2 (`useFilmLabExportDebugReport.js`) + C3 (`FilmLabRenderDebugPanel.jsx`)**
+  Jednolite raportowanie DIAG + UI pod finalny model metryk.
+8. **D (`scripts/*.mjs`)**
+  Testy wiring/audit dopiero po ustabilizowaniu symboli i nazw pol.
 
 #### Bramka przed merge kazdego kroku
 
@@ -447,14 +451,16 @@ Uzywac dla kazdego PR w Etapie 1, aby nie wracac do zrobionych rzeczy i utrzymac
 
 Uzywac przed rozpoczeciem tasku technicznego:
 
-| Jesli pomysl brzmi... | To najpierw sprawdz... | Decyzja |
-|-----------------------|-------------------------|---------|
-| "zrobmy od nowa worker scheduler / transfer klatek" | §2 + §2.1 (`proxyRenderWorker`, transfer bitmap/pixels) | **NIE** - to juz jest, tylko hardening/regresje |
-| "dodajmy debug WebGPU" | `FilmLabRenderDebugPanel`, `useFilmLabExportDebugReport`, `webGpuEnvironment` | **NIE** - dopinamy brakujace pola, nie nowy panel |
-| "zrobmy parity worker vs main" | readback `rb0`, `webGpuReadbackMainWorkerRgba3Match` | **NIE** - parity istnieje, rozwijamy interpretacje/metryki |
-| "zrobmy 16f support" | `fastPreviewRenderer`, `proxyGpuRenderer`, `proxyWebGpuRenderer` | **CZESCIOWO** - domykamy lancuch, nie zaczynamy od zera |
-| "zrobmy RAW pipeline nowy" | `rawPipelineController`, `rawDecode.worker` | **TAK, ale** jako Etap 2 (`libraw.wasm`) nad bridge, nie obok |
-| "zrobmy katalog i XMP" | brak SQLite/OPFS/XMP w silniku | **TAK** - to nadal otwarte (Etap 4) |
+
+| Jesli pomysl brzmi...                               | To najpierw sprawdz...                                                        | Decyzja                                                       |
+| --------------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| "zrobmy od nowa worker scheduler / transfer klatek" | §2 + §2.1 (`proxyRenderWorker`, transfer bitmap/pixels)                       | **NIE** - to juz jest, tylko hardening/regresje               |
+| "dodajmy debug WebGPU"                              | `FilmLabRenderDebugPanel`, `useFilmLabExportDebugReport`, `webGpuEnvironment` | **NIE** - dopinamy brakujace pola, nie nowy panel             |
+| "zrobmy parity worker vs main"                      | readback `rb0`, `webGpuReadbackMainWorkerRgba3Match`                          | **NIE** - parity istnieje, rozwijamy interpretacje/metryki    |
+| "zrobmy 16f support"                                | `fastPreviewRenderer`, `proxyGpuRenderer`, `proxyWebGpuRenderer`              | **CZESCIOWO** - domykamy lancuch, nie zaczynamy od zera       |
+| "zrobmy RAW pipeline nowy"                          | `rawPipelineController`, `rawDecode.worker`                                   | **TAK, ale** jako Etap 2 (`libraw.wasm`) nad bridge, nie obok |
+| "zrobmy katalog i XMP"                              | brak SQLite/OPFS/XMP w silniku                                                | **TAK** - to nadal otwarte (Etap 4)                           |
+
 
 Regula: jesli wynik to **NIE**, task musi byc opisany jako rozszerzenie / hardening istniejacej warstwy, nie jako nowy fundament.
 
@@ -463,54 +469,54 @@ Regula: jesli wynik to **NIE**, task musi byc opisany jako rozszerzenie / harden
 Domkniete elementy z A/B + E2E observability (bez dublowania §2):
 
 1. **Main preview WebGPU A/B (realny tor, nie tylko sonda):**
-   - flaga `VITE_FILMLAB_MAIN_PREVIEW_WEBGPU_AB`,
-   - runtime decyzja i fallback (`armed_probe_ok`, `armed_runtime_fallback`, itp.),
-   - realny render przez `fmain` do canvasa na wątku głównym przy aktywnym A/B.
+  - flaga `VITE_FILMLAB_MAIN_PREVIEW_WEBGPU_AB`,
+  - runtime decyzja i fallback (`armed_probe_ok`, `armed_runtime_fallback`, itp.),
+  - realny render przez `fmain` do canvasa na wątku głównym przy aktywnym A/B.
 2. **Rozszerzona telemetria A/B (panel + DIAG):**
-   - `mainThreadWebGpuPreviewAbEnabled`, `...Decision`, `...Path`, `...RenderMs`, `...SourceTexFormat`,
-   - liczniki rolloutu klatek: `...FramesTotal`, `...FramesWebGpuMain`, `...FramesWebGlFallback`, `...WebGpuRatio`,
-   - skrót eksportowy DIAG: `mainThreadWebGpuPreviewAbRolloutSummary` (procent + liczniki + fallback),
-   - status zdrowia rolloutu: `mainThreadWebGpuPreviewAbHealth` (`ok`/`warn`/`insufficient-data`) na bazie fallback-rate,
-   - skrót tekstowy health do szybkiego skanu logów/DIAG: `mainThreadWebGpuPreviewAbHealthSummary` (np. `OK fb 3.1% n=160`, `WARMUP n=6`),
-   - wskaźnik gotowości rolloutu dla automatyzacji decyzji: `mainThreadWebGpuPreviewAbRolloutReady` (`true` gdy `health=ok` i `n>=60`),
-   - skrót bramki rolloutu do szybkiego skanu DIAG: `mainThreadWebGpuPreviewAbRolloutGateSummary` (np. `READY n=84`, `HOLD n=27`),
-   - snapshot progów rolloutu w DIAG: `mainThreadWebGpuPreviewAbThresholds` (`healthWarmupFrames`, `healthWarnFallbackRate`, `gateReadyMinFrames`),
-   - skrót opisowy progów w DIAG: `mainThreadWebGpuPreviewAbThresholdsHint` (human-readable, ten sam prefiks `Thresholds: ...` co w tooltipie),
-   - współdzielony moduł rollout (`src/filmLab/rolloutGate.js`) utrzymuje jeden format health (`OK/WARN/WARMUP`, `fb`, `n`) i gate (`READY/HOLD n=...`) dla badge/panel/DIAG, parser gate dla tooltipa overlay oraz wspólne opisy progów używane w tooltipach panelu,
-   - runtime ma jedno źródło prawdy dla health (`mainThreadWebGpuPreviewAbHealthState`, `mainThreadWebGpuPreviewAbFallbackRate`, `mainThreadWebGpuPreviewAbHealthFrames`), z którego korzysta badge/panel/DIAG,
-   - status runtime rozróżnia tor main A/B vs proxy (`Main WebGPU (A/B)` / `Main WebGL (A/B fallback)`),
-   - eksport DIAG (korzeń JSON): `schema` (`mindfullens.render-debug.v3`), `generatedAt` (ISO 8601) — wersja kontraktu pliku i czas eksportu,
-   - eksport DIAG (`app`): `route` (pełny `location.href` w chwili eksportu), `mode` (`import.meta.env.MODE` + heurystyki `development` / `production` / `preview-like` / `unknown`), `viteBaseUrl` (`import.meta.env.BASE_URL` — `base` Vite, m.in. GitHub Pages vs root), `serviceBuildLabel`, `serviceBuildTag`, `viewportBuildMarker` (`buildInfo.js`), `runtimeStatusBadge`, `previewPathLabel`, `locationOrigin` — URL sesji + tryb bundla + publiczny `base` + wersja + marker plan↔repo + badge + tor preview + host w chwili **DIAG JSON** (baseline §9.12),
-   - eksport DIAG (`environment`): `hardwareConcurrency`, `deviceMemoryGb` (gdy przeglądarka podaje), `screen`, `viewport` (`innerWidth` / `innerHeight` / `devicePixelRatio` w chwili eksportu), czas i widoczność karty, `onLine`, `isSecureContext`, `crossOriginIsolated`, `webdriver`, opcjonalnie `jsHeap` (`performance.memory` w Chromium), `prefersColorScheme`, `prefersReducedMotion`, `maxTouchPoints`, `colorGamut`, `pointerCoarse`, `hoverNone`, opcjonalnie `userAgentData`, `networkConnection`, `navigationType`, `webgpu` (main · API/adapter/device), `webgpuWorker` (sonda workera proxy), `sharedArrayBuffer` (migawka hosta / COOP+COEP) — odcisk hosta, klienta, layoutu okna, GPU, workera, SAB i sesji przy porównaniu plików baseline,
-   - eksport DIAG `flags.env.devWatchPoll` — czy bundel dev powstał z `VITE_FILMLAB_DEV_WATCH_POLL` (`npm run dev:*:poll`, zewnętrzny dysk / HMR),
-   - eksport DIAG `flags.env.mainPreviewWebGpuAb` — czy bundel zawierał `VITE_FILMLAB_MAIN_PREVIEW_WEBGPU_AB` (A/B głównego podglądu WebGPU vs WebGL; skróty `dev:webgpu:main-ab` / `build:preview:webgpu:main-ab`),
-   - eksport DIAG `flags.env.proxyGpu`, `flags.env.webgpuProxy` — `VITE_FILMLAB_PROXY_GPU` / `VITE_FILMLAB_WEBGPU_PROXY` (typowa sesja baseline A/B ustawia oba; por. `package.json` przy `dev:webgpu:main-ab`),
-   - eksport DIAG `flags.env.batchPerf`, `flags.env.fastWebgl2`, `flags.env.proxyMatchPreview` — `VITE_FILMLAB_BATCH_PERF`, `VITE_FILMLAB_FAST_WEBGL2`, `VITE_FILMLAB_PROXY_MATCH_PREVIEW` (ZIP perf / szybki WebGL2 / worker dopasowany do bufora preview — por. `docs/README.md`, `package.json`),
-   - eksport DIAG `flags.env.debugPanel`, `flags.env.workerDrag`, `flags.env.proxyForceCpuRequested`, `flags.env.fastFbo16fOptOut` (`readEnvNegated` / `VITE_FILMLAB_FAST_FBO16F`), `flags.env.proxyOutputTiles` — panel debug, drag na workerze, żądanie CPU proxy, opt-out FBO 16f, kafle wyjścia proxy; ponadto `flags.env.cpuPreviewMatchNominal` (`VITE_FILMLAB_CPU_PREVIEW_MATCH_NOMINAL`), `flags.env.proxyCpuYieldEvery` (`VITE_FILMLAB_PROXY_CPU_YIELD_EVERY`), `flags.env.e2eHostSchedRaf` (`isEnvE2eHostSchedRaf`), `flags.env.enablePreviewLuts` / `flags.env.enablePreviewLutsViteRaw` (`isEnvEnablePreviewLuts` / `getViteEnablePreviewLutsRaw`), `flags.env.disableCopyProtection` (`VITE_DISABLE_COPY_PROTECTION`) — por. `runtimeEnv.js` / `filmProfiles.js`,
-   - eksport DIAG `flags.env.dev` / `flags.env.prod` / `flags.env.ssr` — `import.meta.env.DEV` / `PROD` / `SSR` (w kliencie SPA oczekiwane `ssr: false`; `true` sugeruje bundel pod SSR / nietypowy target),
-   - eksport DIAG `flags.effective` — zwięzła migawka `workerDragEnabled`, `proxyGpuEnabled`, `webgpuProxyBuild`, `proxyForceCpuFallback` z `renderDebugInfo` w chwili eksportu (ten sam zestaw jest powtórzony na początku `flags.runtime`, które dalej rozwija pełną telemetrię workera / E2E / A/B); na końcu `flags.runtime`: `rawBackendMode`, `rawBackendPreference`, `rawLinearStageMode`, `rawLinearStageOverride` — tryb i preferencje RAW przy eksporcie,
-   - eksport DIAG `flags.showRenderDebugPanel` — stała z `runtimeEnv.js` (czy ten build przewiduje panel Render Debug; nie oznacza, że panel był otwarty w UI),
-   - eksport DIAG `performance.batchPerfEnabled`, `performance.lastBatchZip` — `IS_BATCH_PERF_ENABLED` / `getLastBatchPerfSnapshot()` z `batchPerf.js` (czy bundel miał batch-perf oraz ostatnia migawka ZIP w sesji; por. `docs/README.md`, sekcja batch ZIP),
-   - eksport DIAG `pipeline`: `label` (`getPipelineLabel(pipelineInfo)` z `pipeline/constants.js`), `info` (pełne `pipelineInfo`), opcjonalnie `rawBackendComparison` gdy był test A/B RAW,
-   - eksport DIAG `source`: `fileName`, `fileType`, `fileSize`, `fileLastModified`, `imageMeta`, `exifMeta` — kontekst pliku przy baseline (bez binariów; metadane jak w sesji),
-   - eksport DIAG `profile`: `activeFilmIndex`, `activeFilm` (gdy wybrano: `name`, `sub`, `cat`, `sourceId`, `canonicalSourceId`, `internalSourceId`, `isInputProfile`) — który profil filmowy był aktywny przy eksporcie DIAG,
-   - eksport DIAG `render`: `isProcessing`, `showInlineProcessing`, `isAdjusting`, `interactionKind`, `previewPathLabel` (jak w `app.previewPathLabel`, zgrupowane przy stanie renderu), `alert` (`renderPipelineAlert`), `fallback` (`code` / `explanation` z workera), `debug` (pełne `renderDebugInfo`), `qualitySignals` (klipy highlight/shadow, black guard, suspected black frame), `qualityQa` (`rawQualityQaSummary`) — migawka UI i diagnostyki w chwili eksportu,
-   - eksport DIAG (korzeń JSON): `adjustments`, `userCurves`, `colorMixer`, `colorGrading`, `colorCalibration`, `batchState` — pełny stan edycji i batch w chwili eksportu (przy baseline często porównuje się tylko wybrane fragmenty).
+  - `mainThreadWebGpuPreviewAbEnabled`, `...Decision`, `...Path`, `...RenderMs`, `...SourceTexFormat`,
+  - liczniki rolloutu klatek: `...FramesTotal`, `...FramesWebGpuMain`, `...FramesWebGlFallback`, `...WebGpuRatio`,
+  - skrót eksportowy DIAG: `mainThreadWebGpuPreviewAbRolloutSummary` (procent + liczniki + fallback),
+  - status zdrowia rolloutu: `mainThreadWebGpuPreviewAbHealth` (`ok`/`warn`/`insufficient-data`) na bazie fallback-rate,
+  - skrót tekstowy health do szybkiego skanu logów/DIAG: `mainThreadWebGpuPreviewAbHealthSummary` (np. `OK fb 3.1% n=160`, `WARMUP n=6`),
+  - wskaźnik gotowości rolloutu dla automatyzacji decyzji: `mainThreadWebGpuPreviewAbRolloutReady` (`true` gdy `health=ok` i `n>=60`),
+  - skrót bramki rolloutu do szybkiego skanu DIAG: `mainThreadWebGpuPreviewAbRolloutGateSummary` (np. `READY n=84`, `HOLD n=27`),
+  - snapshot progów rolloutu w DIAG: `mainThreadWebGpuPreviewAbThresholds` (`healthWarmupFrames`, `healthWarnFallbackRate`, `gateReadyMinFrames`),
+  - skrót opisowy progów w DIAG: `mainThreadWebGpuPreviewAbThresholdsHint` (human-readable, ten sam prefiks `Thresholds: ...` co w tooltipie),
+  - współdzielony moduł rollout (`src/filmLab/rolloutGate.js`) utrzymuje jeden format health (`OK/WARN/WARMUP`, `fb`, `n`) i gate (`READY/HOLD n=...`) dla badge/panel/DIAG, parser gate dla tooltipa overlay oraz wspólne opisy progów używane w tooltipach panelu,
+  - runtime ma jedno źródło prawdy dla health (`mainThreadWebGpuPreviewAbHealthState`, `mainThreadWebGpuPreviewAbFallbackRate`, `mainThreadWebGpuPreviewAbHealthFrames`), z którego korzysta badge/panel/DIAG,
+  - status runtime rozróżnia tor main A/B vs proxy (`Main WebGPU (A/B)` / `Main WebGL (A/B fallback)`),
+  - eksport DIAG (korzeń JSON): `schema` (`mindfullens.render-debug.v3`), `generatedAt` (ISO 8601) — wersja kontraktu pliku i czas eksportu,
+  - eksport DIAG (`app`): `route` (pełny `location.href` w chwili eksportu), `mode` (`import.meta.env.MODE` + heurystyki `development` / `production` / `preview-like` / `unknown`), `viteBaseUrl` (`import.meta.env.BASE_URL` — `base` Vite, m.in. GitHub Pages vs root), `serviceBuildLabel`, `serviceBuildTag`, `viewportBuildMarker` (`buildInfo.js`), `runtimeStatusBadge`, `previewPathLabel`, `locationOrigin` — URL sesji + tryb bundla + publiczny `base` + wersja + marker plan↔repo + badge + tor preview + host w chwili **DIAG JSON** (baseline §9.12),
+  - eksport DIAG (`environment`): `hardwareConcurrency`, `deviceMemoryGb` (gdy przeglądarka podaje), `screen`, `viewport` (`innerWidth` / `innerHeight` / `devicePixelRatio` w chwili eksportu), czas i widoczność karty, `onLine`, `isSecureContext`, `crossOriginIsolated`, `webdriver`, opcjonalnie `jsHeap` (`performance.memory` w Chromium), `prefersColorScheme`, `prefersReducedMotion`, `maxTouchPoints`, `colorGamut`, `pointerCoarse`, `hoverNone`, opcjonalnie `userAgentData`, `networkConnection`, `navigationType`, `webgpu` (main · API/adapter/device), `webgpuWorker` (sonda workera proxy), `sharedArrayBuffer` (migawka hosta / COOP+COEP) — odcisk hosta, klienta, layoutu okna, GPU, workera, SAB i sesji przy porównaniu plików baseline,
+  - eksport DIAG `flags.env.devWatchPoll` — czy bundel dev powstał z `VITE_FILMLAB_DEV_WATCH_POLL` (`npm run dev:*:poll`, zewnętrzny dysk / HMR),
+  - eksport DIAG `flags.env.mainPreviewWebGpuAb` — czy bundel zawierał `VITE_FILMLAB_MAIN_PREVIEW_WEBGPU_AB` (A/B głównego podglądu WebGPU vs WebGL; skróty `dev:webgpu:main-ab` / `build:preview:webgpu:main-ab`),
+  - eksport DIAG `flags.env.proxyGpu`, `flags.env.webgpuProxy` — `VITE_FILMLAB_PROXY_GPU` / `VITE_FILMLAB_WEBGPU_PROXY` (typowa sesja baseline A/B ustawia oba; por. `package.json` przy `dev:webgpu:main-ab`),
+  - eksport DIAG `flags.env.batchPerf`, `flags.env.fastWebgl2`, `flags.env.proxyMatchPreview` — `VITE_FILMLAB_BATCH_PERF`, `VITE_FILMLAB_FAST_WEBGL2`, `VITE_FILMLAB_PROXY_MATCH_PREVIEW` (ZIP perf / szybki WebGL2 / worker dopasowany do bufora preview — por. `docs/README.md`, `package.json`),
+  - eksport DIAG `flags.env.debugPanel`, `flags.env.workerDrag`, `flags.env.proxyForceCpuRequested`, `flags.env.fastFbo16fOptOut` (`readEnvNegated` / `VITE_FILMLAB_FAST_FBO16F`), `flags.env.proxyOutputTiles` — panel debug, drag na workerze, żądanie CPU proxy, opt-out FBO 16f, kafle wyjścia proxy; ponadto `flags.env.cpuPreviewMatchNominal` (`VITE_FILMLAB_CPU_PREVIEW_MATCH_NOMINAL`), `flags.env.proxyCpuYieldEvery` (`VITE_FILMLAB_PROXY_CPU_YIELD_EVERY`), `flags.env.e2eHostSchedRaf` (`isEnvE2eHostSchedRaf`), `flags.env.enablePreviewLuts` / `flags.env.enablePreviewLutsViteRaw` (`isEnvEnablePreviewLuts` / `getViteEnablePreviewLutsRaw`), `flags.env.disableCopyProtection` (`VITE_DISABLE_COPY_PROTECTION`) — por. `runtimeEnv.js` / `filmProfiles.js`,
+  - eksport DIAG `flags.env.dev` / `flags.env.prod` / `flags.env.ssr` — `import.meta.env.DEV` / `PROD` / `SSR` (w kliencie SPA oczekiwane `ssr: false`; `true` sugeruje bundel pod SSR / nietypowy target),
+  - eksport DIAG `flags.effective` — zwięzła migawka `workerDragEnabled`, `proxyGpuEnabled`, `webgpuProxyBuild`, `proxyForceCpuFallback` z `renderDebugInfo` w chwili eksportu (ten sam zestaw jest powtórzony na początku `flags.runtime`, które dalej rozwija pełną telemetrię workera / E2E / A/B); na końcu `flags.runtime`: `rawBackendMode`, `rawBackendPreference`, `rawLinearStageMode`, `rawLinearStageOverride` — tryb i preferencje RAW przy eksporcie,
+  - eksport DIAG `flags.showRenderDebugPanel` — stała z `runtimeEnv.js` (czy ten build przewiduje panel Render Debug; nie oznacza, że panel był otwarty w UI),
+  - eksport DIAG `performance.batchPerfEnabled`, `performance.lastBatchZip` — `IS_BATCH_PERF_ENABLED` / `getLastBatchPerfSnapshot()` z `batchPerf.js` (czy bundel miał batch-perf oraz ostatnia migawka ZIP w sesji; por. `docs/README.md`, sekcja batch ZIP),
+  - eksport DIAG `pipeline`: `label` (`getPipelineLabel(pipelineInfo)` z `pipeline/constants.js`), `info` (pełne `pipelineInfo`), opcjonalnie `rawBackendComparison` gdy był test A/B RAW,
+  - eksport DIAG `source`: `fileName`, `fileType`, `fileSize`, `fileLastModified`, `imageMeta`, `exifMeta` — kontekst pliku przy baseline (bez binariów; metadane jak w sesji),
+  - eksport DIAG `profile`: `activeFilmIndex`, `activeFilm` (gdy wybrano: `name`, `sub`, `cat`, `sourceId`, `canonicalSourceId`, `internalSourceId`, `isInputProfile`) — który profil filmowy był aktywny przy eksporcie DIAG,
+  - eksport DIAG `render`: `isProcessing`, `showInlineProcessing`, `isAdjusting`, `interactionKind`, `previewPathLabel` (jak w `app.previewPathLabel`, zgrupowane przy stanie renderu), `alert` (`renderPipelineAlert`), `fallback` (`code` / `explanation` z workera), `debug` (pełne `renderDebugInfo`), `qualitySignals` (klipy highlight/shadow, black guard, suspected black frame), `qualityQa` (`rawQualityQaSummary`) — migawka UI i diagnostyki w chwili eksportu,
+  - eksport DIAG (korzeń JSON): `adjustments`, `userCurves`, `colorMixer`, `colorGrading`, `colorCalibration`, `batchState` — pełny stan edycji i batch w chwili eksportu (przy baseline często porównuje się tylko wybrane fragmenty).
 3. **Kontrakt KPI E2E (16 ms median):**
-   - mediana ruchoma (okno 31 próbek) per `previewE2ePath`,
-   - `previewE2eMedianMs`, `previewE2eKpiTargetMs`, `previewE2eKpiState`,
-   - agregacja `previewE2ePerPathStats` + skrót A/B `previewE2eAbSummary` (WebGPU vs WebGL).
+  - mediana ruchoma (okno 31 próbek) per `previewE2ePath`,
+  - `previewE2eMedianMs`, `previewE2eKpiTargetMs`, `previewE2eKpiState`,
+  - agregacja `previewE2ePerPathStats` + skrót A/B `previewE2eAbSummary` (WebGPU vs WebGL).
 4. **UX statusu bez otwierania panelu debug:**
-   - `runtimeStatusBadge` pokazuje `A/B Δ...ms (WGPU|WGL)` i `E2E WARN ...` gdy KPI przekroczone,
-   - tonalność badge `OK/WARN` + tooltip z opisem KPI,
-   - badge pokazuje też rollout A/B na żywo (`rollout ...% (main/total; fb:...)`), status zdrowia (`rollout:OK|WARN|WARMUP`) oraz status decyzyjny (`rollout:READY|HOLD` z `n=...`) w stałej kolejności segmentów (`rollout% -> health -> gate -> A/B Δ -> E2E WARN`); tooltip badge dopina linie `E2E warn: ...`, `A/B delta: ...`, `Rollout health: ...`, `Rollout gate: READY|HOLD (n=...)` oraz `Thresholds: ...`,
-   - panel Render Debug ma skrót A/B (`E2E A/B (WebGPU · WebGL)`), runtime counters/ratio (`frames`, `wgpu%`), inline `health: ...` w wierszu `WebGPU (main · preview)` (kolor: zielony `OK`, pomarańczowy `WARN`, neutralny `WARMUP`) oraz osobne wiersze `A/B rollout health` i `A/B rollout gate` (`READY/HOLD`); tooltipy opisują progi health (`WARMUP<10`, `OK<=20%`, `WARN>20%`) i gate (`READY` gdy `OK` + `n>=60`), a nagłówek panelu zawiera legendę `health: OK | WARN | WARMUP`.
+  - `runtimeStatusBadge` pokazuje `A/B Δ...ms (WGPU|WGL)` i `E2E WARN ...` gdy KPI przekroczone,
+  - tonalność badge `OK/WARN` + tooltip z opisem KPI,
+  - badge pokazuje też rollout A/B na żywo (`rollout ...% (main/total; fb:...)`), status zdrowia (`rollout:OK|WARN|WARMUP`) oraz status decyzyjny (`rollout:READY|HOLD` z `n=...`) w stałej kolejności segmentów (`rollout% -> health -> gate -> A/B Δ -> E2E WARN`); tooltip badge dopina linie `E2E warn: ...`, `A/B delta: ...`, `Rollout health: ...`, `Rollout gate: READY|HOLD (n=...)` oraz `Thresholds: ...`,
+  - panel Render Debug ma skrót A/B (`E2E A/B (WebGPU · WebGL)`), runtime counters/ratio (`frames`, `wgpu%`), inline `health: ...` w wierszu `WebGPU (main · preview)` (kolor: zielony `OK`, pomarańczowy `WARN`, neutralny `WARMUP`) oraz osobne wiersze `A/B rollout health` i `A/B rollout gate` (`READY/HOLD`); tooltipy opisują progi health (`WARMUP<10`, `OK<=20%`, `WARN>20%`) i gate (`READY` gdy `OK` + `n>=60`), a nagłówek panelu zawiera legendę `health: OK | WARN | WARMUP`.
 5. **Regresje i audit:**
-   - zaktualizowane testy wiring/audit (`test-fast-preview-webgl2`, `deep-audit`),
-   - przejścia regresji po zmianach.
+  - zaktualizowane testy wiring/audit (`test-fast-preview-webgl2`, `deep-audit`),
+  - przejścia regresji po zmianach.
 6. **Workflow uruchamiania A/B (bez ręcznego env):**
-   - nowe skróty: `npm run dev:webgpu:main-ab` i `npm run build:preview:webgpu:main-ab`,
-   - `.env.example` i `test:env-example-parity` dopięte do nowej flagi `VITE_FILMLAB_MAIN_PREVIEW_WEBGPU_AB`.
+  - nowe skróty: `npm run dev:webgpu:main-ab` i `npm run build:preview:webgpu:main-ab`,
+  - `.env.example` i `test:env-example-parity` dopięte do nowej flagi `VITE_FILMLAB_MAIN_PREVIEW_WEBGPU_AB`.
 
 ### 9.12 Baseline A/B main preview — runbook i arkusz wyników
 
@@ -520,10 +526,10 @@ Domkniete elementy z A/B + E2E observability (bez dublowania §2):
 
 - Przeglądarka z działającym WebGPU (np. aktualny Chrome lub Edge na macOS/Windows z sterownikiem GPU w dobrej kondycji).
 - Znany stan repo: commit lub etykieta **wersji serwisowej** ze stosu **Status** na canvasie (`SERVICE_BUILD_LABEL` / dev timestamp + opcjonalny SHA).
-- Domyślny dev pod A/B: `npm run dev:webgpu:main-ab` — ustawia `VITE_FILMLAB_PROXY_GPU=1`, `VITE_FILMLAB_WEBGPU_PROXY=1`, `VITE_FILMLAB_MAIN_PREVIEW_WEBGPU_AB=1` (por. `package.json`). W Cursor / VS Code: **Tasks** → `Film Lab: dev + WebGPU proxy + main preview A/B + open /film-lab` ([`.vscode/tasks.json`](../.vscode/tasks.json)).
+- Domyślny dev pod A/B: `npm run dev:webgpu:main-ab` — ustawia `VITE_FILMLAB_PROXY_GPU=1`, `VITE_FILMLAB_WEBGPU_PROXY=1`, `VITE_FILMLAB_MAIN_PREVIEW_WEBGPU_AB=1` (por. `package.json`). W Cursor / VS Code: **Tasks** → `Film Lab: dev + WebGPU proxy + main preview A/B + open /film-lab` (`[.vscode/tasks.json](../.vscode/tasks.json)`).
 - Opcjonalnie pomiar na zbudowanym bundle: `npm run build:preview:webgpu:main-ab` (bez HMR; bliżej „field” niż dev-server); odpowiedni task: `Film Lab: build + preview (WebGPU proxy + main A/B, baseline)`.
 - **Dostęp z sieci LAN** (np. tablet/telefon pod `http://192.168.x.x:4174/film-lab`): Vite musi działać na tej samej maszynie; w `vite.config.js` jest `server.host: true` oraz `allowedHosts: true` (dev + preview), żeby uniknąć 403 dla IP / `*.local`. Zapora na hoście musi przepuszczać **port 4174** — checklista: [docs/README.md](README.md) (punkt o LAN; skrót też w [README.md](../README.md) w sekcji Troubleshooting).
-- **Repo na zewnętrznym wolumenie:** gdy HMR nie reaguje na zapis, włącz **`VITE_FILMLAB_DEV_WATCH_POLL=1`** lub skróty **`npm run dev:open:poll`** / **`npm run dev:webgpu:main-ab:poll`** (`.env.example`, `vite.config.js`, *Tasks* w VS Code).
+- **Repo na zewnętrznym wolumenie:** gdy HMR nie reaguje na zapis, włącz `**VITE_FILMLAB_DEV_WATCH_POLL=1`** lub skróty `**npm run dev:open:poll**` / `**npm run dev:webgpu:main-ab:poll**` (`.env.example`, `vite.config.js`, *Tasks* w VS Code).
 
 #### Protokół krótkiej sesji (ok. 3–5 minut)
 
@@ -595,13 +601,14 @@ Domkniete elementy z A/B + E2E observability (bez dublowania §2):
 
 #### Arkusz wyników (wypełniać po uruchomieniu)
 
-| Data | Host / OS | GPU | Build / commit | Tryb | n (rollout) | Health | Gate | fb % | E2E WGPU med (ms) | E2E WGL med (ms) | A/B Δ (z badge) | Uwagi |
-|------|-----------|-----|----------------|------|-------------|--------|------|------|-------------------|------------------|-----------------|-------|
-| *— wpisać po pierwszym baseline —* | | | | `dev:webgpu:main-ab` | | | | | | | | |
+
+| Data                               | Host / OS | GPU | Build / commit | Tryb                 | n (rollout) | Health | Gate | fb % | E2E WGPU med (ms) | E2E WGL med (ms) | A/B Δ (z badge) | Uwagi |
+| ---------------------------------- | --------- | --- | -------------- | -------------------- | ----------- | ------ | ---- | ---- | ----------------- | ---------------- | --------------- | ----- |
+| *— wpisać po pierwszym baseline —* |           |     |                | `dev:webgpu:main-ab` |             |        |      |      |                   |                  |                 |       |
+
 
 Dodatkowe wiersze warto dodawać dla odrębnych scenariuszy (np. cold start, `build:preview:webgpu:main-ab`, plik 50 MP + kafle proxy, druga przeglądarka lub GPU).
 
 ---
 
 To zamyka bieżący blok C1/C2/C3 dla observability, dokumentuje **baseline runbook** pod realne pomiary A/B i przygotowuje grunt pod kolejne prace wydajnościowe / precision bez zgadywania, który tor faktycznie działa w runtime.
-

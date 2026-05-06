@@ -1,0 +1,12 @@
+{
+  "schema": "filmLab.export.manifest.v1",
+  "manifestVersion": 1,
+  "manifestProfile": "pro-export-audit-v1",
+  "mode": "single",
+  "exportSessionId": "00000000-0000-4000-8000-000000000000",
+  "export": {
+    "sizeProfile": "full",
+    "fileFormat": "dng"
+  },
+  "artifacts": []
+}

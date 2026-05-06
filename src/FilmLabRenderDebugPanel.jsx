@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getLastBatchPerfSnapshot, IS_BATCH_PERF_ENABLED } from './engine/batchPerf.js';
 import { SHORTCUT_KEYS } from './engine/shortcutActions.js';
 import { formatRatioPercent } from './filmLab/displayFormat.js';
@@ -21,19 +21,28 @@ import {
   getPreviewE2eFrameCostGateThresholdsHint,
 } from './filmLab/rolloutGate.js';
 import { isEnvE2eHostSchedRaf, isEnvEnablePreviewLuts, readEnvFlag } from './filmLab/runtimeEnv.js';
+import {
+  FILMLAB_RECIPE_APPLY_UI_EVENT,
+  RECIPE_IMPORT_UI_CODE,
+  applyRecipeTextToWorkbench,
+  isFilmLabRecipeDropFilename,
+  recipeImportUiDetailLine,
+  translateRecipeSoftWarningsLine,
+} from './filmLab/recipe/index.js';
+import { useI18n } from './i18n';
 
-function formatRenderMs(value) {
-  return Number.isFinite(value) ? `${Number(value).toFixed(1)} ms` : '—';
+function formatRenderMs(value, dash) {
+  return Number.isFinite(value) ? `${Number(value).toFixed(1)} ms` : dash;
 }
 
-function formatPreviewE2ePerPathStats(stats) {
+function formatPreviewE2ePerPathStats(stats, dash) {
   if (!stats || typeof stats !== 'object') {
-    return '—';
+    return dash;
   }
   const prefer = ['fast-main-webgpu-ab', 'fast-webgl', 'worker-gpu', 'cpu-preview', 'cpu-full'];
   const keys = Object.keys(stats);
   if (!keys.length) {
-    return '—';
+    return dash;
   }
   const ordered = [
     ...prefer.filter((k) => keys.includes(k)),
@@ -50,12 +59,12 @@ function formatPreviewE2ePerPathStats(stats) {
     const state = item.kpiState != null ? ` ${String(item.kpiState)}` : '';
     chunks.push(`${k}: ${Number(item.medianMs).toFixed(1)}ms${cnt}${state}`);
   }
-  return chunks.length ? chunks.join(' | ') : '—';
+  return chunks.length ? chunks.join(' | ') : dash;
 }
 
-function formatPreviewE2eAbSummary(stats) {
+function formatPreviewE2eAbSummary(stats, t, dash) {
   if (!stats || typeof stats !== 'object') {
-    return '—';
+    return dash;
   }
   const wg = stats['fast-main-webgpu-ab'];
   const gl = stats['fast-webgl'];
@@ -63,29 +72,39 @@ function formatPreviewE2eAbSummary(stats) {
   const glMed = Number(gl?.medianMs);
   const wgCount = Number(wg?.count);
   const glCount = Number(gl?.count);
-  const wgLabel = Number.isFinite(wgMed) ? `${wgMed.toFixed(1)}ms` : '—';
-  const glLabel = Number.isFinite(glMed) ? `${glMed.toFixed(1)}ms` : '—';
+  const wgLabel = Number.isFinite(wgMed) ? `${wgMed.toFixed(1)}ms` : dash;
+  const glLabel = Number.isFinite(glMed) ? `${glMed.toFixed(1)}ms` : dash;
   const wgN = Number.isFinite(wgCount) ? Math.floor(wgCount) : null;
   const glN = Number.isFinite(glCount) ? Math.floor(glCount) : null;
+  const wgSuffix = wgN != null ? ` (n=${wgN})` : '';
+  const glSuffix = glN != null ? ` (n=${glN})` : '';
+  const wgPart = `${wgLabel}${wgSuffix}`;
+  const glPart = `${glLabel}${glSuffix}`;
   if (!Number.isFinite(wgMed) && !Number.isFinite(glMed)) {
-    return '—';
+    return dash;
   }
   if (!Number.isFinite(wgMed) || !Number.isFinite(glMed)) {
-    return `WebGPU: ${wgLabel}${wgN != null ? ` (n=${wgN})` : ''} · WebGL: ${glLabel}${glN != null ? ` (n=${glN})` : ''}`;
+    return t('filmLab.renderDebug.e2eAbPairPartial', { wgPart, glPart });
   }
   const delta = Number((wgMed - glMed).toFixed(2));
-  const faster = delta <= 0 ? 'WebGPU' : 'WebGL';
+  const faster =
+    delta <= 0 ? t('filmLab.renderDebug.e2eFasterWebGpu') : t('filmLab.renderDebug.e2eFasterWebGl');
   const deltaAbs = Math.abs(delta).toFixed(2);
-  return `WebGPU: ${wgLabel}${wgN != null ? ` (n=${wgN})` : ''} · WebGL: ${glLabel}${glN != null ? ` (n=${glN})` : ''} · Δ ${deltaAbs}ms · szybciej: ${faster}`;
+  return t('filmLab.renderDebug.e2eAbDelta', {
+    wgPart,
+    glPart,
+    deltaMs: deltaAbs,
+    faster,
+  });
 }
 
-function formatMainPreviewAbRolloutHealth(renderDebugInfo) {
-  return getMainPreviewAbRolloutHealthInfo(renderDebugInfo).panelLabel;
+function formatMainPreviewAbRolloutHealth(renderDebugInfo, dash) {
+  return getMainPreviewAbRolloutHealthInfo(renderDebugInfo, { dashMark: dash }).panelLabel;
 }
 
-function formatMainPreviewAbRolloutHealthSummary(renderDebugInfo) {
-  const label = formatMainPreviewAbRolloutHealth(renderDebugInfo);
-  if (label === '—') {
+function formatMainPreviewAbRolloutHealthSummary(renderDebugInfo, dash) {
+  const label = formatMainPreviewAbRolloutHealth(renderDebugInfo, dash);
+  if (label === dash) {
     return null;
   }
   return label;
@@ -95,51 +114,51 @@ function getMainPreviewAbRolloutHealthTone(renderDebugInfo) {
   return getMainPreviewAbRolloutHealthInfo(renderDebugInfo).tone;
 }
 
-function formatMainPreviewAbRolloutGate(renderDebugInfo) {
-  return getMainPreviewAbRolloutGateInfo(renderDebugInfo).panelLabel;
+function formatMainPreviewAbRolloutGate(renderDebugInfo, dash) {
+  return getMainPreviewAbRolloutGateInfo(renderDebugInfo, { dashMark: dash }).panelLabel;
 }
 
 function getMainPreviewAbRolloutGateTone(renderDebugInfo) {
   return getMainPreviewAbRolloutGateInfo(renderDebugInfo).tone;
 }
 
-function getMainPreviewAbFallbackReason(renderDebugInfo) {
+function getMainPreviewAbFallbackReason(renderDebugInfo, t) {
   const path = String(renderDebugInfo?.mainThreadWebGpuPreviewAbPath ?? '').trim();
   if (path !== 'webgl-fallback') {
     return '';
   }
   const decision = String(renderDebugInfo?.mainThreadWebGpuPreviewAbDecision ?? '').trim();
   if (decision === 'armed_runtime_error') {
-    return 'main-preview A/B fallback: runtime error (WebGPU -> WebGL)';
+    return t('filmLab.renderDebug.fallbackRuntimeError');
   }
   if (decision === 'armed_runtime_fallback') {
-    return 'main-preview A/B fallback: runtime fallback (WebGPU -> WebGL)';
+    return t('filmLab.renderDebug.fallbackRuntimeFallback');
   }
   if (decision === 'armed_probe_fail') {
-    return 'main-preview A/B fallback: probe fail (WebGPU -> WebGL)';
+    return t('filmLab.renderDebug.fallbackProbeFail');
   }
-  return 'main-preview A/B fallback: WebGPU -> WebGL';
+  return t('filmLab.renderDebug.fallbackGeneric');
 }
 
 /** Worker vs wątek główny: osobne `getOrCreatePersistentWebGpuDevice` — format 3D LUT może się różnić. */
-function formatWebGpuLut3dMainWorkerParityLine(renderDebugInfo) {
+function formatWebGpuLut3dMainWorkerParityLine(renderDebugInfo, t, dash) {
   const w = renderDebugInfo?.proxyWorkerWebGpuLut3dTexFormat;
   const m = renderDebugInfo?.mainThreadWebGpuLut3dTexFormat;
-  const wL = w != null && String(w).trim() !== '' ? String(w) : '—';
-  const mL = m != null && String(m).trim() !== '' ? String(m) : '—';
+  const wL = w != null && String(w).trim() !== '' ? String(w) : dash;
+  const mL = m != null && String(m).trim() !== '' ? String(m) : dash;
   if (w == null && m == null) {
-    return '—';
+    return dash;
   }
   const both = w != null && m != null;
   const same = both && String(w) === String(m);
-  const tail = both ? (same ? ' · zgodne' : ' · różne') : '';
-  return `W: ${wL} · main: ${mL}${tail}`;
+  const tail = both ? (same ? t('filmLab.renderDebug.paritySuffixSame') : t('filmLab.renderDebug.paritySuffixDiff')) : '';
+  return `${t('filmLab.renderDebug.parityWorkerTag')} ${wL} · ${t('filmLab.renderDebug.parityMainTag')} ${mL}${tail}`;
 }
 
 /** Hex #RRGGBB z pierwszych trzech kanałów (jak `rb0` w wierszu main·preview) — tylko diagnostyka. */
-function formatReadbackRgba8HexRgb(rgba) {
+function formatReadbackRgba8HexRgb(rgba, dash) {
   if (!Array.isArray(rgba) || rgba.length < 3) {
-    return '—';
+    return dash;
   }
   return `#${[0, 1, 2]
     .map((i) => Math.floor(Number(rgba[i])).toString(16).padStart(2, '0'))
@@ -150,13 +169,13 @@ function formatReadbackRgba8HexRgb(rgba) {
  * Porównanie readbacku 1×1 (0,0) z proxy WebGPU w workerze vs sondy wątku głównego.
  * Osobne urządzenia/rozdzielczości/ścieżki — zgodność hex nie jest oczekiwana; służy do szybkiego skanu.
  */
-function formatWebGpuReadbackMainWParityLine(renderDebugInfo) {
+function formatWebGpuReadbackMainWParityLine(renderDebugInfo, t, dash) {
   const w = renderDebugInfo?.proxyWorkerWebGpuReadbackRgba8;
   const m = renderDebugInfo?.mainThreadWebGpuHostSourceReadbackRgba8;
-  const wH = formatReadbackRgba8HexRgb(w);
-  const mH = formatReadbackRgba8HexRgb(m);
-  if (wH === '—' && mH === '—') {
-    return '—';
+  const wH = formatReadbackRgba8HexRgb(w, dash);
+  const mH = formatReadbackRgba8HexRgb(m, dash);
+  if (wH === dash && mH === dash) {
+    return dash;
   }
   const wCh = renderDebugInfo?.proxyWorkerWebGpuReadbackChroma;
   const wSuffix =
@@ -171,11 +190,11 @@ function formatWebGpuReadbackMainWParityLine(renderDebugInfo) {
     [0, 1, 2].every(
       (i) => Math.floor(Number(w[i])) === Math.floor(Number(m[i])),
     );
-  const tail = both ? (same ? ' · zgodne' : ' · różne') : '';
-  return `W: ${wH}${wSuffix} · main: ${mH}${mSuffix}${tail}`;
+  const tail = both ? (same ? t('filmLab.renderDebug.paritySuffixSame') : t('filmLab.renderDebug.paritySuffixDiff')) : '';
+  return `${t('filmLab.renderDebug.parityWorkerTag')} ${wH}${wSuffix} · ${t('filmLab.renderDebug.parityMainTag')} ${mH}${mSuffix}${tail}`;
 }
 
-function formatWebGpuReadbackMainWParityRgb(renderDebugInfo) {
+function formatWebGpuReadbackMainWParityRgb(renderDebugInfo, t) {
   const w = renderDebugInfo?.proxyWorkerWebGpuReadbackRgba8;
   const m = renderDebugInfo?.mainThreadWebGpuHostSourceReadbackRgba8;
   if (!Array.isArray(w) || w.length < 3 || !Array.isArray(m) || m.length < 3) {
@@ -184,35 +203,35 @@ function formatWebGpuReadbackMainWParityRgb(renderDebugInfo) {
   const same = [0, 1, 2].every(
     (i) => Math.floor(Number(w[i])) === Math.floor(Number(m[i])),
   );
-  return same ? 'zgodne' : 'różne';
+  return same ? t('filmLab.renderDebug.readbackRgbMatch') : t('filmLab.renderDebug.readbackRgbDiff');
 }
 
-function formatViteProxyCpuYieldEvery() {
+function formatViteProxyCpuYieldEvery(dash) {
   const v = import.meta?.env?.VITE_FILMLAB_PROXY_CPU_YIELD_EVERY;
   if (v == null || String(v).trim() === '') {
-    return '—';
+    return dash;
   }
   return String(v).trim();
 }
 
-function formatWebGpuAdapterLabel(renderDebugInfo) {
+function formatWebGpuAdapterLabel(renderDebugInfo, t, dash) {
   const api = renderDebugInfo?.webGpuApi;
   const a = renderDebugInfo?.webGpuAdapter;
   const info = renderDebugInfo?.webGpuAdapterInfo;
   if (!a || a.status === 'pending') {
     if (api && !api.exposed) {
-      return 'n/d';
+      return t('filmLab.renderDebug.notApplicable');
     }
-    return '…';
+    return t('filmLab.renderDebug.ellipsis');
   }
   if (a.status === 'unavailable') {
-    return 'n/d';
+    return t('filmLab.renderDebug.notApplicable');
   }
   if (a.status === 'no-adapter') {
-    return 'brak';
+    return t('filmLab.renderDebug.gpuNoAdapter');
   }
   if (a.status === 'error') {
-    return a.reason || 'błąd';
+    return a.reason || t('filmLab.renderDebug.errorShort');
   }
   if (a.status === 'ok') {
     if (info && (info.vendor || info.device || info.description)) {
@@ -224,42 +243,49 @@ function formatWebGpuAdapterLabel(renderDebugInfo) {
         return String(info.description);
       }
     }
-    return 'ok';
+    return t('filmLab.renderDebug.workerGpuStatusOk');
   }
-  return '—';
+  return dash;
 }
 
-function formatWebGpuDeviceLabel(renderDebugInfo) {
+function formatWebGpuDeviceLabel(renderDebugInfo, t, dash) {
   const d = renderDebugInfo?.webGpuDevice;
   if (!d || d.status === 'pending') {
-    return '…';
+    return t('filmLab.renderDebug.ellipsis');
   }
   if (d.status === 'unavailable') {
-    return 'n/d';
+    return t('filmLab.renderDebug.notApplicable');
   }
   if (d.status === 'error') {
-    return d.reason || 'błąd';
+    return d.reason || t('filmLab.renderDebug.errorShort');
   }
   if (d.status === 'ok' && d.limits?.maxTextureDimension2D) {
-    return `ok · 2D max ${d.limits.maxTextureDimension2D}px`;
+    return t('filmLab.renderDebug.webGpuDeviceDimsOk', { px: d.limits.maxTextureDimension2D });
   }
   if (d.status === 'ok') {
-    return 'ok';
+    return t('filmLab.renderDebug.workerGpuStatusOk');
   }
-  return '—';
+  return dash;
 }
 
-function formatSharedArrayBufferHostLine(renderDebugInfo) {
+function formatSharedArrayBufferHostLine(renderDebugInfo, t, dash) {
   const s = renderDebugInfo?.sharedArrayBufferHost;
   if (!s) {
-    return '—';
+    return dash;
   }
   const coi = s.crossOriginIsolated;
-  const coiLabel = coi == null ? 'n/d' : coi ? 'tak' : 'nie';
-  const sab = s.sabConstructible ? 'tak' : 'nie';
-  const smoke = s.smokeOk ? `ok(${Math.floor(Number(s.smokeBytes) || 0)}B)` : 'fail';
+  const coiLabel =
+    coi == null
+      ? t('filmLab.renderDebug.notApplicable')
+      : coi
+        ? t('filmLab.renderDebug.yesLower')
+        : t('filmLab.renderDebug.noLower');
+  const sab = s.sabConstructible ? t('filmLab.renderDebug.yesLower') : t('filmLab.renderDebug.noLower');
+  const smoke = s.smokeOk
+    ? t('filmLab.renderDebug.smokeOkBytes', { bytes: Math.floor(Number(s.smokeBytes) || 0) })
+    : t('filmLab.renderDebug.smokeFail');
   const policy = String(s.policyState ?? 'n/a');
-  return `SAB ${sab} · COI ${coiLabel} · smoke ${smoke} · policy ${policy}`;
+  return t('filmLab.renderDebug.sabHostLine', { sab, coi: coiLabel, smoke, policy });
 }
 
 function asWorkerWebGpuRenderShape(w) {
@@ -274,50 +300,58 @@ function asWorkerWebGpuRenderShape(w) {
   };
 }
 
-function formatWorkerWebGpuStatus(w) {
+function formatWorkerWebGpuStatus(w, t, dash) {
   if (!w || w.status === 'pending') {
-    return '…';
+    return t('filmLab.renderDebug.ellipsis');
   }
   if (w.status === 'skipped') {
-    return w.reason || 'pominięto';
+    return w.reason || t('filmLab.renderDebug.gpuSkipped');
   }
   if (w.status === 'error') {
-    return w.reason || 'błąd';
+    return w.reason || t('filmLab.renderDebug.errorShort');
   }
   if (w.status === 'ready') {
-    return 'ok';
+    return t('filmLab.renderDebug.workerGpuStatusOk');
   }
-  return '—';
+  return dash;
 }
 
-function formatBatchZipTotalMs(snapshot) {
+function formatBatchZipTotalMs(snapshot, dash) {
   const total = snapshot?.timingsMs?.total;
-  return Number.isFinite(Number(total)) ? `${Number(total).toFixed(1)} ms` : '—';
+  return Number.isFinite(Number(total)) ? `${Number(total).toFixed(1)} ms` : dash;
 }
 
-function formatProxyNominalDebugLine(info) {
+function formatProxyNominalDebugLine(info, t, dash) {
   const nw = info?.proxyWorkerNominalW;
   const nh = info?.proxyWorkerNominalH;
   const max = info?.proxyWorkerProxyMaxEffective;
   const iw = info?.proxyInputBufferW;
   const ih = info?.proxyInputBufferH;
   if (nw == null || nh == null) {
-    return '—';
+    return dash;
   }
-  const head = `${nw}×${nh} · max ${max ?? '—'}`;
+  const head = `${nw}×${nh} · max ${max ?? dash}`;
   if (iw != null && ih != null) {
     if (iw === nw && ih === nh) {
-      return `${head} (= bufor ${iw}×${ih})`;
+      return `${head}${t('filmLab.renderDebug.proxyNominalEqualsBuffer', { w: iw, h: ih })}`;
     }
-    return `${head} (bufor ${iw}×${ih})`;
+    return `${head}${t('filmLab.renderDebug.proxyNominalBuffered', { w: iw, h: ih })}`;
   }
   return head;
 }
 
 export default function FilmLabRenderDebugPanel({
   open,
+  adjustments,
+  hasImage,
+  uploadedFile,
   exportDebugReport,
+  exportRecipeSidecar,
+  copyRecipeDocumentJson,
   debugExportFeedback,
+  recipeExportFeedback,
+  recipeClipboardFeedback,
+  applyRecipeDocument,
   renderDebugInfo,
   previewPathLabel,
   rawBackendAbSummary,
@@ -327,9 +361,23 @@ export default function FilmLabRenderDebugPanel({
   setRawLinearStageMode,
   rawLinearStageModeLabel,
   rawQualityQaSummary,
+  maskGraphEvaluatorStub,
+  maskEnginePayloadHints,
 }) {
+  const { t } = useI18n();
+  const dash = t('filmLab.renderDebug.dashMark');
   const [lastBatchPerf, setLastBatchPerf] = useState(() => getLastBatchPerfSnapshot());
   const [batchPerfCopyFeedback, setBatchPerfCopyFeedback] = useState(null);
+  const [recipeImportFeedback, setRecipeImportFeedback] = useState(null);
+  const [recipeImportWarnings, setRecipeImportWarnings] = useState(null);
+  const recipeImportWarningsDisplay = useMemo(
+    () =>
+      recipeImportWarnings ? translateRecipeSoftWarningsLine(recipeImportWarnings, t) : null,
+    [recipeImportWarnings, t],
+  );
+  const [recipeFileDragOverPanel, setRecipeFileDragOverPanel] = useState(false);
+  const recipeFileDragActiveRef = useRef(false);
+  const recipeFileInputRef = useRef(null);
   const [e2ePointerAux, setE2ePointerAux] = useState(false);
   const [e2ePointerKeyboard, setE2ePointerKeyboard] = useState(false);
 
@@ -408,128 +456,478 @@ export default function FilmLabRenderDebugPanel({
     }
   }, [lastBatchPerf]);
 
-  const mainPreviewAbHealthSummary = formatMainPreviewAbRolloutHealthSummary(renderDebugInfo);
+  useEffect(() => {
+    if (!open) {
+      setRecipeImportWarnings(null);
+      recipeFileDragActiveRef.current = false;
+      setRecipeFileDragOverPanel(false);
+    }
+  }, [open]);
+
+  const failRecipeImport = useCallback((detail) => {
+    setRecipeImportFeedback('error');
+    setRecipeImportWarnings(
+      typeof detail === 'string' && detail.trim() !== '' ? detail.trim() : null,
+    );
+    setTimeout(() => setRecipeImportFeedback(null), 1500);
+  }, []);
+
+  const applyRecipeApplyResultToUi = useCallback(
+    (result) => {
+      if (!result || typeof result !== 'object') {
+        return;
+      }
+      if (result.ok) {
+        setRecipeImportFeedback('ok');
+        setRecipeImportWarnings(
+          typeof result.warningsLine === 'string' && result.warningsLine.trim() !== ''
+            ? result.warningsLine.trim()
+            : null,
+        );
+        setTimeout(() => setRecipeImportFeedback(null), 1200);
+      } else {
+        failRecipeImport(result.detail);
+      }
+    },
+    [failRecipeImport],
+  );
+
+  useEffect(() => {
+    if (!open || typeof window === 'undefined') {
+      return undefined;
+    }
+    const handler = (event) => {
+      applyRecipeApplyResultToUi(event.detail);
+    };
+    window.addEventListener(FILMLAB_RECIPE_APPLY_UI_EVENT, handler);
+    return () => window.removeEventListener(FILMLAB_RECIPE_APPLY_UI_EVENT, handler);
+  }, [open, applyRecipeApplyResultToUi]);
+
+  const applyRecipeFromText = useCallback(
+    (text) => {
+      try {
+        const result = applyRecipeTextToWorkbench(text, applyRecipeDocument);
+        applyRecipeApplyResultToUi(result);
+      } catch (e) {
+        failRecipeImport(
+          recipeImportUiDetailLine(RECIPE_IMPORT_UI_CODE.IMPORT_APPLY_THREW, e?.message ?? e),
+        );
+      }
+    },
+    [applyRecipeDocument, applyRecipeApplyResultToUi, failRecipeImport],
+  );
+
+  const handleRecipeImportFileChange = useCallback(
+    async (event) => {
+      const input = event?.target;
+      const file = input?.files?.[0];
+      if (input) {
+        input.value = '';
+      }
+      if (!file) {
+        return;
+      }
+      try {
+        const text = await file.text();
+        applyRecipeFromText(text);
+      } catch (e) {
+        failRecipeImport(
+          recipeImportUiDetailLine(RECIPE_IMPORT_UI_CODE.IMPORT_FILE_READ_FAILED, e?.message ?? e),
+        );
+      }
+    },
+    [applyRecipeFromText, failRecipeImport],
+  );
+
+  const handleRecipePasteFromClipboard = useCallback(async () => {
+    try {
+      if (typeof navigator === 'undefined' || !navigator.clipboard?.readText) {
+        failRecipeImport(RECIPE_IMPORT_UI_CODE.CLIPBOARD_READ_TEXT_UNAVAILABLE);
+        return;
+      }
+      const text = await navigator.clipboard.readText();
+      if (typeof text !== 'string' || text.trim() === '') {
+        failRecipeImport(RECIPE_IMPORT_UI_CODE.CLIPBOARD_EMPTY_RECIPE_TEXT);
+        return;
+      }
+      applyRecipeFromText(text.trim());
+    } catch (e) {
+      failRecipeImport(
+        recipeImportUiDetailLine(RECIPE_IMPORT_UI_CODE.CLIPBOARD_READ_FAILED, e?.message ?? e),
+      );
+    }
+  }, [applyRecipeFromText, failRecipeImport]);
+
+  const handleRecipePanelDragEnter = useCallback(
+    (event) => {
+      if (typeof applyRecipeDocument !== 'function') {
+        return;
+      }
+      const types = event.dataTransfer?.types;
+      if (!types || !Array.from(types).includes('Files')) {
+        return;
+      }
+      event.preventDefault();
+      if (!recipeFileDragActiveRef.current) {
+        recipeFileDragActiveRef.current = true;
+        setRecipeFileDragOverPanel(true);
+      }
+    },
+    [applyRecipeDocument],
+  );
+
+  const handleRecipePanelDragOver = useCallback(
+    (event) => {
+      if (typeof applyRecipeDocument !== 'function') {
+        return;
+      }
+      const types = event.dataTransfer?.types;
+      if (!types || !Array.from(types).includes('Files')) {
+        return;
+      }
+      event.preventDefault();
+      event.dataTransfer.dropEffect = 'copy';
+      if (!recipeFileDragActiveRef.current) {
+        recipeFileDragActiveRef.current = true;
+        setRecipeFileDragOverPanel(true);
+      }
+    },
+    [applyRecipeDocument],
+  );
+
+  const handleRecipePanelDragLeave = useCallback((event) => {
+    if (event.currentTarget?.contains?.(event.relatedTarget)) {
+      return;
+    }
+    recipeFileDragActiveRef.current = false;
+    setRecipeFileDragOverPanel(false);
+  }, []);
+
+  const handleRecipePanelDrop = useCallback(
+    async (event) => {
+      recipeFileDragActiveRef.current = false;
+      setRecipeFileDragOverPanel(false);
+      if (typeof applyRecipeDocument !== 'function') {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      const file = event.dataTransfer?.files?.[0];
+      if (!file || !isFilmLabRecipeDropFilename(file.name)) {
+        return;
+      }
+      try {
+        const text = await file.text();
+        applyRecipeFromText(text);
+      } catch (e) {
+        failRecipeImport(
+          recipeImportUiDetailLine(RECIPE_IMPORT_UI_CODE.IMPORT_DROP_FILE_FAILED, e?.message ?? e),
+        );
+      }
+    },
+    [applyRecipeDocument, applyRecipeFromText, failRecipeImport],
+  );
+
+  const mainPreviewAbHealthSummary = formatMainPreviewAbRolloutHealthSummary(renderDebugInfo, dash);
   const mainPreviewAbHealthTone = getMainPreviewAbRolloutHealthTone(renderDebugInfo);
-  const mainPreviewAbRolloutGate = formatMainPreviewAbRolloutGate(renderDebugInfo);
+  const mainPreviewAbRolloutGate = formatMainPreviewAbRolloutGate(renderDebugInfo, dash);
   const mainPreviewAbRolloutGateTone = getMainPreviewAbRolloutGateTone(renderDebugInfo);
-  const previewE2eFrameCostGate = getPreviewE2eFrameCostGateInfo(renderDebugInfo);
-  const mainPreviewAbFallbackReason = getMainPreviewAbFallbackReason(renderDebugInfo);
+  const previewE2eFrameCostGate = getPreviewE2eFrameCostGateInfo(renderDebugInfo, {
+    dashMark: dash,
+  });
+  const mainPreviewAbFallbackReason = getMainPreviewAbFallbackReason(renderDebugInfo, t);
 
   if (!open) {
     return null;
   }
 
   return (
-    <div className="render-debug-panel">
+    <div
+      className={`render-debug-panel${recipeFileDragOverPanel ? ' render-debug-panel--recipe-drop' : ''}`}
+      onDragEnter={handleRecipePanelDragEnter}
+      onDragOver={handleRecipePanelDragOver}
+      onDragLeave={handleRecipePanelDragLeave}
+      onDrop={handleRecipePanelDrop}
+      title={t('filmLab.renderDebug.panelDropTitle')}
+    >
       <div className="render-debug-header">
         <div className="render-debug-title-wrap">
-          <div className="render-debug-title">Render Debug</div>
+          <div className="render-debug-title">{t('filmLab.renderDebug.title')}</div>
           <div
             className="render-debug-health-legend"
-            title={`Legenda health rolloutu A/B: ${getMainPreviewAbRolloutHealthThresholdsHint()}.`}
+            title={t('filmLab.renderDebug.healthLegendTitle', {
+              hint: getMainPreviewAbRolloutHealthThresholdsHint(),
+            })}
           >
-            <span className="render-debug-health-legend-label">health</span>
-            <span className="render-debug-inline-health tone-ok">OK</span>
-            <span className="render-debug-inline-health tone-warn">WARN</span>
-            <span className="render-debug-inline-health tone-warmup">WARMUP</span>
+            <span className="render-debug-health-legend-label">{t('filmLab.renderDebug.healthLegendShort')}</span>
+            <span className="render-debug-inline-health tone-ok">{t('filmLab.renderDebug.healthPillOk')}</span>
+            <span className="render-debug-inline-health tone-warn">{t('filmLab.renderDebug.healthPillWarn')}</span>
+            <span className="render-debug-inline-health tone-warmup">{t('filmLab.renderDebug.healthPillWarmup')}</span>
           </div>
         </div>
-        <button
-          type="button"
-          className="render-debug-export-btn"
-          onClick={exportDebugReport}
-          title="Eksportuj raport diagnostyczny JSON"
-        >
-          {debugExportFeedback === 'saved'
-            ? 'Zapisano'
-            : debugExportFeedback === 'error'
-              ? 'Błąd'
-              : 'JSON'}
-        </button>
+        <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <input
+            ref={recipeFileInputRef}
+            type="file"
+            accept=".json,.recipe.json,application/json"
+            style={{ display: 'none' }}
+            aria-hidden
+            tabIndex={-1}
+            onChange={handleRecipeImportFileChange}
+          />
+          <button
+            type="button"
+            className="render-debug-export-btn"
+            onClick={exportDebugReport}
+            title={t('filmLab.renderDebug.exportDiagJsonTitle')}
+          >
+            {debugExportFeedback === 'saved'
+              ? t('filmLab.renderDebug.jsonSaved')
+              : debugExportFeedback === 'error'
+                ? t('filmLab.renderDebug.errorShort')
+                : t('filmLab.renderDebug.exportJsonButton')}
+          </button>
+          <button
+            type="button"
+            className="render-debug-export-btn"
+            onClick={exportRecipeSidecar}
+            title={t('filmLab.renderDebug.recipeDownloadTitle')}
+          >
+            {recipeExportFeedback === 'saved'
+              ? t('filmLab.renderDebug.recipeExportOk')
+              : recipeExportFeedback === 'error'
+                ? t('filmLab.renderDebug.recipeExportErr')
+                : t('filmLab.renderDebug.recipeExportDefault')}
+          </button>
+          <button
+            type="button"
+            className="render-debug-export-btn"
+            disabled={typeof applyRecipeDocument !== 'function'}
+            onClick={() => recipeFileInputRef.current?.click()}
+            title={t('filmLab.renderDebug.recipeLoadTitle')}
+          >
+            {recipeImportFeedback === 'ok'
+              ? t('filmLab.renderDebug.recipeImportOk')
+              : recipeImportFeedback === 'error'
+                ? t('filmLab.renderDebug.recipeImportErr')
+                : t('filmLab.renderDebug.recipeImportDefault')}
+          </button>
+          <button
+            type="button"
+            className="render-debug-export-btn"
+            disabled={typeof applyRecipeDocument !== 'function'}
+            onClick={handleRecipePasteFromClipboard}
+            title={t('filmLab.renderDebug.recipePasteTitle')}
+          >
+            {recipeImportFeedback === 'ok'
+              ? t('filmLab.renderDebug.recipePasteOk')
+              : recipeImportFeedback === 'error'
+                ? t('filmLab.renderDebug.recipePasteErr')
+                : t('filmLab.renderDebug.recipePasteDefault')}
+          </button>
+          <button
+            type="button"
+            className="render-debug-export-btn"
+            onClick={copyRecipeDocumentJson}
+            disabled={typeof copyRecipeDocumentJson !== 'function'}
+            title={t('filmLab.renderDebug.recipeCopyJsonTitle')}
+          >
+            {recipeClipboardFeedback === 'copied'
+              ? t('filmLab.renderDebug.recipeJsonClipboardOk')
+              : recipeClipboardFeedback === 'error'
+                ? t('filmLab.renderDebug.recipeJsonClipboardErr')
+                : t('filmLab.renderDebug.recipeJsonClipboardDefault')}
+          </button>
+        </div>
       </div>
+      {recipeImportWarnings ? (
+        <div
+          className="render-debug-reason"
+          title={recipeImportWarningsDisplay || recipeImportWarnings}
+          aria-live="polite"
+          role="status"
+        >
+          {recipeImportWarningsDisplay || recipeImportWarnings}
+        </div>
+      ) : null}
+      {maskGraphEvaluatorStub != null && typeof maskGraphEvaluatorStub === 'object' ? (
+        <div className="render-debug-block tone-neutral">
+          <div className="render-debug-block-title-row">
+            <div className="render-debug-block-title">{t('filmLab.renderDebug.maskGraphStubTitle')}</div>
+          </div>
+          <div className="render-debug-row">
+            <span>{t('filmLab.renderDebug.maskGraphStubGraphs')}</span>
+            <strong>{maskGraphEvaluatorStub.graphCount}</strong>
+          </div>
+          <div className="render-debug-row">
+            <span>{t('filmLab.renderDebug.maskGraphStubNodes')}</span>
+            <strong>{maskGraphEvaluatorStub.nodeCountTotal}</strong>
+          </div>
+          {maskGraphEvaluatorStub.hasGenerativeStub ? (
+            <div className="render-debug-reason">{t('filmLab.renderDebug.maskGraphGenerativePill')}</div>
+          ) : null}
+          {maskGraphEvaluatorStub?.hasDepthRangeSemantic ? (
+            <div className="render-debug-reason">{t('filmLab.renderDebug.maskGraphDepthProxyPill')}</div>
+          ) : null}
+          {maskGraphEvaluatorStub?.hasBrushEdgeSemantic ? (
+            <div className="render-debug-reason">{t('filmLab.renderDebug.maskGraphBrushEdgePill')}</div>
+          ) : null}
+          <div className="render-debug-row" style={{ alignItems: 'flex-start', flexWrap: 'wrap', gap: '6px' }}>
+            <span>{t('filmLab.renderDebug.maskGraphStubTypes')}</span>
+            <strong
+              style={{
+                fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                fontSize: 11,
+                fontWeight: 600,
+                wordBreak: 'break-all',
+              }}
+            >
+              {Array.isArray(maskGraphEvaluatorStub.semanticNodeTypes) &&
+              maskGraphEvaluatorStub.semanticNodeTypes.length > 0
+                ? maskGraphEvaluatorStub.semanticNodeTypes.join(', ')
+                : dash}
+            </strong>
+          </div>
+          {maskEnginePayloadHints != null && typeof maskEnginePayloadHints === 'object' ? (
+            <>
+              <div className="render-debug-row">
+                <span>{t('filmLab.renderDebug.maskPayloadWorkerIntent')}</span>
+                <strong>
+                  {maskEnginePayloadHints.generativeStubIntent
+                    ? t('filmLab.renderDebug.diagShortOn')
+                    : t('filmLab.renderDebug.diagShortOff')}
+                </strong>
+              </div>
+              <div className="render-debug-row">
+                <span>{t('filmLab.renderDebug.maskPayloadWorkerSemantic')}</span>
+                <strong>
+                  {maskEnginePayloadHints.hasGenerativeSemanticStub
+                    ? t('filmLab.renderDebug.diagShortOn')
+                    : t('filmLab.renderDebug.diagShortOff')}
+                </strong>
+              </div>
+              <div className="render-debug-row">
+                <span>{t('filmLab.renderDebug.maskPayloadWorkerDepthRange')}</span>
+                <strong>
+                  {maskEnginePayloadHints?.hasDepthRangeSemantic
+                    ? t('filmLab.renderDebug.diagShortOn')
+                    : t('filmLab.renderDebug.diagShortOff')}
+                </strong>
+              </div>
+              <div className="render-debug-row">
+                <span>{t('filmLab.renderDebug.maskPayloadWorkerBrushEdge')}</span>
+                <strong>
+                  {maskEnginePayloadHints?.hasBrushEdgeSemantic
+                    ? t('filmLab.renderDebug.diagShortOn')
+                    : t('filmLab.renderDebug.diagShortOff')}
+                </strong>
+              </div>
+            </>
+          ) : null}
+        </div>
+      ) : null}
       <div className="render-debug-block tone-neutral">
         <div className="render-debug-block-title-row">
-          <div className="render-debug-block-title">Batch ZIP</div>
+          <div className="render-debug-block-title">{t('filmLab.renderDebug.batchZipTitle')}</div>
           <button
             type="button"
             className="render-debug-export-btn"
             onClick={copyLastBatchPerfJson}
             disabled={!lastBatchPerf}
-            title="Kopiuj ostatni pomiar batch (JSON) do schowka"
+            title={t('filmLab.renderDebug.batchPerfCopyTitle')}
           >
             {batchPerfCopyFeedback === 'copied'
               ? '✓'
               : batchPerfCopyFeedback === 'error'
                 ? '✕'
-                : 'Kopiuj'}
+                : t('filmLab.renderDebug.batchPerfCopyLabel')}
           </button>
         </div>
         <div className="render-debug-row">
-          <span>Pomiar</span>
-          <strong>{IS_BATCH_PERF_ENABLED ? 'włączony' : 'wyłączony'}</strong>
+          <span>{t('filmLab.renderDebug.batchMeasurement')}</span>
+          <strong>
+            {IS_BATCH_PERF_ENABLED ? t('filmLab.renderDebug.stateOn') : t('filmLab.renderDebug.stateOff')}
+          </strong>
         </div>
         {IS_BATCH_PERF_ENABLED && !lastBatchPerf ? (
-          <div className="render-debug-reason">Brak pomiaru — uruchom eksport batch (ZIP).</div>
+          <div className="render-debug-reason">{t('filmLab.renderDebug.batchNoMeasurement')}</div>
         ) : null}
         {lastBatchPerf ? (
           <>
             <div className="render-debug-row">
-              <span>Łącznie</span>
-              <strong>{formatBatchZipTotalMs(lastBatchPerf)}</strong>
+              <span>{t('filmLab.renderDebug.batchTotal')}</span>
+              <strong>{formatBatchZipTotalMs(lastBatchPerf, dash)}</strong>
             </div>
             <div className="render-debug-row">
-              <span>Pliki (dodane)</span>
+              <span>{t('filmLab.renderDebug.batchFilesAdded')}</span>
               <strong>
-                {lastBatchPerf.addedCount ?? '—'}
+                {lastBatchPerf.addedCount ?? dash}
                 {typeof lastBatchPerf.totalFiles === 'number' ? ` / ${lastBatchPerf.totalFiles}` : ''}
               </strong>
             </div>
             <div className="render-debug-row">
-              <span>ZIP</span>
+              <span>{t('filmLab.renderDebug.batchZipRow')}</span>
               <strong>
                 {lastBatchPerf.timingsMs?.zip == null
-                  ? '—'
+                  ? dash
                   : `${Number(lastBatchPerf.timingsMs.zip).toFixed(1)} ms`}
               </strong>
             </div>
             {lastBatchPerf.aborted ? (
-              <div className="render-debug-reason">Ostatni batch został przerwany (abort).</div>
+              <div className="render-debug-reason">{t('filmLab.renderDebug.batchAborted')}</div>
             ) : null}
           </>
         ) : null}
         {!IS_BATCH_PERF_ENABLED ? (
-          <div className="render-debug-reason" title="Wymaga przebudowy z VITE_FILMLAB_BATCH_PERF=1">
-            Aby włączyć pomiary, ustaw VITE_FILMLAB_BATCH_PERF=1 i zbuduj dev/preview.
+          <div className="render-debug-reason" title={t('filmLab.renderDebug.batchPerfHintDisabled')}>
+            {t('filmLab.renderDebug.batchPerfEnableHint')}
           </div>
         ) : null}
       </div>
       <div className="render-debug-row">
-        <span>Drag worker</span>
-        <strong>{renderDebugInfo?.workerDragEnabled ? 'on' : 'off'}</strong>
-      </div>
-      <div className="render-debug-row" title="VITE_FILMLAB_WEBGPU_PROXY w zbudowanej paczce (ścieżka WebGPU w workerze).">
-        <span>Build WebGPU proxy</span>
-        <strong>{renderDebugInfo?.webgpuProxyBuild ? 'on' : 'off'}</strong>
-      </div>
-      <div className="render-debug-row">
-        <span>Proxy GPU</span>
-        <strong>{renderDebugInfo?.proxyGpuEnabled ? 'on' : 'off'}</strong>
+        <span>{t('filmLab.renderDebug.dragWorkerRow')}</span>
+        <strong>
+          {renderDebugInfo?.workerDragEnabled
+            ? t('filmLab.renderDebug.diagShortOn')
+            : t('filmLab.renderDebug.diagShortOff')}
+        </strong>
       </div>
       <div
         className="render-debug-row"
-        title="VITE_FILMLAB_ENABLE_PREVIEW_LUTS — wyłączenie tylko przez =0 (isEnvEnablePreviewLuts w runtimeEnv; filmProfiles)."
+        title={t('filmLab.renderDebug.buildWebGpuProxyTitle')}
       >
-        <span>Profil · LUT podgląd</span>
-        <strong>{isEnvEnablePreviewLuts() ? 'włączony' : 'wyłączony'}</strong>
+        <span>{t('filmLab.renderDebug.webGpuBuildProxyRow')}</span>
+        <strong>
+          {renderDebugInfo?.webgpuProxyBuild
+            ? t('filmLab.renderDebug.diagShortOn')
+            : t('filmLab.renderDebug.diagShortOff')}
+        </strong>
       </div>
-      <div className="render-debug-row" title="WebGPU API (Etap 1, diagnostyka; render nadal WebGL)">
-        <span>WebGPU API</span>
+      <div className="render-debug-row">
+        <span>{t('filmLab.renderDebug.proxyGpuRow')}</span>
+        <strong>
+          {renderDebugInfo?.proxyGpuEnabled
+            ? t('filmLab.renderDebug.diagShortOn')
+            : t('filmLab.renderDebug.diagShortOff')}
+        </strong>
+      </div>
+      <div
+        className="render-debug-row"
+        title={t('filmLab.renderDebug.profileLutPreviewTitle')}
+      >
+        <span>{t('filmLab.renderDebug.profileLutPreview')}</span>
+        <strong>
+          {isEnvEnablePreviewLuts() ? t('filmLab.renderDebug.stateOn') : t('filmLab.renderDebug.stateOff')}
+        </strong>
+      </div>
+      <div className="render-debug-row" title={t('filmLab.renderDebug.webGpuApiTitle')}>
+        <span>{t('filmLab.renderDebug.webGpuApiRowShort')}</span>
         <strong>
           {renderDebugInfo?.webGpuApi == null
-            ? '—'
+            ? dash
             : renderDebugInfo.webGpuApi.exposed
-              ? 'tak'
-              : 'nie'}
+              ? t('filmLab.renderDebug.yesLower')
+              : t('filmLab.renderDebug.noLower')}
         </strong>
       </div>
       <div
@@ -537,85 +935,132 @@ export default function FilmLabRenderDebugPanel({
         title={
           renderDebugInfo?.webGpuAdapterInfo
             ? JSON.stringify(renderDebugInfo.webGpuAdapterInfo)
-            : 'requestAdapter (cache modułowe; bez GPU device)'
+            : t('filmLab.renderDebug.webGpuAdapterTitleFallback')
         }
       >
-        <span>WebGPU adapter</span>
-        <strong>{formatWebGpuAdapterLabel(renderDebugInfo)}</strong>
+        <span>{t('filmLab.renderDebug.webGpuAdapterRow')}</span>
+        <strong>{formatWebGpuAdapterLabel(renderDebugInfo, t, dash)}</strong>
       </div>
       <div
         className="render-debug-row"
         title={
           renderDebugInfo?.webGpuDevice?.limits
             ? JSON.stringify(renderDebugInfo.webGpuDevice.limits)
-            : 'requestDevice + limits (device od razu destroy; Etap 1 sonda)'
+            : t('filmLab.renderDebug.webGpuDeviceTitleFallback')
         }
       >
-        <span>WebGPU device</span>
-        <strong>{formatWebGpuDeviceLabel(renderDebugInfo)}</strong>
+        <span>{t('filmLab.renderDebug.webGpuDeviceRow')}</span>
+        <strong>{formatWebGpuDeviceLabel(renderDebugInfo, t, dash)}</strong>
       </div>
       <div
         className="render-debug-row"
-        title={`Plan §5.1.1.3: \`probeMainThreadWebGpuPreview\` — bufor, limit 2D, canvas+configure, clear, WGSL+\`createRenderPipeline\`+trójkąt+\`textureSample\` (1×1)+\`proxyWebGpuShaders.wgsl\` (worker parity) oraz po załadowaniu wejścia: downscale+\`fmain\` (\`mainThreadWebGpuHostSourceProxyPass\`); pełny kolor: \`createFastPreviewRenderer\` (WebGL/WebGL2). A/B flaga: \`VITE_FILMLAB_MAIN_PREVIEW_WEBGPU_AB=1\`. Health inline: ${getMainPreviewAbRolloutHealthThresholdsHint()}.`}
+        title={t('filmLab.renderDebug.webGpuMainPreviewTitle', {
+          hint: getMainPreviewAbRolloutHealthThresholdsHint(),
+        })}
       >
-        <span>WebGPU (main · preview)</span>
+        <span>{t('filmLab.renderDebug.webGpuMainPreviewRow')}</span>
         <strong>
-          {renderDebugInfo?.mainThreadWebGpuPreviewStatus ?? '—'}
+          {renderDebugInfo?.mainThreadWebGpuPreviewStatus ?? dash}
           {renderDebugInfo?.mainThreadWebGpuPreviewAbEnabled != null
-            ? ` · AB: ${renderDebugInfo.mainThreadWebGpuPreviewAbEnabled ? 'on' : 'off'}`
+            ? t('filmLab.renderDebug.mainPreviewSuffixAb', {
+                state: renderDebugInfo.mainThreadWebGpuPreviewAbEnabled
+                  ? t('filmLab.renderDebug.diagShortOn')
+                  : t('filmLab.renderDebug.diagShortOff'),
+              })
             : ''}
           {renderDebugInfo?.mainThreadWebGpuPreviewAbDecision != null
-            ? ` · decyzja: ${renderDebugInfo.mainThreadWebGpuPreviewAbDecision}`
+            ? t('filmLab.renderDebug.mainPreviewSuffixDecision', {
+                value: renderDebugInfo.mainThreadWebGpuPreviewAbDecision,
+              })
             : ''}
           {renderDebugInfo?.mainThreadWebGpuPreviewAbPath != null
-            ? ` · tor: ${renderDebugInfo.mainThreadWebGpuPreviewAbPath}`
+            ? t('filmLab.renderDebug.mainPreviewSuffixPath', {
+                value: renderDebugInfo.mainThreadWebGpuPreviewAbPath,
+              })
             : ''}
           {renderDebugInfo?.mainThreadWebGpuPreviewAbRenderMs != null &&
           Number.isFinite(Number(renderDebugInfo.mainThreadWebGpuPreviewAbRenderMs))
-            ? ` · ab: ${Number(renderDebugInfo.mainThreadWebGpuPreviewAbRenderMs).toFixed(1)} ms`
+            ? t('filmLab.renderDebug.mainPreviewSuffixAbMs', {
+                ms: `${Number(renderDebugInfo.mainThreadWebGpuPreviewAbRenderMs).toFixed(1)} ms`,
+              })
             : ''}
           {renderDebugInfo?.mainThreadWebGpuPreviewAbSourceTexFormat != null
-            ? ` · srcTex: ${renderDebugInfo.mainThreadWebGpuPreviewAbSourceTexFormat}`
+            ? t('filmLab.renderDebug.mainPreviewSuffixSrcTex', {
+                fmt: renderDebugInfo.mainThreadWebGpuPreviewAbSourceTexFormat,
+              })
             : ''}
           {Number.isFinite(Number(renderDebugInfo?.mainThreadWebGpuPreviewAbFramesTotal))
-            ? ` · frames: ${Math.floor(Number(renderDebugInfo.mainThreadWebGpuPreviewAbFramesTotal))}`
+            ? t('filmLab.renderDebug.mainPreviewSuffixFrames', {
+                n: Math.floor(Number(renderDebugInfo.mainThreadWebGpuPreviewAbFramesTotal)),
+              })
             : ''}
           {Number.isFinite(Number(renderDebugInfo?.mainThreadWebGpuPreviewAbFramesWebGpuMain)) &&
           Number.isFinite(Number(renderDebugInfo?.mainThreadWebGpuPreviewAbFramesWebGlFallback))
-            ? ` (${Math.floor(Number(renderDebugInfo.mainThreadWebGpuPreviewAbFramesWebGpuMain))}/${Math.floor(Number(renderDebugInfo.mainThreadWebGpuPreviewAbFramesWebGlFallback))})`
+            ? t('filmLab.renderDebug.mainPreviewSuffixFrameRatio', {
+                main: Math.floor(Number(renderDebugInfo.mainThreadWebGpuPreviewAbFramesWebGpuMain)),
+                fallback: Math.floor(Number(renderDebugInfo.mainThreadWebGpuPreviewAbFramesWebGlFallback)),
+              })
             : ''}
           {Number.isFinite(Number(renderDebugInfo?.mainThreadWebGpuPreviewAbWebGpuRatio))
-            ? ` · wgpu%: ${(Number(renderDebugInfo.mainThreadWebGpuPreviewAbWebGpuRatio) * 100).toFixed(1)}`
+            ? t('filmLab.renderDebug.mainPreviewSuffixWgpuPct', {
+                pct: (Number(renderDebugInfo.mainThreadWebGpuPreviewAbWebGpuRatio) * 100).toFixed(1),
+              })
             : ''}
           {mainPreviewAbHealthSummary != null ? ' · ' : ''}
           {mainPreviewAbHealthSummary != null ? (
             <span className={`render-debug-inline-health tone-${mainPreviewAbHealthTone}`}>
-              {`health: ${mainPreviewAbHealthSummary}`}
+              {t('filmLab.renderDebug.mainPreviewHealthInline', { label: mainPreviewAbHealthSummary })}
             </span>
           ) : null}
           {renderDebugInfo?.mainThreadWebGpuMaxTextureDimension2d != null
-            ? ` · 2D≤${renderDebugInfo.mainThreadWebGpuMaxTextureDimension2d}`
+            ? t('filmLab.renderDebug.suffixTex2dMax', {
+                n: renderDebugInfo.mainThreadWebGpuMaxTextureDimension2d,
+              })
             : ''}
           {renderDebugInfo?.mainThreadWebGpuMaxTextureDimension3d != null
-            ? ` · 3D≤${renderDebugInfo.mainThreadWebGpuMaxTextureDimension3d}`
+            ? t('filmLab.renderDebug.suffixTex3dMax', {
+                n: renderDebugInfo.mainThreadWebGpuMaxTextureDimension3d,
+              })
             : ''}
           {renderDebugInfo?.mainThreadWebGpuLut3dTexFormat != null
-            ? ` · LUT3D: ${renderDebugInfo.mainThreadWebGpuLut3dTexFormat}`
+            ? t('filmLab.renderDebug.suffixLut3dFmt', {
+                fmt: renderDebugInfo.mainThreadWebGpuLut3dTexFormat,
+              })
             : ''}
           {renderDebugInfo?.mainThreadWebGpuCanvasClearPass != null
-            ? ` · canvas: ${renderDebugInfo.mainThreadWebGpuCanvasClearPass ? 'tak' : 'nie'}`
+            ? `${t('filmLab.renderDebug.mainGpuPassCanvas')} ${
+                renderDebugInfo.mainThreadWebGpuCanvasClearPass
+                  ? t('filmLab.renderDebug.yesLower')
+                  : t('filmLab.renderDebug.noLower')
+              }`
             : ''}
           {renderDebugInfo?.mainThreadWebGpuSolidDrawPass != null
-            ? ` · rys: ${renderDebugInfo.mainThreadWebGpuSolidDrawPass ? 'tak' : 'nie'}`
+            ? `${t('filmLab.renderDebug.mainGpuPassDraw')} ${
+                renderDebugInfo.mainThreadWebGpuSolidDrawPass
+                  ? t('filmLab.renderDebug.yesLower')
+                  : t('filmLab.renderDebug.noLower')
+              }`
             : ''}
           {renderDebugInfo?.mainThreadWebGpuTextureDrawPass != null
-            ? ` · tex: ${renderDebugInfo.mainThreadWebGpuTextureDrawPass ? 'tak' : 'nie'}`
+            ? `${t('filmLab.renderDebug.mainGpuPassTex')} ${
+                renderDebugInfo.mainThreadWebGpuTextureDrawPass
+                  ? t('filmLab.renderDebug.yesLower')
+                  : t('filmLab.renderDebug.noLower')
+              }`
             : ''}
           {renderDebugInfo?.mainThreadWebGpuProxyShaderDrawPass != null
-            ? ` · proxy: ${renderDebugInfo.mainThreadWebGpuProxyShaderDrawPass ? 'tak' : 'nie'}`
+            ? `${t('filmLab.renderDebug.mainGpuPassProxy')} ${
+                renderDebugInfo.mainThreadWebGpuProxyShaderDrawPass
+                  ? t('filmLab.renderDebug.yesLower')
+                  : t('filmLab.renderDebug.noLower')
+              }`
             : ''}
           {renderDebugInfo?.mainThreadWebGpuHostSourceProxyPass != null
-            ? ` · src: ${renderDebugInfo.mainThreadWebGpuHostSourceProxyPass ? 'tak' : 'nie'}`
+            ? `${t('filmLab.renderDebug.mainGpuPassSrc')} ${
+                renderDebugInfo.mainThreadWebGpuHostSourceProxyPass
+                  ? t('filmLab.renderDebug.yesLower')
+                  : t('filmLab.renderDebug.noLower')
+              }`
             : ''}
           {Array.isArray(renderDebugInfo?.mainThreadWebGpuHostSourceReadbackRgba8) &&
           renderDebugInfo.mainThreadWebGpuHostSourceReadbackRgba8.length === 4
@@ -632,20 +1077,24 @@ export default function FilmLabRenderDebugPanel({
       </div>
       <div
         className="render-debug-row"
-        title={`Status zdrowia rolloutu A/B (na bazie fallback-rate): ${getMainPreviewAbRolloutHealthThresholdsHint()}.`}
+        title={t('filmLab.renderDebug.rolloutHealthRowTitle', {
+          hint: getMainPreviewAbRolloutHealthThresholdsHint(),
+        })}
       >
-        <span>A/B rollout health</span>
+        <span>{t('filmLab.renderDebug.webGpuAbRolloutHealth')}</span>
         <strong>
           <span className={`render-debug-inline-health tone-${mainPreviewAbHealthTone}`}>
-            {formatMainPreviewAbRolloutHealth(renderDebugInfo)}
+            {formatMainPreviewAbRolloutHealth(renderDebugInfo, dash)}
           </span>
         </strong>
       </div>
       <div
         className="render-debug-row"
-        title={`Brama rolloutu A/B: ${getMainPreviewAbRolloutGateThresholdsHint()}.`}
+        title={t('filmLab.renderDebug.rolloutGateRowTitle', {
+          hint: getMainPreviewAbRolloutGateThresholdsHint(),
+        })}
       >
-        <span>A/B rollout gate</span>
+        <span>{t('filmLab.renderDebug.webGpuAbRolloutGate')}</span>
         <strong>
           <span className={`render-debug-inline-health tone-${mainPreviewAbRolloutGateTone}`}>
             {mainPreviewAbRolloutGate}
@@ -654,23 +1103,22 @@ export default function FilmLabRenderDebugPanel({
       </div>
       <div
         className="render-debug-row"
-        title={[
-          '§5.1.1.5: SAB wymaga zwykle crossOriginIsolated (COOP+COEP). Tylko telemetria; produkcja bez wymuszenia.',
-          JSON.stringify(renderDebugInfo?.sharedArrayBufferHost ?? null, null, 0),
-        ].join('\n')}
+        title={`${t('filmLab.renderDebug.hostSabTitleBody')}\n${JSON.stringify(renderDebugInfo?.sharedArrayBufferHost ?? null, null, 0)}`}
       >
-        <span>Host · SharedArrayBuffer</span>
-        <strong>{formatSharedArrayBufferHostLine(renderDebugInfo)}</strong>
+        <span>{t('filmLab.renderDebug.hostSharedArrayBuffer')}</span>
+        <strong>{formatSharedArrayBufferHostLine(renderDebugInfo, t, dash)}</strong>
       </div>
       {asWorkerWebGpuRenderShape(renderDebugInfo?.webGpuWorker) ? (
         <>
           <div
             className="render-debug-row"
-            title="proxyRenderWorker — osobna kopia `webGpuEnvironment` (porównaj z wierszami powyżej)"
+            title={t('filmLab.renderDebug.workerApiTitle')}
           >
-            <span>W · API</span>
+            <span>{t('filmLab.renderDebug.workerApiRow')}</span>
             <strong>
-              {renderDebugInfo?.webGpuWorker?.webGpuApi?.exposed ? 'tak' : 'nie'}
+              {renderDebugInfo?.webGpuWorker?.webGpuApi?.exposed
+                ? t('filmLab.renderDebug.yesLower')
+                : t('filmLab.renderDebug.noLower')}
             </strong>
           </div>
           <div
@@ -678,12 +1126,12 @@ export default function FilmLabRenderDebugPanel({
             title={
               renderDebugInfo?.webGpuWorker?.webGpuAdapterInfo
                 ? JSON.stringify(renderDebugInfo.webGpuWorker.webGpuAdapterInfo)
-                : ''
+                : t('filmLab.renderDebug.webGpuAdapterTitleFallback')
             }
           >
-            <span>W · adapter</span>
+            <span>{t('filmLab.renderDebug.workerAdapterRow')}</span>
             <strong>
-              {formatWebGpuAdapterLabel(asWorkerWebGpuRenderShape(renderDebugInfo?.webGpuWorker) || {})}
+              {formatWebGpuAdapterLabel(asWorkerWebGpuRenderShape(renderDebugInfo?.webGpuWorker) || {}, t, dash)}
             </strong>
           </div>
           <div
@@ -691,13 +1139,15 @@ export default function FilmLabRenderDebugPanel({
             title={
               renderDebugInfo?.webGpuWorker?.webGpuDevice?.limits
                 ? JSON.stringify(renderDebugInfo.webGpuWorker.webGpuDevice.limits)
-                : ''
+                : t('filmLab.renderDebug.webGpuDeviceTitleFallback')
             }
           >
-            <span>W · device</span>
+            <span>{t('filmLab.renderDebug.workerDeviceRow')}</span>
             <strong>
               {formatWebGpuDeviceLabel(
                 asWorkerWebGpuRenderShape(renderDebugInfo?.webGpuWorker) || {},
+                t,
+                dash,
               )}
             </strong>
           </div>
@@ -705,87 +1155,93 @@ export default function FilmLabRenderDebugPanel({
       ) : (
         <div
           className="render-debug-row"
-          title="Sonda WebGPU w `proxyRenderWorker` (ten sam wzorzec co w wątku głównym; render nadal WebGL2)"
+          title={t('filmLab.renderDebug.workerWebGpuProbeTitle')}
         >
-          <span>W WebGPU (worker)</span>
-          <strong>{formatWorkerWebGpuStatus(renderDebugInfo?.webGpuWorker)}</strong>
+          <span>{t('filmLab.renderDebug.workerWebGpuStatusRow')}</span>
+          <strong>{formatWorkerWebGpuStatus(renderDebugInfo?.webGpuWorker, t, dash)}</strong>
         </div>
       )}
       <div
         className="render-debug-row"
-        title="getPreferredCanvasFormat() w workerze (proxy WebGPU po udanym tryAttach)"
+        title={t('filmLab.renderDebug.canvasFormatTitle')}
       >
-        <span>W · canvas format</span>
-        <strong>{renderDebugInfo?.proxyWorkerWebGpuCanvasFormat ?? '—'}</strong>
+        <span>{t('filmLab.renderDebug.workerCanvasFormat')}</span>
+        <strong>{renderDebugInfo?.proxyWorkerWebGpuCanvasFormat ?? dash}</strong>
       </div>
       <div
         className="render-debug-row"
         title={
           renderDebugInfo?.proxyWorkerWebGpuDeviceLimits
             ? JSON.stringify(renderDebugInfo.proxyWorkerWebGpuDeviceLimits, null, 0)
-            : 'GPUDevice.limits w workerze (po tryAttach) — m.in. maks. wymiary tekstur'
+            : t('filmLab.renderDebug.workerTexLimitsTitleFallback')
         }
       >
-        <span>W · limity tex</span>
+        <span>{t('filmLab.renderDebug.workerTexLimits')}</span>
         <strong>
           {renderDebugInfo?.proxyWorkerWebGpuDeviceLimits
             ? `2D ${renderDebugInfo.proxyWorkerWebGpuDeviceLimits.maxTextureDimension2D} · 3D ${renderDebugInfo.proxyWorkerWebGpuDeviceLimits.maxTextureDimension3D}`
-            : '—'}
+            : dash}
         </strong>
       </div>
       <div
         className="render-debug-row"
-        title="WebGL2 w workerze: MAX_TEXTURE_SIZE i MAX_3D_TEXTURE_SIZE (ostatnia klatka proxy WebGL)"
+        title={t('filmLab.renderDebug.workerGlLimitsTitle')}
       >
-        <span>W · GL limity tex</span>
+        <span>{t('filmLab.renderDebug.workerGlTexLimits')}</span>
         <strong>
           {renderDebugInfo?.proxyLastFrameGpuImpl === 'webgl' &&
           renderDebugInfo?.proxyWorkerWebGlMaxTex2d != null
-            ? `2D ${renderDebugInfo.proxyWorkerWebGlMaxTex2d} · 3D ${renderDebugInfo.proxyWorkerWebGlMaxTex3d ?? '—'}`
-            : '—'}
+            ? `2D ${renderDebugInfo.proxyWorkerWebGlMaxTex2d} · 3D ${renderDebugInfo.proxyWorkerWebGlMaxTex3d ?? dash}`
+            : dash}
         </strong>
       </div>
       <div
         className="render-debug-row"
-        title="Proxy WebGL2: sonda `probeWebgl2Rgba16fFboUsable`; FBO+blit gdy sonda OK i brak `VITE_FILMLAB_FAST_FBO16F=0` (jak szybki podgląd). Źródło `texImage2D` nadal RGBA8."
+        title={t('filmLab.renderDebug.workerGlFboTitle')}
       >
-        <span>W · GL FBO RGBA16F</span>
+        <span>{t('filmLab.renderDebug.workerGlFboRgba16f')}</span>
         <strong>
           {renderDebugInfo?.proxyLastFrameGpuImpl === 'webgl' &&
           renderDebugInfo?.proxyWorkerWebGlRgba16f != null
-            ? `${renderDebugInfo.proxyWorkerWebGlRgba16f ? 'sonda: tak' : 'sonda: nie'}${
+            ? `${renderDebugInfo.proxyWorkerWebGlRgba16f ? t('filmLab.renderDebug.probeYes') : t('filmLab.renderDebug.probeNo')}${
                 renderDebugInfo?.proxyWorkerWebGlFbo16fBlit != null
-                  ? ` · blit: ${renderDebugInfo.proxyWorkerWebGlFbo16fBlit ? 'tak' : 'nie'}`
+                  ? ` · ${renderDebugInfo.proxyWorkerWebGlFbo16fBlit ? t('filmLab.renderDebug.blitYes') : t('filmLab.renderDebug.blitNo')}`
                   : ''
               }`
-            : '—'}
+            : dash}
         </strong>
       </div>
       <div
         className="render-debug-row"
-        title="Proxy WebGL2: 3D LUT (profil + look) w `TEXTURE_3D` — `rgba16f`+half gdy sonda 3D i aktywny FBO+blit, inaczej `rgba8`."
+        title={t('filmLab.renderDebug.workerGl3dLutTitle')}
       >
-        <span>W · GL 3D LUT</span>
+        <span>{t('filmLab.renderDebug.workerGl3dLut')}</span>
         <strong>
           {renderDebugInfo?.proxyLastFrameGpuImpl === 'webgl' &&
           renderDebugInfo?.proxyWorkerWebGl3dLutRgba16f != null
             ? renderDebugInfo.proxyWorkerWebGl3dLutRgba16f
               ? 'rgba16f'
               : 'rgba8'
-            : '—'}
+            : dash}
         </strong>
       </div>
       {renderDebugInfo?.proxyLastFrameBackend === 'gpu' &&
       hasProxyWorkerGpuTexDimensions(renderDebugInfo) ? (
         <div
           className="render-debug-row"
-          title="Rozmiar 2D tekstury wejścia w workerze; jeśli mniejszy niż poniższy „pełny” rozmiar, zastosowano pobiliniowe pomniejszenie do limitu GPU."
+          title={t('filmLab.renderDebug.gpuInputTexTitle')}
         >
-          <span>W · wejście GPU (tex)</span>
+          <span>{t('filmLab.renderDebug.workerGpuInputTex')}</span>
           <strong>
             {!isProxyWorkerGpuInputTexDownscaled(renderDebugInfo)
               ? `${renderDebugInfo.proxyWorkerGpuTexW}×${renderDebugInfo.proxyWorkerGpuTexH}`
-              : `${renderDebugInfo.proxyWorkerGpuTexW}×${renderDebugInfo.proxyWorkerGpuTexH} (z ${renderDebugInfo.proxyWorkerFullSourceW}×${renderDebugInfo.proxyWorkerFullSourceH})`}
+              : `${renderDebugInfo.proxyWorkerGpuTexW}×${renderDebugInfo.proxyWorkerGpuTexH}${t(
+                  'filmLab.renderDebug.gpuInputFromFull',
+                  {
+                    w: renderDebugInfo.proxyWorkerFullSourceW,
+                    h: renderDebugInfo.proxyWorkerFullSourceH,
+                  },
+                )}`}
           </strong>
         </div>
       ) : null}
@@ -793,210 +1249,268 @@ export default function FilmLabRenderDebugPanel({
       hasProxyWorkerGpuTexDimensions(renderDebugInfo) ? (
         <div
           className="render-debug-row"
-          title="Czas pobiliniowego pomniejszenia bufora wejścia do limitu 2D w workerze (przed `renderer.render`). 0 ms = odczyt z cache; — = pełna rozdzielczość mieści się w limicie (brak kroku CPU)."
+          title={t('filmLab.renderDebug.gpuInputDownscaleTitle')}
         >
-          <span>W · downscale wejścia</span>
+          <span>{t('filmLab.renderDebug.workerInputDownscale')}</span>
           <strong>
             {renderDebugInfo.proxyWorkerGpuInputDownscaleMs === null
-              ? '—'
+              ? dash
               : renderDebugInfo.proxyWorkerGpuInputDownscaleMs === 0
-                ? '0 ms (cache)'
-                : formatRenderMs(renderDebugInfo.proxyWorkerGpuInputDownscaleMs)}
+                ? t('filmLab.renderDebug.cacheHitMs')
+                : formatRenderMs(renderDebugInfo.proxyWorkerGpuInputDownscaleMs, dash)}
           </strong>
         </div>
       ) : null}
       <div
         className="render-debug-row"
-        title="Nominalny rozmiar klatki proxy (`proxyComputeSize.js` = worker). „Bufor” to rozmiar canvas źródła (preview), na którym liczy się nominal; gdy różni się od nominal — worker dodatkowo pomniejsza przed dalszym pipeline."
+        title={t('filmLab.renderDebug.proxyNominalTitle')}
       >
-        <span>W · nominal (computeProxySize)</span>
-        <strong>{formatProxyNominalDebugLine(renderDebugInfo)}</strong>
+        <span>{t('filmLab.renderDebug.workerNominalCompute')}</span>
+        <strong>{formatProxyNominalDebugLine(renderDebugInfo, t, dash)}</strong>
       </div>
       {readEnvFlag(import.meta?.env?.VITE_FILMLAB_PROXY_MATCH_PREVIEW) ? (
         <div
           className="render-debug-row"
-          title="VITE_FILMLAB_PROXY_MATCH_PREVIEW (1/true/on/yes) — to samo co w silniku: proxyMax ≥ dłuższa krawędź bufora preview, bez drugiego downscale w workerze (koszt: wyższy render przy interakcji)."
+          title={t('filmLab.renderDebug.proxyMatchPreviewTitle')}
         >
-          <span>W · match bufora preview</span>
-          <strong>włączony</strong>
+          <span>{t('filmLab.renderDebug.workerMatchPreviewBuffer')}</span>
+          <strong>{t('filmLab.renderDebug.stateOn')}</strong>
         </div>
       ) : null}
       <div
         className="render-debug-row"
-        title="Gdy tak: nominalny rozmiar z computeProxySize przekroczył maxTextureDimension2D — wyjście proxy dopasowane (wspólnie na GPU/CPU, gdy znany limit 2D)."
+        title={t('filmLab.renderDebug.proxyOutputFitTitle')}
       >
-        <span>W · wyjście do limitu 2D</span>
-        <strong>{getProxyWorkerOutputFitStatusLabel(renderDebugInfo)}</strong>
+        <span>{t('filmLab.renderDebug.workerOutputFit2d')}</span>
+        <strong>{getProxyWorkerOutputFitStatusLabel(renderDebugInfo, t)}</strong>
       </div>
       <div
         className="render-debug-row"
-        title="Ile kafli 2D wymagałby nominalny rozmiar proxy vs. faktyczne wyjście po dopasowaniu do maxTextureDimension2D (telemetria; pełny multi-tile render w repo jeszcze nie)."
+        title={t('filmLab.renderDebug.proxyTilesTitle')}
       >
-        <span>W · kafle @ max2D (nom.→wyj.)</span>
-        <strong>{getProxyWorkerOutputTileStatusLabel(renderDebugInfo)}</strong>
+        <span>{t('filmLab.renderDebug.workerTilesMax2d')}</span>
+        <strong>{getProxyWorkerOutputTileStatusLabel(renderDebugInfo, t)}</strong>
       </div>
       <div
         className="render-debug-row"
-        title="Format tekstury wejścia w proxy WebGPU (rgba16float jeśli urządzenie i API; inaczej rgba8unorm)"
+        title={t('filmLab.renderDebug.proxySourceTexFmtTitle')}
       >
-        <span>W · wejście (tex)</span>
-        <strong>{renderDebugInfo?.proxyWorkerWebGpuSourceTexFormat ?? '—'}</strong>
+        <span>{t('filmLab.renderDebug.workerInputTexFormat')}</span>
+        <strong>{renderDebugInfo?.proxyWorkerWebGpuSourceTexFormat ?? dash}</strong>
       </div>
       <div
         className="render-debug-row"
-        title="Format 3D LUT (profil + look) w proxy WebGPU"
+        title={t('filmLab.renderDebug.lut3dWorkerTitle')}
       >
-        <span>W · LUT 3D (tex)</span>
-        <strong>{renderDebugInfo?.proxyWorkerWebGpuLut3dTexFormat ?? '—'}</strong>
+        <span>{t('filmLab.renderDebug.workerLut3dTexRow')}</span>
+        <strong>{renderDebugInfo?.proxyWorkerWebGpuLut3dTexFormat ?? dash}</strong>
       </div>
       <div
         className="render-debug-row"
-        title="Porównanie `proxyWorkerWebGpuLut3dTexFormat` (worker) z `mainThreadWebGpuLut3dTexFormat` (sonda wątku głównego). Osobne urządzenia/cache — warto weryfikować `różne` przy debugowaniu."
+        title={t('filmLab.renderDebug.lut3dParityTitle')}
       >
-        <span>LUT 3D (W · main)</span>
-        <strong>{formatWebGpuLut3dMainWorkerParityLine(renderDebugInfo)}</strong>
+        <span>{t('filmLab.renderDebug.lut3dWorkerMain')}</span>
+        <strong>{formatWebGpuLut3dMainWorkerParityLine(renderDebugInfo, t, dash)}</strong>
       </div>
       <div
         className="render-debug-row"
-        title="Readback 1×1 piksel (0,0): worker (swapchain / kafel) vs sonda wątku głównego (`rb0` w wierszu WebGPU main·preview). Różne ścieżki, rozdzielczości i downscale — hex nie musi być zgodny; wiersz służy do szybkiego skanu i regresji."
+        title={t('filmLab.renderDebug.readbackRbTitle')}
       >
-        <span>Readback (W · main · rb0)</span>
-        <strong>{formatWebGpuReadbackMainWParityLine(renderDebugInfo)}</strong>
+        <span>{t('filmLab.renderDebug.readbackWMainRb')}</span>
+        <strong>{formatWebGpuReadbackMainWParityLine(renderDebugInfo, t, dash)}</strong>
       </div>
       <div
         className="render-debug-row"
-        title="Parity RGB readbacku 1×1 (worker WebGPU vs main WebGPU probe): porównanie kanałów R,G,B."
+        title={t('filmLab.renderDebug.readbackRgbTitle')}
       >
-        <span>Readback parity (W=main RGB)</span>
-        <strong>{formatWebGpuReadbackMainWParityRgb(renderDebugInfo)}</strong>
+        <span>{t('filmLab.renderDebug.readbackParityRgb')}</span>
+        <strong>{formatWebGpuReadbackMainWParityRgb(renderDebugInfo, t)}</strong>
       </div>
       <div className="render-debug-row">
-        <span>Status</span>
-        <strong>{renderDebugInfo?.proxyWorkerStatus ?? 'n/a'}</strong>
+        <span>{t('filmLab.renderDebug.statusRow')}</span>
+        <strong>{renderDebugInfo?.proxyWorkerStatus ?? t('filmLab.renderDebug.notApplicable')}</strong>
       </div>
       <div className="render-debug-row">
-        <span>Profile mode</span>
-        <strong>{renderDebugInfo?.profileRenderMode ?? 'n/a'}</strong>
+        <span>{t('filmLab.renderDebug.profileModeRow')}</span>
+        <strong>{renderDebugInfo?.profileRenderMode ?? t('filmLab.renderDebug.notApplicable')}</strong>
       </div>
       <div className="render-debug-row">
-        <span>Preview path</span>
+        <span>{t('filmLab.renderDebug.previewPathDebugRow')}</span>
         <strong>{previewPathLabel}</strong>
       </div>
       <div className="render-debug-row">
-        <span>Last path</span>
-        <strong>{renderDebugInfo?.lastRenderPath ?? 'n/a'}</strong>
+        <span>{t('filmLab.renderDebug.aiRunsRow')}</span>
+        <strong>{Number(adjustments?.aiAssistRuns ?? 0)}</strong>
       </div>
-      <div
-        className="render-debug-row"
-        title="Efektywne `interactionKind` w silniku (z engineAdjustments): przy !isAdjusting zawsze idle — wpływa m.in. na szybki podgląd, proxy, gałęzie HSL/grade/calibration/curve. Zob. `useFilmLabEngineAdjustments`."
-      >
-        <span>Interaction (engine)</span>
-        <strong>{renderDebugInfo?.interactionKind ?? '—'}</strong>
-      </div>
-      <div
-        className="render-debug-row"
-        title="`isAdjusting` w `engineAdjustments` (host → silnik) — włączany przy suwakach, kółku gradacji, krzywych, prostowaniu, cadrowaniu (wg panelu) itd.; wpływa na wybór ścieżki podglądu i na E2E (drag v2) gdy w momencie klatki nadal true."
-      >
-        <span>Adjusting (engine)</span>
-        <strong>{renderDebugInfo?.isAdjusting ? 'tak' : 'nie'}</strong>
-      </div>
-      <div
-        className="render-debug-row"
-        title="`options.e2eIsPanning` z hosta (Film Lab: pan obrazu w widoku) — włącza liczenie E2E v3 pointer→canvas, gdy użytkownik nie trzyma suwaka (`isAdjusting` może być false). Zob. `readPreviewE2ePointerContext` w silniku."
-      >
-        <span>E2E (pan)</span>
-        <strong>{renderDebugInfo?.e2ePanning ? 'tak' : 'nie'}</strong>
-      </div>
-      <div
-        className="render-debug-row"
-        title="`getFilmLabE2ePointerAuxSession()` — sesja pomocnicza (np. rękojeść kadru w `useFilmLabCropDrag`), gdy `isAdjusting` z Reacta bywa false; włącza pomiar E2E v3 pointer→canvas. Odświeżane ~5×/s przy otwartym panelu."
-      >
-        <span>E2E (aux)</span>
-        <strong>{e2ePointerAux ? 'tak' : 'nie'}</strong>
-      </div>
-      <div
-        className="render-debug-row"
-        title="Sesja E2E v3 po skrócie klawiszowym (zoom, pan klawiszami, Przed/Po, auto A/K, cadrowanie Enter, itd.); `isAdjusting` bywa false — włączany kontekst jak przy aux. Konsumowany po pierwszej prezentacji klatki."
-      >
-        <span>E2E (kbd)</span>
-        <strong>{e2ePointerKeyboard ? 'tak' : 'nie'}</strong>
-      </div>
-      <div
-        className="render-debug-row"
-        title="Czas od ostatniego wejścia w harmonogram renderu (scheduleProgressiveRender) do zapisu pikseli na canvasie podglądu. Obejmuje m.in. kolejkę rAF, worker i rysowanie; nie mierzy opóźnienia React/ props przed schedule. Pokazuje też medianę ruchomą (31 próbek) per `previewE2ePath` i stan KPI 16 ms."
-      >
-        <span>E2E (sched→canvas)</span>
+      <div className="render-debug-row">
+        <span>{t('filmLab.renderDebug.aiLatencyRow')}</span>
         <strong>
-          {formatRenderMs(renderDebugInfo?.previewE2eIntentToPresentMs)} ·{' '}
-          {renderDebugInfo?.previewE2ePath ?? '—'}
+          {Number.isFinite(Number(adjustments?.aiAssistLastLatencyMs))
+            ? `${Number(adjustments.aiAssistLastLatencyMs).toFixed(2)} ms`
+            : dash}
+          {' · avg '}
+          {Number(adjustments?.aiAssistRuns ?? 0) > 0 &&
+          Number.isFinite(Number(adjustments?.aiAssistTotalLatencyMs))
+            ? `${(
+                Number(adjustments.aiAssistTotalLatencyMs) /
+                Number(adjustments.aiAssistRuns)
+              ).toFixed(2)} ms`
+            : dash}
+        </strong>
+      </div>
+      <div className="render-debug-row">
+        <span>{t('filmLab.renderDebug.aiKpiRow')}</span>
+        <strong>
+          {Number.isFinite(Number(adjustments?.aiAssistLastLatencyMs))
+            ? Number(adjustments.aiAssistLastLatencyMs) <= 100
+              ? t('filmLab.renderDebug.aiKpiOk')
+              : t('filmLab.renderDebug.aiKpiWarn')
+            : t('filmLab.renderDebug.aiKpiPending')}
+        </strong>
+      </div>
+      <div className="render-debug-row">
+        <span>{t('filmLab.renderDebug.workflowProRow')}</span>
+        <strong>
+          {uploadedFile instanceof File && hasImage
+            ? t('filmLab.renderDebug.workflowProSessionReady')
+            : t('filmLab.renderDebug.workflowProSessionIdle')}
+          {' · '}
+          {t('filmLab.renderDebug.workflowProCatalogPending')}
+        </strong>
+      </div>
+      <div className="render-debug-row">
+        <span>{t('filmLab.renderDebug.lastRenderPathRow')}</span>
+        <strong>{renderDebugInfo?.lastRenderPath ?? t('filmLab.renderDebug.notApplicable')}</strong>
+      </div>
+      <div
+        className="render-debug-row"
+        title={t('filmLab.renderDebug.interactionKindTitle')}
+      >
+        <span>{t('filmLab.renderDebug.interactionEngineRow')}</span>
+        <strong>{renderDebugInfo?.interactionKind ?? dash}</strong>
+      </div>
+      <div
+        className="render-debug-row"
+        title={t('filmLab.renderDebug.isAdjustingTitle')}
+      >
+        <span>{t('filmLab.renderDebug.adjustingEngineRow')}</span>
+        <strong>
+          {renderDebugInfo?.isAdjusting ? t('filmLab.renderDebug.yesLower') : t('filmLab.renderDebug.noLower')}
+        </strong>
+      </div>
+      <div
+        className="render-debug-row"
+        title={t('filmLab.renderDebug.e2ePanTitle')}
+      >
+        <span>{t('filmLab.renderDebug.e2ePanRow')}</span>
+        <strong>
+          {renderDebugInfo?.e2ePanning ? t('filmLab.renderDebug.yesLower') : t('filmLab.renderDebug.noLower')}
+        </strong>
+      </div>
+      <div
+        className="render-debug-row"
+        title={t('filmLab.renderDebug.e2eAuxTitle')}
+      >
+        <span>{t('filmLab.renderDebug.e2eAuxRow')}</span>
+        <strong>{e2ePointerAux ? t('filmLab.renderDebug.yesLower') : t('filmLab.renderDebug.noLower')}</strong>
+      </div>
+      <div
+        className="render-debug-row"
+        title={t('filmLab.renderDebug.e2eKbdTitle')}
+      >
+        <span>{t('filmLab.renderDebug.e2eKbdRow')}</span>
+        <strong>{e2ePointerKeyboard ? t('filmLab.renderDebug.yesLower') : t('filmLab.renderDebug.noLower')}</strong>
+      </div>
+      <div
+        className="render-debug-row"
+        title={t('filmLab.renderDebug.e2eSchedCanvasTitle')}
+      >
+        <span>{t('filmLab.renderDebug.e2eSchedCanvas')}</span>
+        <strong>
+          {formatRenderMs(renderDebugInfo?.previewE2eIntentToPresentMs, dash)} ·{' '}
+          {renderDebugInfo?.previewE2ePath ?? dash}
           {renderDebugInfo?.previewE2eMedianMs != null
-            ? ` · med: ${formatRenderMs(renderDebugInfo?.previewE2eMedianMs)}`
+            ? t('filmLab.renderDebug.e2eMedSuffix', {
+                ms: formatRenderMs(renderDebugInfo?.previewE2eMedianMs, dash),
+              })
             : ''}
           {renderDebugInfo?.previewE2eKpiState != null
-            ? ` · KPI(${renderDebugInfo?.previewE2eKpiTargetMs ?? 16}): ${renderDebugInfo.previewE2eKpiState}`
+            ? t('filmLab.renderDebug.e2eKpiSuffix', {
+                target: renderDebugInfo?.previewE2eKpiTargetMs ?? 16,
+                state: renderDebugInfo.previewE2eKpiState,
+              })
             : ''}
         </strong>
       </div>
       <div
         className="render-debug-row"
-        title="Opcjonalnie: VITE_FILMLAB_E2E_HOST_SCHED_RAF=1 — czas od ostatniego `scheduleProgressiveRender` do pierwszego `requestAnimationFrame` hosta, który wykonuje pracę podglądu (fast/CPU) lub wysyła żądanie do workera. Uzupełnia sched→canvas."
+        title={t('filmLab.renderDebug.e2eSchedRafTitle')}
       >
-        <span>E2E (sched→rAF host)</span>
+        <span>{t('filmLab.renderDebug.e2eSchedRafHost')}</span>
         <strong>
           {isEnvE2eHostSchedRaf()
-            ? formatRenderMs(renderDebugInfo?.previewE2eHostSchedToRafMs)
-            : 'off'}
+            ? formatRenderMs(renderDebugInfo?.previewE2eHostSchedToRafMs, dash)
+            : t('filmLab.renderDebug.e2eSchedRafDisabled')}
         </strong>
       </div>
       <div
         className="render-debug-row"
-        title="Czas od pierwszego ustawienia isAdjusting (start sesji drag/sterowania) do zapisu pikseli, tylko gdy w momencie prezentacji wciąż isAdjusting. Nie obejmuje kliknięć bez trybu „dostrajanie”."
+        title={t('filmLab.renderDebug.e2eDragCanvasTitle')}
       >
-        <span>E2E (drag→canvas)</span>
-        <strong>{formatRenderMs(renderDebugInfo?.previewE2eDragToPresentMs)}</strong>
+        <span>{t('filmLab.renderDebug.e2eDragCanvas')}</span>
+        <strong>{formatRenderMs(renderDebugInfo?.previewE2eDragToPresentMs, dash)}</strong>
       </div>
       <div
         className="render-debug-row"
-        title="Czas od ostatniego mousedown (suwak, pan widoku, rękojeść kadru, prostowanie) lub intencji klawiatury (`markFilmLabE2eKeyboardE2eIntent`) do zapisu pikseli, gdy trwa odpowiednia sesja: isAdjusting, isPanning, rękojeść (aux) lub klawiatura (sesja w module E2E)."
+        title={t('filmLab.renderDebug.e2ePointerCanvasTitle')}
       >
-        <span>E2E (pointer→canvas)</span>
-        <strong>{formatRenderMs(renderDebugInfo?.previewE2ePointerToPresentMs)}</strong>
+        <span>{t('filmLab.renderDebug.e2ePointerCanvas')}</span>
+        <strong>{formatRenderMs(renderDebugInfo?.previewE2ePointerToPresentMs, dash)}</strong>
       </div>
       <div
         className="render-debug-row"
-        title="Agregacja median E2E per `previewE2ePath` (okno 31 próbek): ułatwia porównanie A/B `fast-main-webgpu-ab` vs `fast-webgl` i torów worker/CPU."
+        title={t('filmLab.renderDebug.e2eMedianPerPathTitle')}
       >
-        <span>E2E mediana (per path)</span>
-        <strong>{formatPreviewE2ePerPathStats(renderDebugInfo?.previewE2ePerPathStats)}</strong>
+        <span>{t('filmLab.renderDebug.e2eMedianPerPath')}</span>
+        <strong>{formatPreviewE2ePerPathStats(renderDebugInfo?.previewE2ePerPathStats, dash)}</strong>
       </div>
       <div
         className="render-debug-row"
-        title="Skrót A/B E2E: porównanie median `fast-main-webgpu-ab` i `fast-webgl` (okno 31 próbek na ścieżkę)."
+        title={t('filmLab.renderDebug.e2eAbMedianTitle')}
       >
-        <span>E2E A/B (WebGPU · WebGL)</span>
-        <strong>{formatPreviewE2eAbSummary(renderDebugInfo?.previewE2ePerPathStats)}</strong>
+        <span>{t('filmLab.renderDebug.e2eAbWebGpuWebGl')}</span>
+        <strong>{formatPreviewE2eAbSummary(renderDebugInfo?.previewE2ePerPathStats, t, dash)}</strong>
       </div>
       <div
         className="render-debug-row"
-        title={`Koszt samej klatki (workerRenderMs / fastRenderMs / cpuPreview|full) — mediana ruchoma (31 próbek) i KPI; ${getPreviewE2eFrameCostGateThresholdsHint()}.`}
+        title={t('filmLab.renderDebug.e2eFrameCostTitle', {
+          hint: getPreviewE2eFrameCostGateThresholdsHint(),
+        })}
       >
-        <span>E2E koszt klatki</span>
+        <span>{t('filmLab.renderDebug.e2eFrameCost')}</span>
         <strong>
-          {formatRenderMs(renderDebugInfo?.previewE2eFrameCostMs)} ·{' '}
-          {renderDebugInfo?.previewE2ePath ?? '—'}
+          {formatRenderMs(renderDebugInfo?.previewE2eFrameCostMs, dash)} ·{' '}
+          {renderDebugInfo?.previewE2ePath ?? dash}
           {renderDebugInfo?.previewE2eFrameCostMedianMs != null
-            ? ` · med: ${formatRenderMs(renderDebugInfo?.previewE2eFrameCostMedianMs)}`
+            ? t('filmLab.renderDebug.e2eMedSuffix', {
+                ms: formatRenderMs(renderDebugInfo?.previewE2eFrameCostMedianMs, dash),
+              })
             : ''}
           {renderDebugInfo?.previewE2eFrameCostKpiState != null
-            ? ` · KPI(${renderDebugInfo?.previewE2eFrameCostKpiTargetMs ?? 16}): ${renderDebugInfo.previewE2eFrameCostKpiState}`
+            ? t('filmLab.renderDebug.e2eKpiSuffix', {
+                target: renderDebugInfo?.previewE2eFrameCostKpiTargetMs ?? 16,
+                state: renderDebugInfo.previewE2eFrameCostKpiState,
+              })
             : ''}
         </strong>
       </div>
       <div
         className="render-debug-row"
-        title={`Brama mediany kosztu klatki: ${getPreviewE2eFrameCostGateThresholdsHint()}.`}
+        title={t('filmLab.renderDebug.e2eFrameCostGateTitle', {
+          hint: getPreviewE2eFrameCostGateThresholdsHint(),
+        })}
       >
-        <span>E2E gate (koszt klatki)</span>
+        <span>{t('filmLab.renderDebug.e2eGateFrameCost')}</span>
         <strong>
           <span className={`render-debug-inline-health tone-${previewE2eFrameCostGate.tone}`}>
             {previewE2eFrameCostGate.panelLabel}
@@ -1004,23 +1518,25 @@ export default function FilmLabRenderDebugPanel({
         </strong>
       </div>
       <div className="render-debug-row">
-        <span>Last frame</span>
-        <strong>{renderDebugInfo?.proxyLastFrameBackend ?? 'n/a'}</strong>
+        <span>{t('filmLab.renderDebug.lastFrameRow')}</span>
+        <strong>{renderDebugInfo?.proxyLastFrameBackend ?? t('filmLab.renderDebug.notApplicable')}</strong>
       </div>
       <div className="render-debug-row">
-        <span>Proxy GPU API</span>
-        <strong>{renderDebugInfo?.proxyLastFrameGpuImpl ?? 'n/a'}</strong>
+        <span>{t('filmLab.renderDebug.proxyGpuApiRow')}</span>
+        <strong>{renderDebugInfo?.proxyLastFrameGpuImpl ?? t('filmLab.renderDebug.notApplicable')}</strong>
       </div>
       {renderDebugInfo?.proxyWebGpuDeviceLost ? (
         <div
           className="render-debug-row"
-          title={`${String(renderDebugInfo?.proxyWebGpuDeviceLostMessage ?? '')} — worker wykonuje jedną automatyczną ponowną inicjację (wiadomość reinitWebGpu).`}
+          title={t('filmLab.renderDebug.webGpuLostTitle', {
+            message: String(renderDebugInfo?.proxyWebGpuDeviceLostMessage ?? ''),
+          })}
         >
-          <span>WebGPU utracone</span>
+          <span>{t('filmLab.renderDebug.webGpuLost')}</span>
           <strong>
             {renderDebugInfo?.proxyWebGpuDeviceLostAt
               ? new Date(renderDebugInfo.proxyWebGpuDeviceLostAt).toLocaleTimeString()
-              : 'tak'}
+              : t('filmLab.renderDebug.webGpuLostYes')}
           </strong>
         </div>
       ) : null}
@@ -1029,155 +1545,157 @@ export default function FilmLabRenderDebugPanel({
           className="render-debug-row"
           title={String(renderDebugInfo?.proxyWebGpuReinitFailedMessage ?? '')}
         >
-          <span>WebGPU reinit: błąd</span>
+          <span>{t('filmLab.renderDebug.webGpuReinitError')}</span>
           <strong>
             {new Date(renderDebugInfo.proxyWebGpuReinitFailedAt).toLocaleTimeString()}
           </strong>
         </div>
       ) : null}
       <div className="render-debug-row">
-        <span>Source ready</span>
-        <strong>{renderDebugInfo?.proxySourceReady ? 'yes' : 'no'}</strong>
+        <span>{t('filmLab.renderDebug.proxySourceReadyRow')}</span>
+        <strong>
+          {renderDebugInfo?.proxySourceReady ? t('filmLab.renderDebug.yesLower') : t('filmLab.renderDebug.noLower')}
+        </strong>
       </div>
       <div
         className="render-debug-row"
-        title="Kontekst WebGL, upload wejścia (rgba8), FBO+blit, atlas LUT (rgba16f / rgba8), precyzja fragmentu grading: highp przy fboRgba16f, inaczej mediump. §5.1. Worker: „W · wejście (tex)”."
+        title={t('filmLab.renderDebug.fastGlMainTitle')}
       >
-        <span>Głów. fast · GL / wej. / F / LUT / sh</span>
+        <span>{t('filmLab.renderDebug.fastGlMainRow')}</span>
         <strong>
-          {renderDebugInfo?.fastPreviewGlContext ?? '—'} ·{' '}
-          {renderDebugInfo?.fastPreviewMainThreadSourceTexFormat ?? '—'} ·{' '}
-          {renderDebugInfo?.fastPreviewFloatPipeline ?? '—'} ·{' '}
-          {renderDebugInfo?.fastPreviewLutAtlasTexFormat ?? '—'} ·{' '}
-          {renderDebugInfo?.fastPreviewGradingPrecision ?? '—'}
+          {renderDebugInfo?.fastPreviewGlContext ?? dash} ·{' '}
+          {renderDebugInfo?.fastPreviewMainThreadSourceTexFormat ?? dash} ·{' '}
+          {renderDebugInfo?.fastPreviewFloatPipeline ?? dash} ·{' '}
+          {renderDebugInfo?.fastPreviewLutAtlasTexFormat ?? dash} ·{' '}
+          {renderDebugInfo?.fastPreviewGradingPrecision ?? dash}
         </strong>
       </div>
       <div className="render-debug-row">
-        <span>Fast render</span>
-        <strong>{formatRenderMs(renderDebugInfo?.fastRenderMs)}</strong>
+        <span>{t('filmLab.renderDebug.fastRenderRow')}</span>
+        <strong>{formatRenderMs(renderDebugInfo?.fastRenderMs, dash)}</strong>
       </div>
       <div
         className="render-debug-row"
-        title="§5.1.1.2: `getNominalProxyRenderSize` jak worker; `tak` = bufor = nominal. Przy `VITE_FILMLAB_CPU_PREVIEW_MATCH_NOMINAL=1` możliwy 2D downscale do nominalu (pole „↓nom”)."
+        title={t('filmLab.renderDebug.cpuNominalTitle')}
       >
-        <span>CPU · nominal = bufor</span>
+        <span>{t('filmLab.renderDebug.cpuNominalEqualsBuffer')}</span>
         <strong>
           {renderDebugInfo?.cpuParityNominalW == null
-            ? '—'
+            ? dash
             : `${renderDebugInfo.cpuParityNominalW}×${renderDebugInfo.cpuParityNominalH} · ${
-                renderDebugInfo.cpuParityMatchNominal ? 'tak' : 'nie'
-              }${
-                renderDebugInfo?.cpuParityDownscaled ? ' · ↓nom' : ''
-              }`}
+                renderDebugInfo.cpuParityMatchNominal
+                  ? t('filmLab.renderDebug.yesLower')
+                  : t('filmLab.renderDebug.noLower')
+              }${renderDebugInfo?.cpuParityDownscaled ? ' · ↓nom' : ''}`}
         </strong>
       </div>
       <div className="render-debug-row">
-        <span>CPU preview</span>
-        <strong>{formatRenderMs(renderDebugInfo?.cpuPreviewMs)}</strong>
+        <span>{t('filmLab.renderDebug.cpuPreviewRow')}</span>
+        <strong>{formatRenderMs(renderDebugInfo?.cpuPreviewMs, dash)}</strong>
       </div>
       <div className="render-debug-row">
-        <span>CPU full</span>
-        <strong>{formatRenderMs(renderDebugInfo?.cpuFullMs)}</strong>
+        <span>{t('filmLab.renderDebug.cpuFullRow')}</span>
+        <strong>{formatRenderMs(renderDebugInfo?.cpuFullMs, dash)}</strong>
       </div>
       <div className="render-debug-row">
-        <span>Worker RT</span>
-        <strong>{formatRenderMs(renderDebugInfo?.workerRenderMs)}</strong>
+        <span>{t('filmLab.renderDebug.workerRtRow')}</span>
+        <strong>{formatRenderMs(renderDebugInfo?.workerRenderMs, dash)}</strong>
       </div>
       <div
         className="render-debug-row"
-        title="Tylko wywołanie GPU render() w workerze (WebGL2/WebGPU); bez postMessage i kompozycji w wątku głównym"
+        title={t('filmLab.renderDebug.workerGpuRenderTitle')}
       >
-        <span>W · GPU render</span>
-        <strong>{formatRenderMs(renderDebugInfo?.proxyWorkerGpuRenderMs)}</strong>
+        <span>{t('filmLab.renderDebug.workerGpuRender')}</span>
+        <strong>{formatRenderMs(renderDebugInfo?.proxyWorkerGpuRenderMs, dash)}</strong>
       </div>
       <div
         className="render-debug-row"
-        title="Ścieżka CPU w workerze: pętla pikseli i krzywe (od alokacji bufora do zwrócenia pikseli); bez transferu do wątku głównego. „Pełen nominal” = ten sam W×H co kafle GPU gdy VITE_FILMLAB_PROXY_OUTPUT_TILES."
+        title={t('filmLab.renderDebug.workerCpuRenderTitle')}
       >
-        <span>W · CPU render</span>
+        <span>{t('filmLab.renderDebug.workerCpuRender')}</span>
         <strong>
-          {formatRenderMs(renderDebugInfo?.proxyWorkerCpuRenderMs)}
+          {formatRenderMs(renderDebugInfo?.proxyWorkerCpuRenderMs, dash)}
           {renderDebugInfo?.proxyLastFrameBackend === 'cpu' && renderDebugInfo?.proxyWorkerCpuFullNominalParity
-            ? ' · nominal'
+            ? t('filmLab.renderDebug.nominalSuffix')
             : ''}
         </strong>
       </div>
       <div
         className="render-debug-row"
-        title="VITE_FILMLAB_PROXY_CPU_YIELD_EVERY — co ile wierszy pętli CPU workera `setTimeout(0)`; puste = wył. Skrót: npm run dev:proxy-cpu-yield"
+        title={t('filmLab.renderDebug.workerCpuYieldTitle')}
       >
-        <span>W · CPU yield</span>
-        <strong>{formatViteProxyCpuYieldEvery()}</strong>
+        <span>{t('filmLab.renderDebug.workerCpuYield')}</span>
+        <strong>{formatViteProxyCpuYieldEvery(dash)}</strong>
       </div>
       {rawBackendAbSummary ? (
         <div className={`render-debug-block tone-${rawBackendAbSummary.scoreQualityTone}`}>
           <div className="render-debug-block-title-row">
-            <div className="render-debug-block-title">RAW A/B</div>
+            <div className="render-debug-block-title">{t('filmLab.renderDebug.rawAbBlockTitle')}</div>
             <span className={`render-debug-quality-pill tone-${rawBackendAbSummary.scoreQualityTone}`}>
               {rawBackendAbSummary.scoreQualityTone === 'good'
-                ? 'GOOD'
+                ? t('filmLab.renderDebug.scorePillGood')
                 : rawBackendAbSummary.scoreQualityTone === 'neutral'
-                  ? 'NEUTRAL'
-                  : 'RISKY'}
+                  ? t('filmLab.renderDebug.scorePillNeutral')
+                  : t('filmLab.renderDebug.scorePillRisky')}
             </span>
           </div>
           <div className="render-debug-row">
-            <span>Winner</span>
+            <span>{t('filmLab.renderDebug.winnerRow')}</span>
             <strong>{rawBackendAbSummary.winnerBackend}</strong>
           </div>
           <div className="render-debug-row">
-            <span>Path</span>
+            <span>{t('filmLab.renderDebug.pathRow')}</span>
             <strong>{rawBackendAbSummary.winnerLabel}</strong>
           </div>
           <div className="render-debug-row">
-            <span>Delta</span>
+            <span>{t('filmLab.renderDebug.deltaRow')}</span>
             <strong>
               {rawBackendAbSummary.scoreDelta == null
-                ? 'n/a'
+                ? t('filmLab.renderDebug.notApplicable')
                 : rawBackendAbSummary.scoreDelta >= 0
                   ? `+${rawBackendAbSummary.scoreDelta.toFixed(2)}`
                   : rawBackendAbSummary.scoreDelta.toFixed(2)}
             </strong>
           </div>
           <div className="render-debug-row">
-            <span>Primary</span>
+            <span>{t('filmLab.renderDebug.primaryRow')}</span>
             <strong>
               {rawBackendAbSummary.primaryScore == null
-                ? 'n/a'
+                ? t('filmLab.renderDebug.notApplicable')
                 : rawBackendAbSummary.primaryScore.toFixed(2)}
             </strong>
           </div>
           <div className="render-debug-row">
-            <span>Alternate</span>
+            <span>{t('filmLab.renderDebug.alternateRow')}</span>
             <strong>
               {rawBackendAbSummary.alternateScore == null
-                ? 'n/a'
+                ? t('filmLab.renderDebug.notApplicable')
                 : rawBackendAbSummary.alternateScore.toFixed(2)}
             </strong>
           </div>
           <div className="render-debug-row">
-            <span>Reason</span>
+            <span>{t('filmLab.renderDebug.reasonRow')}</span>
             <strong>{rawBackendAbSummary.reason}</strong>
           </div>
           {rawBackendAbSummary.diffHeatmap ? (
             <>
               <div className="render-debug-row">
-                <span>Diff mean ΔL</span>
+                <span>{t('filmLab.renderDebug.diffMeanDelta')}</span>
                 <strong>
                   {rawBackendAbSummary.diffHeatmap.meanDelta == null
-                    ? 'n/a'
+                    ? t('filmLab.renderDebug.notApplicable')
                     : rawBackendAbSummary.diffHeatmap.meanDelta.toFixed(2)}
                 </strong>
               </div>
               <div className="render-debug-row">
-                <span>Diff p95/max</span>
+                <span>{t('filmLab.renderDebug.diffP95Max')}</span>
                 <strong>
                   {rawBackendAbSummary.diffHeatmap.p95Delta == null
-                    ? 'n/a'
+                    ? t('filmLab.renderDebug.notApplicable')
                     : rawBackendAbSummary.diffHeatmap.p95Delta.toFixed(2)}
                   {' / '}
                   {rawBackendAbSummary.diffHeatmap.maxDelta == null
-                    ? 'n/a'
+                    ? t('filmLab.renderDebug.notApplicable')
                     : rawBackendAbSummary.diffHeatmap.maxDelta.toFixed(2)}
                 </strong>
               </div>
@@ -1185,7 +1703,7 @@ export default function FilmLabRenderDebugPanel({
                 <div className="render-debug-heatmap-wrap">
                   <img
                     src={rawBackendAbSummary.diffHeatmap.dataUrl}
-                    alt="Heatmap różnic A/B"
+                    alt={t('filmLab.renderDebug.heatMapAlt')}
                     className="render-debug-heatmap"
                   />
                 </div>
@@ -1198,21 +1716,21 @@ export default function FilmLabRenderDebugPanel({
               className={`render-debug-chip${rawBackendMode === 'auto' ? ' active' : ''}`}
               onClick={() => setRawBackendMode('auto')}
             >
-              AUTO
+              {t('filmLab.renderDebug.rawBackendChipAuto')}
             </button>
             <button
               type="button"
               className={`render-debug-chip${rawBackendMode === 'quicklook' ? ' active' : ''}`}
               onClick={() => setRawBackendMode('quicklook')}
             >
-              QL
+              {t('filmLab.renderDebug.rawBackendChipQl')}
             </button>
             <button
               type="button"
               className={`render-debug-chip${rawBackendMode === 'sips' ? ' active' : ''}`}
               onClick={() => setRawBackendMode('sips')}
             >
-              SIPS
+              {t('filmLab.renderDebug.rawBackendChipSips')}
             </button>
             <button
               type="button"
@@ -1223,13 +1741,15 @@ export default function FilmLabRenderDebugPanel({
                 }
               }}
               disabled={!rawBackendAbSummary.winnerMode}
-              title="Wymuś backend zwycięzcy z ostatniego A/B"
+              title={t('filmLab.renderDebug.rawAbForceWinnerTitle')}
             >
-              FORCE WINNER
+              {t('filmLab.renderDebug.rawAbForceWinnerChip')}
             </button>
           </div>
           <div className="render-debug-row">
-            <span title={`Skrót: Shift+${SHORTCUT_KEYS.rawLinearStage}`}>RAW Linear Stage</span>
+            <span title={t('filmLab.renderDebug.rawLinearShortcutTitle', { key: SHORTCUT_KEYS.rawLinearStage })}>
+              {t('filmLab.renderDebug.rawLinearStageRow')}
+            </span>
             <strong>{rawLinearStageModeLabel}</strong>
           </div>
           <div className="render-debug-backend-controls">
@@ -1238,21 +1758,21 @@ export default function FilmLabRenderDebugPanel({
               className={`render-debug-chip${rawLinearStageMode === 'auto' ? ' active' : ''}`}
               onClick={() => setRawLinearStageMode('auto')}
             >
-              LINEAR AUTO
+              {t('filmLab.renderDebug.linearStageAuto')}
             </button>
             <button
               type="button"
               className={`render-debug-chip${rawLinearStageMode === 'on' ? ' active' : ''}`}
               onClick={() => setRawLinearStageMode('on')}
             >
-              LINEAR ON
+              {t('filmLab.renderDebug.linearStageOn')}
             </button>
             <button
               type="button"
               className={`render-debug-chip${rawLinearStageMode === 'off' ? ' active' : ''}`}
               onClick={() => setRawLinearStageMode('off')}
             >
-              LINEAR OFF
+              {t('filmLab.renderDebug.linearStageOff')}
             </button>
           </div>
         </div>
@@ -1260,39 +1780,43 @@ export default function FilmLabRenderDebugPanel({
       {rawQualityQaSummary ? (
         <div className={`render-debug-block tone-${rawQualityQaSummary.tone}`}>
           <div className="render-debug-block-title-row">
-            <div className="render-debug-block-title">RAW QA</div>
+            <div className="render-debug-block-title">{t('filmLab.renderDebug.rawQaBlockTitle')}</div>
             <span className={`render-debug-quality-pill tone-${rawQualityQaSummary.tone}`}>
               {rawQualityQaSummary.label}
             </span>
           </div>
           <div className="render-debug-row">
-            <span>Status</span>
+            <span>{t('filmLab.renderDebug.statusTextRow')}</span>
             <strong>{rawQualityQaSummary.statusText}</strong>
           </div>
           <div className="render-debug-row">
-            <span>Highlights</span>
+            <span>{t('filmLab.renderDebug.highlightsRow')}</span>
             <strong>{formatRatioPercent(rawQualityQaSummary.metrics.highlightClipRatio, 2)}</strong>
           </div>
           <div className="render-debug-row">
-            <span>Shadows</span>
+            <span>{t('filmLab.renderDebug.shadowsRow')}</span>
             <strong>{formatRatioPercent(rawQualityQaSummary.metrics.shadowClipRatio, 2)}</strong>
           </div>
           <div className="render-debug-row">
-            <span>Decode L/NB</span>
+            <span>{t('filmLab.renderDebug.decodeLNb')}</span>
             <strong>
               {Number.isFinite(rawQualityQaSummary.metrics.meanLuma)
                 ? rawQualityQaSummary.metrics.meanLuma.toFixed(2)
-                : 'n/a'}
+                : t('filmLab.renderDebug.notApplicable')}
               {' / '}
               {formatRatioPercent(rawQualityQaSummary.metrics.nonBlackRatio, 2)}
             </strong>
           </div>
           <div className="render-debug-row">
-            <span>Guard / black frame</span>
+            <span>{t('filmLab.renderDebug.guardBlackFrame')}</span>
             <strong>
-              {rawQualityQaSummary.metrics.blackOutputGuardTriggered ? 'guard-on' : 'guard-off'}
+              {rawQualityQaSummary.metrics.blackOutputGuardTriggered
+                ? t('filmLab.renderDebug.guardActiveShort')
+                : t('filmLab.renderDebug.guardInactiveShort')}
               {' / '}
-              {rawQualityQaSummary.metrics.suspectedBlackFrame ? 'suspected' : 'ok'}
+              {rawQualityQaSummary.metrics.suspectedBlackFrame
+                ? t('filmLab.renderDebug.blackSuspectedShort')
+                : t('filmLab.renderDebug.blackOkShort')}
             </strong>
           </div>
         </div>

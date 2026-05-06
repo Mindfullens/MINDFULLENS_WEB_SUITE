@@ -1,0 +1,14 @@
+{
+  "schema": "filmLab.recipe.export.v1",
+  "exportedAt": "2026-05-06T00:00:00.000Z",
+  "export": {
+    "sizeProfile": "full",
+    "fileFormat": "dng",
+    "variant": "after",
+    "artifactName": "mindfullens_example_after.dng",
+    "artifactMimeType": "image/x-adobe-dng",
+    "depthTraceVersion": 2,
+    "depthMapSource": "onnx",
+    "depthProxyDigest": "future-v2"
+  }
+}

@@ -6,7 +6,10 @@ import { FIT_UI_ZOOM, PAN_KEY_STEP } from './viewportZoom.js';
 
 export function useFilmLabGlobalKeydown({
   activePanel,
+  studioWorkspace,
   hasImage,
+  hasActiveSource,
+  setIsExportModalOpen,
   isStraightenToolArmed,
   isPreviewFullMode,
   showRenderDebugPanel,
@@ -24,6 +27,7 @@ export function useFilmLabGlobalKeydown({
   cycleMetadataViewMode,
   cycleRawLinearStageMode,
   cycleCropOverlayMode,
+  rotateCropOverlay,
   applyAutoExposure,
   applyAutoColor,
   stepZoom,
@@ -109,6 +113,23 @@ export function useFilmLabGlobalKeydown({
           }
           return;
         }
+
+        if (
+          modLower === 'e' &&
+          !event.shiftKey &&
+          !event.repeat &&
+          !isTextEditingTarget(target)
+        ) {
+          if (!hasActiveSource) {
+            return;
+          }
+          event.preventDefault();
+          markFilmLabE2eKeyboardE2eIntent();
+          if (typeof setIsExportModalOpen === 'function') {
+            setIsExportModalOpen(true);
+          }
+          return;
+        }
       }
 
       const shortcutAction = resolveShortcutAction({
@@ -123,6 +144,7 @@ export function useFilmLabGlobalKeydown({
         hasImage,
         zoom: (Number(zoomRef.current) || FIT_UI_ZOOM) / FIT_UI_ZOOM,
         panKeyStep: PAN_KEY_STEP,
+        studioWorkspace,
       });
 
       if (!shortcutAction) {
@@ -205,6 +227,44 @@ export function useFilmLabGlobalKeydown({
         return;
       }
 
+      if (shortcutAction.type === 'localMaskToggleMute') {
+        markFilmLabE2eKeyboardE2eIntent();
+        setAdjustments((current) => ({
+          ...current,
+          localMaskEnabled: !(current.localMaskEnabled !== false),
+        }));
+        return;
+      }
+
+      if (shortcutAction.type === 'localMaskToggleSolo') {
+        markFilmLabE2eKeyboardE2eIntent();
+        setAdjustments((current) => {
+          const stack = Array.isArray(current.localMasks) ? current.localMasks : [];
+          if (stack.length < 1) {
+            return current;
+          }
+          const active = Math.max(
+            0,
+            Math.min(stack.length - 1, Number(current.activeLocalMaskIndex ?? 0)),
+          );
+          const solo = Number(current.localMaskSoloIndex ?? -1);
+          if (solo === active) {
+            return { ...current, localMaskSoloIndex: -1 };
+          }
+          return { ...current, localMaskSoloIndex: active };
+        });
+        return;
+      }
+
+      if (shortcutAction.type === 'localMaskToggleOverlay') {
+        markFilmLabE2eKeyboardE2eIntent();
+        setAdjustments((current) => ({
+          ...current,
+          localMaskShowOverlay: !current.localMaskShowOverlay,
+        }));
+        return;
+      }
+
       if (shortcutAction.type === 'toggleShortcutHelp') {
         setIsShortcutHelpOpen((current) => !current);
         return;
@@ -228,6 +288,14 @@ export function useFilmLabGlobalKeydown({
         return;
       }
 
+      if (shortcutAction.type === 'rotateCropOverlay') {
+        markFilmLabE2eKeyboardE2eIntent();
+        if (typeof rotateCropOverlay === 'function') {
+          rotateCropOverlay();
+        }
+        return;
+      }
+
       if (shortcutAction.type === 'zoomIn' || shortcutAction.type === 'zoomOut') {
         markFilmLabE2eKeyboardE2eIntent();
         stepZoom(shortcutAction.type === 'zoomIn' ? 1 : -1, null);
@@ -247,6 +315,7 @@ export function useFilmLabGlobalKeydown({
 
       if (shortcutAction.type === 'triggerRawLeakZip') {
         triggerRawLeakZip();
+        return;
       }
     };
 
@@ -259,15 +328,18 @@ export function useFilmLabGlobalKeydown({
     acceptCropDraft,
     acceptManualStraighten,
     activePanel,
+    studioWorkspace,
     applyAutoColor,
     applyAutoExposure,
     cancelManualStraighten,
     cycleCropOverlayMode,
+    rotateCropOverlay,
     cycleMetadataViewMode,
     cycleRawLinearStageMode,
     fitClassic,
     handleToolbarRedo,
     handleToolbarUndo,
+    hasActiveSource,
     hasImage,
     jumpToOneToOne,
     isPreviewFullMode,
@@ -275,6 +347,7 @@ export function useFilmLabGlobalKeydown({
     nudgePan,
     redoStackRef,
     setAdjustments,
+    setIsExportModalOpen,
     setIsMetadataPanelOpen,
     setIsPreviewFullMode,
     setIsShortcutHelpOpen,

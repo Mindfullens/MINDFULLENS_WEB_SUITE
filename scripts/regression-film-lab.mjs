@@ -12,6 +12,10 @@ import {
 } from '../src/engine/previewGeometry.js';
 import { resolveShortcutAction, SHORTCUT_KEYS } from '../src/engine/shortcutActions.js';
 import { __FILMLAB_INTERNALS } from '../src/engine/useFilmLabEngine.js';
+import {
+  bumpDevelopCatalogLoadFromNonCatalogSource,
+  setFilmLabProDevelopCatalogLoadBump,
+} from '../src/filmLab/filmLabDevelopCatalogLoadCooperation.js';
 
 const {
   buildWorkerAdjustmentsPayload,
@@ -112,6 +116,10 @@ function runKeyboardShortcutGuard() {
   const metadataItemsHookPath = path.resolve(scriptsDirectory, '../src/filmLab/useFilmLabMetadataItems.js');
   const exportDebugReportHookPath = path.resolve(scriptsDirectory, '../src/filmLab/useFilmLabExportDebugReport.js');
   const engineSidecarPath = path.resolve(scriptsDirectory, '../src/filmLab/useFilmLabEngineSidecar.js');
+  const recipeFingerprintEchoPath = path.resolve(
+    scriptsDirectory,
+    '../src/filmLab/useFilmLabRecipeFingerprintEcho.js'
+  );
   const chromeLayoutPath = path.resolve(scriptsDirectory, '../src/filmLab/useFilmLabChromeLayout.js');
   const filmCatalogPath = path.resolve(scriptsDirectory, '../src/filmLab/useFilmLabFilmCatalog.js');
   const engineAdjustmentsPath = path.resolve(scriptsDirectory, '../src/filmLab/useFilmLabEngineAdjustments.js');
@@ -208,6 +216,14 @@ function runKeyboardShortcutGuard() {
     scriptsDirectory,
     '../src/filmLab/useFilmLabCaptureUploadUndoWorkbenchClipboardCluster.js'
   );
+  const useFilmLabRecipePasteKeyboardShortcutPath = path.resolve(
+    scriptsDirectory,
+    '../src/filmLab/useFilmLabRecipePasteKeyboardShortcut.js'
+  );
+  const applyRecipeTextToWorkbenchPath = path.resolve(
+    scriptsDirectory,
+    '../src/filmLab/applyRecipeTextToWorkbench.js'
+  );
   const workbenchStateRawPipelineClusterPath = path.resolve(
     scriptsDirectory,
     '../src/filmLab/useFilmLabWorkbenchStateAndRawPipelineCluster.js'
@@ -249,6 +265,10 @@ function runKeyboardShortcutGuard() {
     scriptsDirectory,
     '../src/filmLab/filmLabFilmLabProBuildCanvasViewportDebugCurveShellArgs.js'
   );
+  const useFilmLabShellOverlayPropsPath = path.resolve(
+    scriptsDirectory,
+    '../src/filmLab/useFilmLabShellOverlayProps.js'
+  );
   const cropStraightenLiveRefsPath = path.resolve(scriptsDirectory, '../src/filmLab/useFilmLabCropStraightenLiveRefs.js');
   const viewportStateRefsPath = path.resolve(scriptsDirectory, '../src/filmLab/useFilmLabViewportStateRefs.js');
   const workbenchRefsPath = path.resolve(scriptsDirectory, '../src/filmLab/useFilmLabWorkbenchRefs.js');
@@ -258,6 +278,7 @@ function runKeyboardShortcutGuard() {
   const filmLabEntrySource = fs.readFileSync(filmLabEntryPath, 'utf8');
   const filmLabShellContainerSource = fs.readFileSync(filmLabShellContainerPath, 'utf8');
   const engineSidecarSource = fs.readFileSync(engineSidecarPath, 'utf8');
+  const recipeFingerprintEchoSource = fs.readFileSync(recipeFingerprintEchoPath, 'utf8');
   const chromeLayoutSource = fs.readFileSync(chromeLayoutPath, 'utf8');
   const filmCatalogSource = fs.readFileSync(filmCatalogPath, 'utf8');
   const engineAdjustmentsSource = fs.readFileSync(engineAdjustmentsPath, 'utf8');
@@ -303,6 +324,11 @@ function runKeyboardShortcutGuard() {
   const undoSliderWorkbenchAutoDevelopClusterSource = fs.readFileSync(undoSliderWorkbenchAutoDevelopClusterPath, 'utf8');
   const captureUploadUndoSliderAutoDevelopClusterSource = fs.readFileSync(captureUploadUndoSliderAutoDevelopClusterPath, 'utf8');
   const captureUploadUndoWorkbenchClipboardClusterSource = fs.readFileSync(captureUploadUndoWorkbenchClipboardClusterPath, 'utf8');
+  const useFilmLabRecipePasteKeyboardShortcutSource = fs.readFileSync(
+    useFilmLabRecipePasteKeyboardShortcutPath,
+    'utf8'
+  );
+  const applyRecipeTextToWorkbenchSource = fs.readFileSync(applyRecipeTextToWorkbenchPath, 'utf8');
   const workbenchStateRawPipelineClusterSource = fs.readFileSync(workbenchStateRawPipelineClusterPath, 'utf8');
   const workbenchRefsSliderDragClusterSource = fs.readFileSync(workbenchRefsSliderDragClusterPath, 'utf8');
   const workbenchStateAndRefsSliderDragActivationClusterSource = fs.readFileSync(
@@ -335,6 +361,7 @@ function runKeyboardShortcutGuard() {
     filmLabFilmLabProBuildCanvasViewportDebugCurveShellArgsPath,
     'utf8'
   );
+  const useFilmLabShellOverlayPropsSource = fs.readFileSync(useFilmLabShellOverlayPropsPath, 'utf8');
   const filmLabProStateBundle = `${source}\n${useFilmLabFilmLabProSource}\n${filmLabFilmLabProClusterArgFactoriesSource}\n${buildFilmLabShellContainerBundleArgsSource}\n${filmLabFilmLabProBuildCanvasViewportDebugCurveShellArgsSource}`;
   const cropStraightenLiveRefsSource = fs.readFileSync(cropStraightenLiveRefsPath, 'utf8');
   const viewportStateRefsSource = fs.readFileSync(viewportStateRefsPath, 'utf8');
@@ -364,6 +391,9 @@ function runKeyboardShortcutGuard() {
   assert.match(shortcutActionsSource, /metadata:\s*'I'/, 'Metadata shortcut key should be centralized');
   assert.match(shortcutActionsSource, /metadataMode:\s*'M'/, 'Metadata mode shortcut key should be centralized');
   assert.match(shortcutActionsSource, /rawLinearStage:\s*'L'/, 'RAW linear stage shortcut key should be centralized');
+  assert.match(shortcutActionsSource, /localMaskMute:\s*'M'/, 'Local mask mute shortcut key should be centralized');
+  assert.match(shortcutActionsSource, /localMaskSolo:\s*'S'/, 'Local mask solo shortcut key should be centralized');
+  assert.match(shortcutActionsSource, /localMaskOverlay:\s*'O'/, 'Local mask overlay shortcut key should be centralized');
   assert.match(shortcutActionsSource, /zoomIn:\s*'\+'/, 'Zoom-in shortcut key should be centralized');
   assert.match(shortcutActionsSource, /zoomOut:\s*'-'/, 'Zoom-out shortcut key should be centralized');
   assert.match(filmLabEntrySource, /filmLabPage\.css/, 'FilmLab entry should import page styles');
@@ -395,6 +425,11 @@ function runKeyboardShortcutGuard() {
   );
   assert.match(
     filmLabFilmLabProClusterArgFactoriesSource,
+    /recipeDebugKeyboardArgs:\s*\{\s*showRenderDebugPanel:\s*b\.showRenderDebugPanel\s*\}/,
+    'Cluster arg factories should gate recipe keyboard shortcut on render debug visibility'
+  );
+  assert.match(
+    filmLabFilmLabProClusterArgFactoriesSource,
     /buildCanvasViewportDebugAndCurveWorkbenchShellOverlayArgs/,
     'Cluster arg factories should include viewport+curve workbench/shell arg builder'
   );
@@ -407,6 +442,31 @@ function runKeyboardShortcutGuard() {
     filmLabFilmLabProBuildCanvasViewportDebugCurveShellArgsSource,
     /export function buildCanvasViewportDebugAndCurveWorkbenchShellOverlayArgs/,
     'Canvas viewport+curve/shell arg builder module should export the builder function'
+  );
+  assert.match(
+    filmLabFilmLabProBuildCanvasViewportDebugCurveShellArgsSource,
+    /exportRecipeSidecar/,
+    'Shell overlay arg builder should pass recipe sidecar download into render debug'
+  );
+  assert.match(
+    filmLabFilmLabProBuildCanvasViewportDebugCurveShellArgsSource,
+    /copyRecipeDocumentJson:\s*d\.copyRecipeDocumentJson/,
+    'Shell overlay arg builder should pass copy-recipe-JSON into render debug props'
+  );
+  assert.match(
+    filmLabFilmLabProBuildCanvasViewportDebugCurveShellArgsSource,
+    /applyRecipeDocument:\s*d\.applyRecipeDocument/,
+    'Shell overlay arg builder should pass recipe apply into render debug props'
+  );
+  assert.match(
+    useFilmLabShellOverlayPropsSource,
+    /recipeClipboardFeedback,\s*\n\s*applyRecipeDocument/,
+    'Shell overlay props hook should bundle clipboard feedback with recipe apply for render debug'
+  );
+  assert.match(
+    buildFilmLabShellContainerBundleArgsSource,
+    /applyRecipeDocument:\s*s\.applyRecipeDocument/,
+    'Shell container bundle builder should forward applyRecipeDocument from workbench bundle'
   );
   assert.match(
     useFilmLabFilmLabProSource,
@@ -517,8 +577,8 @@ function runKeyboardShortcutGuard() {
   assert.match(shellPropBundleSource, /buildFilmLabExportModalProps/, 'Shell prop bundle should compose export modal props');
   assert.match(
     `${source}\n${metadataPanelSource}`,
-    /Metadane zdjęcia/,
-    'FilmLab metadata panel should render metadata frame title'
+    /filmLab\.metadataPanel\.title/,
+    'FilmLab metadata panel should use i18n key for frame title'
   );
   assert.match(
     `${source}\n${metadataPanelSource}`,
@@ -788,6 +848,26 @@ function runKeyboardShortcutGuard() {
   assert.match(engineSidecarSource, /useFilmLabExportDebugReport/, 'Engine sidecar should wire export debug report hook');
   assert.match(
     engineSidecarSource,
+    /copyRecipeDocumentJson/,
+    'Engine sidecar should expose copyRecipeDocumentJson for shell / render debug recipe clipboard'
+  );
+  assert.match(
+    engineSidecarSource,
+    /useFilmLabRecipeFingerprintEcho/,
+    'Engine sidecar should expose stable recipe fingerprint for QA',
+  );
+  assert.match(
+    recipeFingerprintEchoSource,
+    /__mindfullensMaskWorkerPayload/,
+    'Recipe fingerprint echo should publish compact mask worker payload on window for tooling',
+  );
+  assert.match(
+    recipeFingerprintEchoSource,
+    /buildMaskEngineWorkerPayload/,
+    'Recipe fingerprint echo should derive worker payload via buildMaskEngineWorkerPayload',
+  );
+  assert.match(
+    engineSidecarSource,
     /renderDebugInfo,\s*\n\s*runtimeStatusBadge,/,
     'Engine sidecar should pass runtimeStatusBadge into export debug report',
   );
@@ -941,6 +1021,41 @@ function runKeyboardShortcutGuard() {
     /useFilmLabClipboardSessionCluster/,
     'Capture+clipboard mega cluster should delegate to clipboard and session cluster hook'
   );
+  assert.match(
+    captureUploadUndoWorkbenchClipboardClusterSource,
+    /useFilmLabRecipeDocumentApply/,
+    'Capture+clipboard mega cluster should wire recipe document apply for import/restore path'
+  );
+  assert.match(
+    captureUploadUndoWorkbenchClipboardClusterSource,
+    /useFilmLabRecipePasteKeyboardShortcut/,
+    'Capture+clipboard mega cluster should wire Shift+meta+V recipe paste when render debug can show'
+  );
+  assert.match(
+    useFilmLabRecipePasteKeyboardShortcutSource,
+    /dispatchRecipeApplyUiResult/,
+    'Recipe paste shortcut should dispatch UI sync events for Render Debug feedback'
+  );
+  assert.match(
+    useFilmLabRecipePasteKeyboardShortcutSource,
+    /markFilmLabE2eKeyboardE2eIntent/,
+    'Recipe paste shortcut should mark keyboard E2E intent like settings clipboard paste'
+  );
+  assert.match(
+    applyRecipeTextToWorkbenchSource,
+    /FILMLAB_RECIPE_APPLY_UI_EVENT/,
+    'applyRecipeTextToWorkbench module should expose recipe apply UI event name'
+  );
+  assert.match(
+    applyRecipeTextToWorkbenchSource,
+    /export function dispatchRecipeApplyUiResult/,
+    'applyRecipeTextToWorkbench module should expose dispatchRecipeApplyUiResult for keyboard + panel sync'
+  );
+  assert.match(
+    applyRecipeTextToWorkbenchSource,
+    /export function isFilmLabRecipeDropFilename/,
+    'applyRecipeTextToWorkbench module should expose recipe drop filename predicate'
+  );
   assert.doesNotMatch(
     source,
     /useFilmLabCaptureUploadAndUndoSliderAutoDevelopCluster\(/,
@@ -1046,13 +1161,25 @@ function runKeyboardShortcutGuard() {
   assert.match(filmLabShellContainerSource, /FilmLabShell/, 'Shell container should render FilmLabShell');
   assert.match(
     `${source}\n${toolbarSource}`,
-    /Panel metadanych/,
-    'FilmLab UI should expose metadata panel toggle button'
+    /t\(\s*'filmLab\.toolbar\.metadata'\s*\)/,
+    'FilmLab UI should expose metadata panel toggle button (i18n key)'
   );
   const filmLabMetadataLabels = `${source}\n${metadataItemsHookSource}`;
-  assert.match(filmLabMetadataLabels, /Data zdjęcia/, 'FilmLab metadata should include EXIF date label');
-  assert.match(filmLabMetadataLabels, /Aparat/, 'FilmLab metadata should include camera label');
-  assert.match(filmLabMetadataLabels, /Przysłona/, 'FilmLab metadata should include aperture label');
+  assert.match(
+    filmLabMetadataLabels,
+    /filmLab\.meta\.dateTaken/,
+    'FilmLab metadata hook should reference EXIF date label key'
+  );
+  assert.match(
+    filmLabMetadataLabels,
+    /filmLab\.meta\.camera/,
+    'FilmLab metadata hook should reference camera label key'
+  );
+  assert.match(
+    filmLabMetadataLabels,
+    /filmLab\.meta\.aperture/,
+    'FilmLab metadata hook should reference aperture label key'
+  );
   assert.match(
     imageSourceEffectsSource,
     /parseExifMetadataFromFile\(/,
@@ -1072,8 +1199,8 @@ function runKeyboardShortcutGuard() {
   );
   assert.match(
     `${source}\n${metadataPanelSource}`,
-    /Tryb:\s*\{metadataViewModeLabels/,
-    'FilmLab should render metadata mode label in UI'
+    /filmLab\.metadataPanel\.modePrefix[\s\S]*metadataViewModeLabels/,
+    'FilmLab should render metadata mode label in UI (i18n prefix + labels map)'
   );
   assert.match(
     filmLabProStateBundle,
@@ -1097,13 +1224,13 @@ function runKeyboardShortcutGuard() {
   );
   assert.match(
     renderDebugBundle,
-    /RAW A\/B/,
-    'Render debug panel should expose RAW A/B summary block'
+    /filmLab\.renderDebug\.rawAbBlockTitle/,
+    'Render debug panel should expose RAW A/B summary block (i18n)'
   );
   assert.match(
     renderDebugBundle,
-    /RAW QA/,
-    'Render debug panel should expose RAW QA summary block'
+    /filmLab\.renderDebug\.rawQaBlockTitle/,
+    'Render debug panel should expose RAW QA summary block (i18n)'
   );
   assert.match(
     `${source}\n${exportDebugReportHookSource}`,
@@ -1117,18 +1244,68 @@ function runKeyboardShortcutGuard() {
   );
   assert.match(
     `${source}\n${exportDebugReportHookSource}`,
+    /localMask/,
+    'Debug JSON export should include pipeline.localMask telemetry for brush mask MVP'
+  );
+  assert.match(
+    `${source}\n${exportDebugReportHookSource}`,
+    /brushMaskStrokes/,
+    'Debug JSON export should keep brush mask strokes in adjustments payload'
+  );
+  assert.match(
+    workbenchConstantsSource,
+    /brushMaskRadius|brushMaskFeather|brushMaskEdgeSensitivity|brushMaskExposure|lumaMaskMin|lumaMaskMax|lumaMaskFeather|colorMaskHueCenter|colorMaskHueWidth|colorMaskFeather|colorMaskChromaMin|colorMaskChromaMax/,
+    'Workbench constants should include brush+luma+color mask slider definitions'
+  );
+  assert.match(
+    toolbarBundle,
+    /filmLab\.toolbar\.compare/,
+    'Toolbar should expose compare control'
+  );
+  assert.match(
+    `${source}\n${exportDebugReportHookSource}`,
     /mindfullens\.raw-colorimetry\.v1/,
     'RAW colorimetry export should declare mindfullens.raw-colorimetry.v1 schema'
   );
   assert.match(
     renderDebugBundle,
-    /Diff mean ΔL/,
-    'Render debug panel should expose RAW A/B diff heatmap diagnostics'
+    /filmLab\.renderDebug\.diffMeanDelta/,
+    'Render debug panel should expose RAW A/B diff heatmap diagnostics (i18n)'
   );
   assert.match(
     renderDebugBundle,
-    /FORCE WINNER/,
-    'Render debug panel should expose force winner backend action'
+    /rawAbForceWinnerChip/,
+    'Render debug panel should expose force winner backend action (i18n key)'
+  );
+  assert.match(
+    renderDebugBundle,
+    /applyRecipeTextToWorkbench/,
+    'Render debug panel should use shared applyRecipeTextToWorkbench helper for recipe import'
+  );
+  assert.match(
+    renderDebugBundle,
+    /FILMLAB_RECIPE_APPLY_UI_EVENT/,
+    'Render debug panel should subscribe to recipe apply UI events from keyboard shortcut'
+  );
+  assert.match(
+    renderDebugBundle,
+    /handleRecipeImportFileChange/,
+    'Render debug panel should wire recipe file import change handler'
+  );
+  assert.match(
+    renderDebugBundle,
+    /handleRecipePasteFromClipboard/,
+    'Render debug panel should wire clipboard paste for recipe JSON'
+  );
+  assert.match(
+    renderDebugBundle,
+    /handleRecipePanelDrop/,
+    'Render debug panel should support drag-and-drop recipe JSON files'
+  );
+  assert.match(
+    renderDebugBundle,
+    /render-debug-panel--recipe-drop/,
+    'Render debug panel should toggle recipe-drop highlight class during file drag'
   );
   assert.match(
     filmLabProStateBundle,
@@ -1152,13 +1329,13 @@ function runKeyboardShortcutGuard() {
   );
   assert.match(
     renderDebugBundle,
-    /LINEAR AUTO|LINEAR ON|LINEAR OFF/,
-    'Render debug panel should expose RAW linear stage override controls'
+    /linearStageAuto|linearStageOn|linearStageOff/,
+    'Render debug panel should expose RAW linear stage override controls (i18n keys)'
   );
   assert.match(
     renderDebugBundle,
-    /Shift\+\$\{SHORTCUT_KEYS\.rawLinearStage\}/,
-    'Render debug panel should expose Shift+L hint for RAW linear stage cycle'
+    /SHORTCUT_KEYS\.rawLinearStage/,
+    'Render debug panel should wire RAW linear stage shortcut into i18n tooltip'
   );
   assert.doesNotMatch(
     source,
@@ -1167,18 +1344,18 @@ function runKeyboardShortcutGuard() {
   );
   assert.match(
     toolbarBundle,
-    /title=\{`Przed\/Po \(\$\{SHORTCUT_KEYS\.compare\.primary\} lub \$\{SHORTCUT_KEYS\.compare\.fallback\}\)`\}/,
-    'Toolbar tooltip should include compare shortcut mapping'
+    /t\('filmLab\.toolbar\.compareTitle',\s*\{[^}]*SHORTCUT_KEYS\.compare\.primary/s,
+    'Toolbar tooltip should include compare shortcut mapping (i18n)'
   );
   assert.match(
     toolbarBundle,
-    /title=\{`Widok pełny \(\$\{SHORTCUT_KEYS\.full\}\)`\}/,
-    'Toolbar tooltip should include full mode shortcut'
+    /t\('filmLab\.toolbar\.fullTitle',\s*\{\s*key:\s*SHORTCUT_KEYS\.full\s*\}\)/,
+    'Toolbar tooltip should include full mode shortcut (i18n)'
   );
   assert.match(
     toolbarBundle,
-    /title=\{`Podgląd clippingu świateł\/cieni \(\$\{SHORTCUT_KEYS\.clipping\}\)`\}/,
-    'Toolbar tooltip should include clipping shortcut'
+    /t\('filmLab\.toolbar\.clippingTitle',\s*\{\s*key:\s*SHORTCUT_KEYS\.clipping\s*\}\)/,
+    'Toolbar tooltip should include clipping shortcut (i18n)'
   );
 
   formatOk('Keyboard shortcut guard keeps mapping (F, \\, J, 0, +, -)');
@@ -1192,13 +1369,13 @@ function runInteractiveEffectsGuard() {
 
   assert.match(
     source,
-    /PRESERVE_FULL_EFFECT_STACK_DURING_ADJUST\s*=\s*true/,
-    'Engine should enforce full effect stack preservation while adjusting'
+    /PRESERVE_FULL_EFFECT_STACK_DURING_ADJUST\s*=\s*readEnvFlag/,
+    'Engine should allow env override of CPU stack preservation on drag (max perf default)'
   );
   assert.match(
     source,
-    /hasDeferredPreviewEffects\(film,\s*adjustments\)/,
-    'Fast preview path should gate on deferred effects'
+    /hasCpuOnlyDeferredPreviewEffects/,
+    'Fast preview worker/WebGL should gate only CPU-only overlays when preserve mode is on'
   );
   assert.match(
     source,
@@ -1354,12 +1531,12 @@ function runRawColorPipelineGuards() {
   );
   assert.match(
     `${filmLabSource}\n${metadataItemsHookSource}`,
-    /RAW Color Pipeline/,
-    'FilmLab metadata panel should show RAW color pipeline row'
+    /filmLab\.meta\.rawColorPipeline/,
+    'FilmLab metadata panel should show RAW color pipeline row (i18n)'
   );
   assert.match(
     metadataItemsHookSource,
-    /label:\s*'LibRaw'/,
+    /filmLab\.meta\.libraw/,
     'FilmLab metadata panel should include LibRaw metadata row'
   );
   assert.match(
@@ -1393,6 +1570,8 @@ function runClipboardAndBatchGuards() {
   const clipboardShortcutsPath = path.resolve(scriptsDirectory, '../src/filmLab/useFilmLabClipboardShortcuts.js');
   const toolbarPath = path.resolve(scriptsDirectory, '../src/FilmLabToolbar.jsx');
   const renderDebugPath = path.resolve(scriptsDirectory, '../src/FilmLabRenderDebugPanel.jsx');
+  const shortcutHelpPath = path.resolve(scriptsDirectory, '../src/FilmLabShortcutHelp.jsx');
+  const recipeIndexPath = path.resolve(scriptsDirectory, '../src/filmLab/recipe/index.js');
   const batchProcessorPath = path.resolve(scriptsDirectory, '../src/engine/batchProcessor.js');
   const enginePath = path.resolve(scriptsDirectory, '../src/engine/useFilmLabEngine.js');
   const filmLabSource = fs.readFileSync(filmLabSourcePath, 'utf8');
@@ -1400,6 +1579,8 @@ function runClipboardAndBatchGuards() {
   const filmLabClipboardBundle = `${filmLabSource}\n${clipboardShortcutsSource}`;
   const toolbarSource = fs.readFileSync(toolbarPath, 'utf8');
   const renderDebugSource = fs.readFileSync(renderDebugPath, 'utf8');
+  const shortcutHelpSource = fs.readFileSync(shortcutHelpPath, 'utf8');
+  const recipeIndexSource = fs.readFileSync(recipeIndexPath, 'utf8');
   const filmLabUiSource = `${filmLabSource}\n${toolbarSource}\n${renderDebugSource}`;
   const batchSource = fs.readFileSync(batchProcessorPath, 'utf8');
   const engineSource = fs.readFileSync(enginePath, 'utf8');
@@ -1408,6 +1589,11 @@ function runClipboardAndBatchGuards() {
     filmLabClipboardBundle,
     /handleCopyPasteShortcuts/,
     'Film Lab should register keyboard copy/paste shortcut handler'
+  );
+  assert.match(
+    clipboardShortcutsSource,
+    /pressed === 'v' && !event\.shiftKey/,
+    'Settings paste shortcut should ignore Shift so Shift+meta+V stays for recipe paste'
   );
   assert.match(
     filmLabSource,
@@ -1428,6 +1614,31 @@ function runClipboardAndBatchGuards() {
     filmLabUiSource,
     /htmlFor="batchFileInput"/,
     'Batch button should open native file picker via htmlFor'
+  );
+  assert.match(
+    shortcutHelpSource,
+    /t\(\s*'shortcutHelp\.pasteRecipeRenderDebug'\s*\)/,
+    'Shortcut help should wire recipe paste row to i18n key'
+  );
+  assert.match(
+    shortcutHelpSource,
+    /t\(\s*'shortcutHelp\.dropRecipePanel'\s*\)/,
+    'Shortcut help should wire drag-drop recipe row to i18n key'
+  );
+  assert.match(
+    recipeIndexSource,
+    /applyRecipeTextToWorkbench/,
+    'Recipe barrel index should re-export applyRecipeTextToWorkbench helpers'
+  );
+  assert.match(
+    recipeIndexSource,
+    /FILMLAB_RECIPE_APPLY_UI_EVENT/,
+    'Recipe barrel index should re-export recipe apply UI event'
+  );
+  assert.match(
+    recipeIndexSource,
+    /isFilmLabRecipeDropFilename/,
+    'Recipe barrel index should re-export recipe drop filename helper'
   );
   assert.doesNotMatch(
     filmLabUiSource,
@@ -1492,8 +1703,8 @@ function runClipboardAndBatchGuards() {
   );
   assert.match(
     filmLabUiSource,
-    /Backend RAW:\s*<strong>\{rawBackendModeLabel\}<\/strong>/,
-    'Batch progress panel should display active RAW backend mode'
+    /t\('filmLab\.toolbar\.batchRawBackend'\)[\s\S]*?<strong>\{rawBackendModeLabel\}<\/strong>/,
+    'Batch progress panel should display active RAW backend mode (i18n label)'
   );
 
   formatOk('Clipboard + batch guards (Cmd/Ctrl+C/V, single picker open, RAW ingest in batch)');
@@ -1509,6 +1720,7 @@ function runExifOrientationGuards() {
   const cropAspectPath = path.resolve(scriptsDirectory, '../src/filmLab/crop/cropAspectResolve.js');
   const enginePath = path.resolve(scriptsDirectory, '../src/engine/useFilmLabEngine.js');
   const batchProcessorPath = path.resolve(scriptsDirectory, '../src/engine/batchProcessor.js');
+  const exportEncodePath = path.resolve(scriptsDirectory, '../src/engine/filmLabExportEncode.js');
 
   const metadataSource = fs.readFileSync(metadataPath, 'utf8');
   const cropAspectSource = fs.readFileSync(cropAspectPath, 'utf8');
@@ -1517,6 +1729,7 @@ function runExifOrientationGuards() {
   const metadataItemsHookSource = fs.readFileSync(metadataItemsHookPath, 'utf8');
   const engineSource = fs.readFileSync(enginePath, 'utf8');
   const batchSource = fs.readFileSync(batchProcessorPath, 'utf8');
+  const exportEncodeSource = fs.readFileSync(exportEncodePath, 'utf8');
 
   assert.match(
     metadataSource,
@@ -1545,18 +1758,23 @@ function runExifOrientationGuards() {
   );
   assert.match(
     `${filmLabSource}\n${metadataItemsHookSource}`,
-    /Korekcja EXIF/,
-    'Metadata panel should display EXIF orientation correction row'
+    /filmLab\.meta\.exifCorrection/,
+    'Metadata panel should reference EXIF orientation correction row (i18n)'
+  );
+  assert.match(
+    exportEncodeSource,
+    /zeroth\[piexif\.ImageIFD\.Orientation\]\s*=\s*1/,
+    'filmLabExportEncode JPEG path should set EXIF Orientation to 1 (pixels already transformed)'
   );
   assert.match(
     engineSource,
-    /zeroth\[piexif\.ImageIFD\.Orientation\]\s*=\s*1/,
-    'Single export should normalize EXIF orientation to 1 after render transform'
+    /encodeFilmLabExportCanvas/,
+    'Single export should delegate raster encode to shared filmLabExportEncode (normalized EXIF)'
   );
   assert.match(
     batchSource,
-    /zeroth\[piexif\.ImageIFD\.Orientation\]\s*=\s*1/,
-    'Batch export should normalize EXIF orientation to 1 after render transform'
+    /encodeFilmLabExportCanvas/,
+    'Batch export should delegate raster encode to shared filmLabExportEncode (normalized EXIF)'
   );
 
   formatOk('EXIF orientation guards (metadata transform + normalized export orientation)');
@@ -1621,6 +1839,54 @@ function runShortcutActionChecks() {
     metaKey: true,
   });
   assert.equal(rawLinearStageWithModifier, null);
+  const localMaskMute = resolveShortcutAction({
+    key: SHORTCUT_KEYS.localMaskMute,
+    code: 'KeyM',
+    altKey: true,
+  });
+  assert.equal(localMaskMute?.type, 'localMaskToggleMute');
+  const localMaskSolo = resolveShortcutAction({
+    key: SHORTCUT_KEYS.localMaskSolo,
+    code: 'KeyS',
+    altKey: true,
+  });
+  assert.equal(localMaskSolo?.type, 'localMaskToggleSolo');
+  const localMaskOverlay = resolveShortcutAction({
+    key: SHORTCUT_KEYS.localMaskOverlay,
+    code: 'KeyO',
+    altKey: true,
+  });
+  assert.equal(localMaskOverlay?.type, 'localMaskToggleOverlay');
+
+  const maskStudioM = resolveShortcutAction({
+    key: 'm',
+    code: 'KeyM',
+    hasImage: true,
+    studioWorkspace: 'develop',
+  });
+  assert.equal(maskStudioM?.type, 'cycleMetadataMode');
+  const maskStudioShiftM = resolveShortcutAction({
+    key: 'm',
+    code: 'KeyM',
+    hasImage: true,
+    shiftKey: true,
+    studioWorkspace: 'develop',
+  });
+  assert.equal(maskStudioShiftM?.type, 'cycleMetadataMode');
+  const maskStudioX = resolveShortcutAction({
+    key: 'x',
+    code: 'KeyX',
+    hasImage: true,
+    studioWorkspace: 'develop',
+  });
+  assert.equal(maskStudioX, null);
+  const maskStudioMDevelop = resolveShortcutAction({
+    key: SHORTCUT_KEYS.metadataMode,
+    code: 'KeyM',
+    hasImage: true,
+    studioWorkspace: 'develop',
+  });
+  assert.equal(maskStudioMDevelop?.type, 'cycleMetadataMode');
 
   const help = resolveShortcutAction({ key: '?', code: 'Slash', shiftKey: true });
   assert.equal(help?.type, 'toggleShortcutHelp');
@@ -1676,7 +1942,7 @@ function runShortcutActionChecks() {
   const leak = resolveShortcutAction({ key: 'l', code: 'KeyL' });
   assert.equal(leak?.type, 'triggerRawLeakZip');
 
-  formatOk('Shortcut action checks (compare/full/clipping/fit/zoom/pan/effects)');
+  formatOk('Shortcut action checks (compare/full/clipping/fit/zoom/pan/effects/metadata)');
 }
 
 function runPreviewGeometryChecks() {
@@ -2015,6 +2281,19 @@ function runProfileSweepChecks() {
   );
 }
 
+function runDevelopCatalogLoadCooperationChecks() {
+  let n = 0;
+  setFilmLabProDevelopCatalogLoadBump(() => {
+    n += 1;
+  });
+  bumpDevelopCatalogLoadFromNonCatalogSource();
+  assert.equal(n, 1);
+  setFilmLabProDevelopCatalogLoadBump(null);
+  bumpDevelopCatalogLoadFromNonCatalogSource();
+  assert.equal(n, 1);
+  formatOk('Develop catalog load cooperation (register + noop after clear)');
+}
+
 function main() {
   const referenceFilm = filmStocks.find((profile) => !profile?.isInputProfile) ?? filmStocks[0];
   assert.ok(referenceFilm, 'Could not resolve reference film profile');
@@ -2033,6 +2312,7 @@ function main() {
   runPreviewGeometryChecks();
   runPreviewGeometryScenarioSnapshots();
   runPreviewE2EFlowScenario();
+  runDevelopCatalogLoadCooperationChecks();
 
   console.log('PASS Film Lab regression checks');
 }

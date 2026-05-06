@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import { decodeRecipeToFlatSnapshot, encodeFlatSnapshotToRecipeDocument } from './recipe/filmLabRecipeCodec.js';
 
 export function useFilmLabEditClipboard({
   activeFilmIndex,
@@ -8,6 +9,8 @@ export function useFilmLabEditClipboard({
   colorMixer,
   colorGrading,
   colorCalibration,
+  zoom,
+  panOffset,
   filmStocks,
   saveUndo,
   setAdjustments,
@@ -27,12 +30,22 @@ export function useFilmLabEditClipboard({
       internalSourceId: activeFilm?.internalSourceId ?? null,
     };
 
+    const filmLabRecipeDocument = encodeFlatSnapshotToRecipeDocument({
+      activeFilmIndex: Number.isInteger(activeFilmIndex) ? activeFilmIndex : 0,
+      adjustments,
+      userCurves,
+      colorMixer,
+      colorGrading,
+      colorCalibration,
+      zoom,
+      panOffset,
+    });
+
     const settings = {
-      version: 2,
+      version: 3,
       adjustments,
       userCurves,
       activeFilmRef,
-      // Backward compatibility for older snapshots.
       activeFilmIndex,
       activeFilmId: activeFilm?.id ?? null,
       colorMixer,
@@ -44,6 +57,7 @@ export function useFilmLabEditClipboard({
       userGrain: adjustments.userGrain,
       userGrainSize: adjustments.userGrainSize,
       curveLumaMix: adjustments.curveLumaMix,
+      filmLabRecipeDocument,
     };
     localStorage.setItem('mindfullens_edit_clipboard', JSON.stringify(settings));
     setClipboardFeedback('copied');
@@ -55,8 +69,10 @@ export function useFilmLabEditClipboard({
     colorCalibration,
     colorGrading,
     colorMixer,
+    panOffset,
     setClipboardFeedback,
     userCurves,
+    zoom,
   ]);
 
   const pasteFromClipboard = useCallback(() => {
@@ -68,6 +84,9 @@ export function useFilmLabEditClipboard({
     try {
       const data = JSON.parse(raw);
       saveUndo();
+
+      const mergedFromRecipe =
+        data?.filmLabRecipeDocument != null ? decodeRecipeToFlatSnapshot(data.filmLabRecipeDocument) : null;
 
       const findFilmIndexFromClipboard = () => {
         const ref = data?.activeFilmRef ?? null;
@@ -115,9 +134,15 @@ export function useFilmLabEditClipboard({
         return -1;
       };
 
-      if (data.adjustments) {
+      const adjustmentPayload = mergedFromRecipe?.adjustments ?? data.adjustments;
+      const curvesPayload = mergedFromRecipe?.userCurves ?? data.userCurves;
+      const mixerPayload = mergedFromRecipe?.colorMixer ?? data.colorMixer;
+      const gradingPayload = mergedFromRecipe?.colorGrading ?? data.colorGrading;
+      const calibrationPayload = mergedFromRecipe?.colorCalibration ?? data.colorCalibration;
+
+      if (adjustmentPayload && typeof adjustmentPayload === 'object') {
         setAdjustments((prev) => ({
-          ...data.adjustments,
+          ...adjustmentPayload,
           isAdjusting: false,
           compareMode: prev.compareMode,
           rotation: data.rotation ?? prev.rotation,
@@ -128,22 +153,31 @@ export function useFilmLabEditClipboard({
           curveLumaMix: data.curveLumaMix ?? prev.curveLumaMix,
         }));
       }
-      if (data.userCurves) {
-        setUserCurves(data.userCurves);
+      if (curvesPayload) {
+        setUserCurves(curvesPayload);
       }
 
-      const filmIndex = findFilmIndexFromClipboard();
+      if (mixerPayload) {
+        setColorMixer(mixerPayload);
+      }
+      if (gradingPayload) {
+        setColorGrading(gradingPayload);
+      }
+      if (calibrationPayload) {
+        setColorCalibration(calibrationPayload);
+      }
+
+      let filmIndex = findFilmIndexFromClipboard();
+      if (
+        filmIndex === -1 &&
+        mergedFromRecipe != null &&
+        Number.isInteger(mergedFromRecipe.activeFilmIndex) &&
+        filmStocks[mergedFromRecipe.activeFilmIndex]
+      ) {
+        filmIndex = mergedFromRecipe.activeFilmIndex;
+      }
       if (filmIndex !== -1) {
         setActiveFilmIndex(filmIndex);
-      }
-      if (data.colorMixer) {
-        setColorMixer(data.colorMixer);
-      }
-      if (data.colorGrading) {
-        setColorGrading(data.colorGrading);
-      }
-      if (data.colorCalibration) {
-        setColorCalibration(data.colorCalibration);
       }
 
       setClipboardFeedback('pasted');

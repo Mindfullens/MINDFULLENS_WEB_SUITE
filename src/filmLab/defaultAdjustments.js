@@ -26,6 +26,8 @@ export const DEFAULT_ADJUSTMENTS = {
   temp: 0,
   tint: 0,
   showClipping: false,
+  /** Hybrid Phase B: amber/cyan „limiter” bands before hard clip (only when showClipping). */
+  clipLimiterPreview: false,
   saturation: 0,
   vibrance: 0,
   curveLumaMix: 72,
@@ -36,6 +38,8 @@ export const DEFAULT_ADJUSTMENTS = {
   frame: 'none',
   chromAb: 0,
   bloom: 0,
+  /** When true (default), bloom uses D65 Lab L blur + original a/b (CPU path). False = legacy RGB blur. */
+  bloomLabAccurate: true,
   dust: 0,
   dustVariant: -1,
   dustCycle: 0,
@@ -49,10 +53,135 @@ export const DEFAULT_ADJUSTMENTS = {
   halHue: 0,
   anamorph: 0,
   streakLen: 50,
+  /** Phase C: subtelny „gate weave” na buforze RGB (0–100). */
+  gateWeave: 0,
+  /** Phase C: siła mieszania drugiej płytki (0–100). */
+  doubleExposureAmount: 0,
+  /** Phase C: `screen` | `multiply` — tryb kompozytu drugiej płytki. */
+  doubleExposureBlendMode: 'screen',
   flipped: false,
   rotation: 0,
   compareMode: false,
   compareX: 0.5,
+  brushMaskEnabled: false,
+  localMaskMode: 'brush',
+  localMaskShowOverlay: false,
+  localMaskOpacity: 100,
+  localMaskBlend: 'normal',
+  localMaskName: 'Maska 1',
+  localMaskEnabled: true,
+  localMaskSoloIndex: -1,
+  aiAssistBackend: 'none',
+  aiAssistRuns: 0,
+  aiAssistLastLatencyMs: null,
+  aiAssistTotalLatencyMs: 0,
+  aiAssistBestLatencyMs: null,
+  aiAssistWorstLatencyMs: null,
+  activeLocalMaskIndex: 0,
+  localMasks: [],
+  brushMaskRadius: 30,
+  brushMaskFeather: 100,
+  brushMaskExposure: 35,
+  brushMaskErase: false,
+  /** 0–100: przy >0 znaczki pędzla ważą Sobel lumy — mocniejsze na krawędziach (P1 edge brush). */
+  brushMaskEdgeSensitivity: 68,
+  brushMaskStrokes: [],
+  /** Normalized brush radius / max(canvasCssW, canvasCssH); used with brushMaskPaths rasterization */
+  brushMaskRadiusNorm: null,
+  /** 0–100: Lightroom-like flow (stroke opacity buildup; scales raster alpha) */
+  brushMaskFlow: 20,
+  /** 0–100: brush “density” / max stroke strength cap */
+  brushMaskDensity: 60,
+  /** Continuous brush paths (image-normalized 0–1 coords); preferred over brushMaskStrokes */
+  brushMaskPaths: [],
+  /** Lokalna tonacja maski (jak Lightroom — ważone przez wagę maski) */
+  brushMaskContrast: 0,
+  brushMaskHighlights: 0,
+  brushMaskShadows: 0,
+  brushMaskWhites: 0,
+  brushMaskBlacks: 0,
+  brushMaskTemp: 0,
+  brushMaskTint: 0,
+  brushMaskSaturation: 0,
+  /** Active mask semantic / ONNX raster alpha ({ data, width, height }); mirrors slot.rasterAlpha when editing */
+  localMaskRasterAlpha: null,
+  linearMaskAngle: 0,
+  linearMaskFeather: 55,
+  linearMaskOffset: 0,
+  radialMaskCenterX: 50,
+  radialMaskCenterY: 50,
+  radialMaskRadius: 35,
+  radialMaskFeather: 55,
+  lumaMaskMin: 0,
+  lumaMaskMax: 100,
+  lumaMaskFeather: 35,
+  /** Proxy depth (jasność sceny): zakres 0–100 jak luma; × pędzel w trybie „Głębia”. */
+  depthMaskMin: 0,
+  depthMaskMax: 100,
+  depthMaskFeather: 35,
+  /** Źródło mapy głębi: `luminance` (domyślnie); przyszłe wartości po ONNX / buforze. */
+  depthMapSource: 'luminance',
+  /** Invalidacja cache maski przy podłączeniu zewnętrznego bufora głębi (np. skrót SHA); null = brak bufora. */
+  depthProxyDigest: null,
+  colorMaskHueCenter: 210,
+  colorMaskHueWidth: 90,
+  colorMaskFeather: 35,
+  /** Zakres saturacji (chroma) w masce „color”: 0–100 → HSL S 0–1 */
+  colorMaskChromaMin: 0,
+  colorMaskChromaMax: 100,
+
+  /** Mask graph v0: combine two stack slots, then apply exposure once (driver = aktywna maska). */
+  localMaskGraphEnabled: false,
+  localMaskGraphOp: 'intersect',
+  localMaskGraphIndexA: 0,
+  localMaskGraphIndexB: 1,
+
+  /** Widok Maski (PRO): aktywna sekcja buildera prawego pasa. */
+  /** Przypięcia suwaków Develop → węzeł maski (recipe / HME). */
+  adjustmentBindings: [],
+
+  /** `simple` ukrywa zaawansowany graf maski; jeden stan adjustments. */
+  uiMode: 'pro',
+
+  /** Warstwy v0 — kolejność listy = kolejność aplikacji po maskach HME. */
+  recipeLayersV0: [],
+  recipeLayersSelectedIndex: 0,
+
+  /** Retusz v1: `none` | `heal` | `clone` | `removeObject` — podgląd CPU spójny z zakładką Retusz. */
+  retouchTool: 'none',
+  /** `global` — cały kadr; `masked` — waga wg maski HME (max ze stacku lub graf). */
+  retouchScope: 'masked',
+  /** 0–100: siła mieszania Heal (rozmycie 3×3). */
+  retouchHealStrength: 40,
+  /** Placeholder AI usuwania obiektu: `idle` | `pending` | `done` | `error`. */
+  retouchRemoveObjectState: 'idle',
+
+  /** Etap 15: przy eksporcie wsadowym — ponów heurystykę masek AI-assist per plik. */
+  batchRecomputeAiMasksHeuristic: false,
+
+  /** P2: przybliżony „soft proof” CMYK na podglądzie CPU (bez ICC); eksport pozostaje sRGB. */
+  cmykSoftProofEnabled: false,
+
+  /** P2: znacznik recipe — węzeł `semantic.generative_stub.v1` w projekcji maskGraph (bez renderu generacji). */
+  generativeAiStubIntent: false,
+
+  /** Epik A — Panel I: format kadra (skala ziarna / halacji / aberracji w merge Ingress). */
+  filmFormatId: '35mm',
+  /** 0–100: redukcja pomarańczowej maski bazy C-41 (tylko `inputWorkflowMode` = negative_film). */
+  orangeMaskCorrection: 0,
+  /** -3…+3 EV push/pull — dodawane do ekspozycji w merge Ingress (nie zapisują „podwójnie” stanu). */
+  pushPullEv: 0,
+  /** `digital` | `negative_film` — tryb przepływu wejścia. */
+  inputWorkflowMode: 'digital',
+  /** RAW (LibRaw): auto | camera_embed | generic_matrix — ponowny ingest po zmianie. */
+  rawColorimetryPolicy: 'auto',
+
+  /** Epik C — Panel III: linear | log | s_curve → cienki bias `curveLumaMix` w merge Ingress. */
+  filmToneResponseShape: 'linear',
+  /** 0–100: reciprocity — cienki dodatek EV w merge Ingress (nie pełny Schwarzschild). */
+  emulsionReciprocityComp: 0,
+  /** 0–100: MTF / ostrość krawędzi — dodawane do Clarity w merge Ingress (bez osobnego kernela). */
+  emulsionEdgeAcutance: 0,
 };
 
 export function getFilmGrainDefaults(film) {

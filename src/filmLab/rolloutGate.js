@@ -24,16 +24,21 @@ export function getPreviewE2eFrameCostGateThresholdsHint() {
   return `READY gdy mediana kosztu klatki <=${PREVIEW_E2E_FRAME_COST_TARGET_MS}ms i n>=${PREVIEW_E2E_FRAME_COST_GATE_MIN_SAMPLES}; inaczej HOLD`;
 }
 
+/** Domyślny znacznik „brak danych” (em dash); musi być spójny z `filmLab.renderDebug.dashMark` w UI. */
+export const ROLLOUT_GATE_EMPTY_PANEL_LABEL = '\u2014';
+
 /**
  * Bramka operacyjna na medianie kosztu klatki (tylko czas renderu workera / fast / CPU), nie pełnym intent→present.
+ * @param {object} [options] — np. `{ dashMark: t('filmLab.renderDebug.dashMark') }` dla spójności z locale.
  */
-export function getPreviewE2eFrameCostGateInfo(renderDebugInfo) {
+export function getPreviewE2eFrameCostGateInfo(renderDebugInfo, options) {
+  const dashMark = options?.dashMark ?? ROLLOUT_GATE_EMPTY_PANEL_LABEL;
   const path = String(renderDebugInfo?.previewE2ePath ?? '').trim();
   const none = {
     decision: null,
     isReady: false,
     tone: 'none',
-    panelLabel: '—',
+    panelLabel: dashMark,
     badgeSegment: '',
     exportSummary: null,
   };
@@ -73,7 +78,8 @@ export function getPreviewE2eFrameCostGateInfo(renderDebugInfo) {
   };
 }
 
-export function getMainPreviewAbRolloutHealthInfo(renderDebugInfo) {
+export function getMainPreviewAbRolloutHealthInfo(renderDebugInfo, options) {
+  const dashMark = options?.dashMark ?? ROLLOUT_GATE_EMPTY_PANEL_LABEL;
   const state = String(renderDebugInfo?.mainThreadWebGpuPreviewAbHealthState ?? '').trim();
   const fallbackRateRaw = Number(renderDebugInfo?.mainThreadWebGpuPreviewAbFallbackRate);
   const healthFrames = Number(renderDebugInfo?.mainThreadWebGpuPreviewAbHealthFrames);
@@ -121,7 +127,7 @@ export function getMainPreviewAbRolloutHealthInfo(renderDebugInfo) {
     hasData,
     panelLabel:
       decision == null
-        ? '—'
+        ? dashMark
         : `${decision}${Number.isFinite(fallbackRate) ? ` · fb ${(fallbackRate * 100).toFixed(1)}%` : ''} · n=${Math.floor(n ?? 0)}`,
     summaryLabel:
       decision == null
@@ -136,8 +142,9 @@ export function getMainPreviewAbRolloutHealthInfo(renderDebugInfo) {
   };
 }
 
-export function getMainPreviewAbRolloutGateInfo(renderDebugInfo) {
-  const healthInfo = getMainPreviewAbRolloutHealthInfo(renderDebugInfo);
+export function getMainPreviewAbRolloutGateInfo(renderDebugInfo, options) {
+  const dashMark = options?.dashMark ?? ROLLOUT_GATE_EMPTY_PANEL_LABEL;
+  const healthInfo = getMainPreviewAbRolloutHealthInfo(renderDebugInfo, options);
   const state = healthInfo.state;
   const n = healthInfo.hasData ? healthInfo.n : null;
   const healthFrames = Number(renderDebugInfo?.mainThreadWebGpuPreviewAbHealthFrames);
@@ -152,7 +159,7 @@ export function getMainPreviewAbRolloutGateInfo(renderDebugInfo) {
     n,
     isReady,
     tone,
-    panelLabel: decision != null ? `${decision} · n=${n}` : '—',
+    panelLabel: decision != null ? `${decision} · n=${n}` : dashMark,
     badgeSegment: decision != null ? ` | rollout:${decision}${n != null ? ` n=${n}` : ''}` : '',
     tooltipLabel: decision != null ? `${decision}${n != null ? ` (n=${n})` : ''}` : null,
     exportSummary: decision != null ? `${decision}${n != null ? ` n=${n}` : ''}` : null,

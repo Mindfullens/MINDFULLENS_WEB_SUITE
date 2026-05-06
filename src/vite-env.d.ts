@@ -14,6 +14,44 @@ interface ImportMetaEnv {
   readonly VITE_DISABLE_COPY_PROTECTION?: string;
   readonly VITE_FILMLAB_BATCH_PERF?: string;
   readonly VITE_FILMLAB_DEBUG_PANEL?: string;
+  /** Opcjonalny URL modelu ONNX dla maski AI (lazy ort — bez URL ścieżka assist bez zmian). */
+  readonly VITE_FILMLAB_ONNX_MODEL_URL?: string;
+  /**
+   * ONNX: symboliczny rozmiar przestrzenny H=W przy nieznanych wymiarach wejścia (domyślnie w kodzie 256).
+   * Zakres sensowny 16–4096 (parsowane jako liczba całkowita).
+   */
+  readonly VITE_FILMLAB_ONNX_DYNAMIC_SPATIAL?: string;
+  /** Opcjonalny URL modelu ONNX dla mapy głębi (maska depth — osobny od AI Subject/Sky). */
+  readonly VITE_FILMLAB_DEPTH_ONNX_MODEL_URL?: string;
+  /**
+   * Domyślnie inferencja depth ONNX używa Web Workera (gdy `Worker` jest dostępny).
+   * Ustaw `0` / `false` / `off` / `no`, żeby wymusić WASM na głównym wątku bez próby workera.
+   */
+  readonly VITE_FILMLAB_DEPTH_ONNX_USE_WORKER?: string;
+  /** Gdy `1` — cała ścieżka ONNX depth na głównym wątku (debug / diag); pomija worker mimo dostępności API. */
+  readonly VITE_FILMLAB_DEPTH_ONNX_MAIN_THREAD_ONLY?: string;
+  /** Gdy `1` — inferencja „depth ONNX” materializuje luminancję (test toru bez modelu). */
+  readonly VITE_FILMLAB_DEPTH_ONNX_USE_LUMA_FALLBACK?: string;
+  /**
+   * Dłuższa krawędź wejścia do modelu głębi (letterbox) — 32–4096, domyślnie 768.
+   * Zmniejsz na słabszych urządzeniach.
+   */
+  readonly VITE_FILMLAB_DEPTH_ONNX_MAX_SIDE?: string;
+  /** Gdy `1` — wejście RGB normalizowane jak ImageNet przed ONNX (typowe dla MiDaS). */
+  readonly VITE_FILMLAB_DEPTH_ONNX_IMAGENET_NORM?: string;
+  /**
+   * Wymuszenie layoutu tensora wejścia, gdy metadane są dwuznaczne: `nchw` | `nhwc`.
+   * Puste = heurystyka (kanał `3` na poz. 1 vs 3, inaczej domyślnie NCHW).
+   */
+  readonly VITE_FILMLAB_DEPTH_ONNX_INPUT_LAYOUT?: string;
+  /** Nazwa tensora wyjścia ONNX (depth); priorytet nad OUTPUT_INDEX. */
+  readonly VITE_FILMLAB_DEPTH_ONNX_OUTPUT_NAME?: string;
+  /** Indeks wyjścia (0..n) wg `session.outputNames`; gdy brak OUTPUT_NAME. */
+  readonly VITE_FILMLAB_DEPTH_ONNX_OUTPUT_INDEX?: string;
+  /** Wielokanałowe wyjście głębi: `first` | `mean`. */
+  readonly VITE_FILMLAB_DEPTH_ONNX_DEPTH_CHANNELS?: string;
+  /** Timeout `requestIdleCallback` dla startu inferencji depth ONNX (ms; domyślnie 480). */
+  readonly VITE_FILMLAB_DEPTH_ONNX_IDLE_TIMEOUT_MS?: string;
   /**
    * Gdy `1` — `server.watch.usePolling` w `vite.config.js` (dev). Pomaga na zewnętrznych / sieciowych wolumenach, gdzie brak HMR.
    */

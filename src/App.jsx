@@ -1,4 +1,5 @@
 import { lazy, Suspense } from 'react';
+import { useI18n } from './i18n';
 import LandingPage from './LandingPage';
 
 const TimeMachinePage = lazy(() => import('./TimeMachinePage'));
@@ -9,6 +10,7 @@ const LiveCamStaticPage = lazy(() => import('./LiveCamStaticPage'));
 const MatcherStaticPage = lazy(() => import('./MatcherStaticPage'));
 
 function RouteLoadingFallback() {
+  const { t } = useI18n();
   return (
     <div
       className="grid min-h-[100dvh] place-items-center bg-[#0a0a0a] text-[rgba(255,255,255,0.78)] text-[0.9rem] font-sans tracking-[0.02em]"
@@ -16,7 +18,7 @@ function RouteLoadingFallback() {
       aria-live="polite"
       aria-busy="true"
     >
-      Ładowanie…
+      {t('app.loading')}
     </div>
   );
 }
@@ -42,7 +44,7 @@ export default function App() {
     PageComponent = TimeMachinePage;
   } else if (path === '/analog-signature') {
     PageComponent = AnalogSignaturePage;
-  } else if (path === '/film-lab') {
+  } else if (path === '/film-lab' || path.startsWith('/film-lab/')) {
     PageComponent = FilmLab;
   } else if (path === '/ciemnia') {
     PageComponent = CiemniaStaticPage;

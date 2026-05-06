@@ -15,6 +15,28 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  e2e-playwright:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install chromium --with-deps
+
+      - name: E2E (Playwright)
+        run: npm run test:e2e
+
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -39,7 +61,7 @@ jobs:
       - name: Install
         run: npm ci
 
-      - name: CI (lint, tests, Vite build, audit)
+      - name: CI (lint, tests incl. RAW gate, Vite build, audit)
         run: npm run ci
 
       - name: Job summary
@@ -47,5 +69,5 @@ jobs:
         run: |
           cat <<'EOF' >> "$GITHUB_STEP_SUMMARY"
           ### mindfullens-film-lab — CI
-          - Wykonano pomyślnie: `npm run ci` (ESLint + `npm test` + **Vite 6** `build` + `npm audit`) — w `npm test` m.in. `test:gh-pages-base`, `test:static-deploy-assets` (m.in. `index.html` SEO/JSON-LD, `robots`+`sitemap`, spójność `public/_headers` z `vercel.json`), `test:env-example-parity`, `test:vite-toolchain` (Vite 6+). Po `vite build`: `postbuild` → `test:dist-outputs` (m.in. `dist/404`, pliki `public/` 1:1, `manifest.webmanifest` z PWA, `.well-known/security.txt`).
+          - Wykonano pomyślnie: `npm run ci` (ESLint + testy + **Vite 6** `build` + `npm audit`) — obejmuje też gate RAW reference (`npm run test:raw-reference`) oraz testy m.in. `test:gh-pages-base`, `test:static-deploy-assets` (m.in. `index.html` SEO/JSON-LD, `robots`+`sitemap`, spójność `public/_headers` z `vercel.json`), `test:env-example-parity`, `test:vite-toolchain` (Vite 6+). Po `vite build`: `postbuild` → `test:dist-outputs` (m.in. `dist/404`, pliki `public/` 1:1, `manifest.webmanifest` z PWA, `.well-known/security.txt`).
           EOF

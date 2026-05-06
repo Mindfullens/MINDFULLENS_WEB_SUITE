@@ -1,11 +1,25 @@
 import { useMemo } from 'react';
+import { useI18n } from '../i18n';
 import { filmStocks } from '../engine/filmProfiles.js';
 import { getDisplayFilm } from './displayFilm.js';
 
+function translateInputProfileFilm(film, t) {
+  if (!film?.isInputProfile) {
+    return film;
+  }
+  return {
+    ...film,
+    name: t('filmLab.inputProfile.name'),
+    sub: t('filmLab.inputProfile.sub'),
+  };
+}
+
 export function useFilmLabFilmCatalog({ activeFilmIndex, searchQuery, activeCategory }) {
+  const { t } = useI18n();
+
   const activeFilm = useMemo(
-    () => getDisplayFilm(filmStocks[activeFilmIndex], activeFilmIndex),
-    [activeFilmIndex]
+    () => translateInputProfileFilm(getDisplayFilm(filmStocks[activeFilmIndex], activeFilmIndex), t),
+    [activeFilmIndex, t],
   );
   const isInputProfile = Boolean(activeFilm?.isInputProfile);
 
@@ -15,7 +29,7 @@ export function useFilmLabFilmCatalog({ activeFilmIndex, searchQuery, activeCate
     return filmStocks
       .map((film, index) => ({
         index,
-        film: getDisplayFilm(film, index),
+        film: translateInputProfileFilm(getDisplayFilm(film, index), t),
       }))
       .filter(({ film }) => {
         const matchesCategory = activeCategory === 'all' || film.cat === activeCategory;
@@ -26,7 +40,7 @@ export function useFilmLabFilmCatalog({ activeFilmIndex, searchQuery, activeCate
 
         return matchesCategory && matchesQuery;
       });
-  }, [activeCategory, searchQuery]);
+  }, [activeCategory, searchQuery, t]);
 
   return { activeFilm, isInputProfile, visibleFilms };
 }

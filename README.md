@@ -17,11 +17,12 @@ Równoważne `npm run dev` (Vite, port 4174). Pomiary batch: `npm run dev:perf`;
 - `npm run build:preview:perf` — **diagnostyczny** build z pomiarami batch + `preview` (nie ten sam co czysty deploy). `npm run preview:perf` — szybki `preview` z otwarciem `/film-lab`, gdy `dist` już zbudowałeś z `VITE_FILMLAB_BATCH_PERF=1`.
 - `npm test` — regresja + testy skryptów (m.in. `gh-pages-base`, `static-deploy-assets`, `env-example-parity`, `vite-toolchain` — wersja Vite 6+), bez builda / ESLinta.
 - `npm run preflight` — **lint + `npm test`** (bez Vite build; szybki check przed commitem/PR).
-- `npm run ci` (alias **`npm run check`**) — `lint`, `npm test`, `vite build`, `npm audit` (tak jest w [CI](.github/workflows/ci.yml); możesz też odpalić workflow ręcznie: *workflow_dispatch*).
+- `npm run ci` (alias **`npm run check`**) — `lint`, testy (`npm test` + `npm run test:raw-reference`), `vite build`, `npm audit` (tak jest w [CI](.github/workflows/ci.yml); możesz też odpalić workflow ręcznie: *workflow_dispatch*).
 - `npm run lint:fix` — ESLint z `--fix`.
 - `npm run clean` — usuwa `dist`, `.eslintcache`, `.vite`, `coverage`, `.turbo`, `.cache` (świeży build / czysty cache).
 - `npm run audit` — podgląd [npm audit](https://docs.npmjs.com/cli/v10/commands/npm-audit); zob. [docs/README.md](docs/README.md) (Vite 6, plugin React).
 - `npm run ci:smoke` — jak `ci`, plus weryfikacja źródeł profili (lokalny „pełny gate”, wymaga drzewa wtyczki).
+- `npm run raw:manifest:build:suggested` — auto-kalibracja progów manifestu RAW (quality + recovery2d) na podstawie metryk z raportów DIAG.
 - **Deploy (Vercel / Netlify / Cloudflare / GHP):** [docs/DEPLOY.md](docs/DEPLOY.md) — pliki `public/_redirects`, `vercel.json`, `netlify.toml`, [GitHub Actions → Pages](.github/workflows/pages.yml) (ręczny run; pole **Vite public base** opcjonalne), lokalnie pod *project page*: `GH_PAGES_REPO=nazwa-repo npm run build:gh-pages`; **podgląd** `dist` z tym samym `base`: `… npm run preview:gh-pages` (z tą samą `VITE_BASE` / `GH_PAGES_REPO`).
 
 ## Troubleshooting (lokalnie)

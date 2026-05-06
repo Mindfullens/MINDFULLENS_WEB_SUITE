@@ -26,13 +26,44 @@ export function useFilmLabSliderWorkbench({
 
   const flushSliderUpdates = useCallback(() => {
     sliderUpdateFrameRef.current = 0;
-    const queued = Array.from(pendingSliderUpdatesRef.current.values());
+    const entries = Array.from(pendingSliderUpdatesRef.current.entries());
     pendingSliderUpdatesRef.current.clear();
+    if (entries.length === 0) {
+      return;
+    }
 
-    queued.forEach(({ apply, value }) => {
+    /** Jedna aktualizacja stanu dla wszystkich suwaków `adj:*` w tej klatce — mniej przejść React + silnika. */
+    const adjPatches = [];
+    const customCalls = [];
+    for (const [key, { apply, value }] of entries) {
+      if (key.startsWith('adj:')) {
+        adjPatches.push({ name: key.slice(4), value });
+      } else {
+        customCalls.push({ apply, value });
+      }
+    }
+
+    if (adjPatches.length > 0) {
+      setAdjustments((current) => {
+        let next = current;
+        let mutated = false;
+        for (const { name, value: v } of adjPatches) {
+          if (current[name] !== v) {
+            if (!mutated) {
+              next = { ...current };
+              mutated = true;
+            }
+            next[name] = v;
+          }
+        }
+        return mutated ? next : current;
+      });
+    }
+
+    for (const { apply, value } of customCalls) {
       apply(value);
-    });
-  }, []);
+    }
+  }, [setAdjustments]);
 
   const queueSliderUpdate = useCallback(
     (key, apply, value) => {
@@ -215,10 +246,10 @@ export function useFilmLabSliderWorkbench({
   );
 
   const handleTemperatureSliderChange = useCallback(
-    (event) => {
+    (event, name = 'temp') => {
       const kelvin = Number(event.target.value);
       const nextValue = mapKelvinToTemperature(kelvin);
-      if (Number(adjustments?.temp) === nextValue) {
+      if (Number(adjustments?.[name]) === nextValue) {
         return;
       }
       const dragState = sliderDragActivationRef.current;
@@ -228,20 +259,16 @@ export function useFilmLabSliderWorkbench({
       }
 
       if (shouldEnterAdjusting) {
-        setInteractionKind('slider:temp');
+        setInteractionKind(`slider:${name}`);
         if (!isAdjusting) {
           markFilmLabE2ePointerDown();
           setIsAdjusting(true);
         }
       }
-      queueSliderUpdate(
-        'adj:temp',
-        (value) => updateAdjustment('temp', value),
-        nextValue
-      );
+      queueSliderUpdate(`adj:${name}`, (value) => updateAdjustment(name, value), nextValue);
     },
     [
-      adjustments?.temp,
+      adjustments,
       isAdjusting,
       queueSliderUpdate,
       scheduleSliderReleaseFailsafe,

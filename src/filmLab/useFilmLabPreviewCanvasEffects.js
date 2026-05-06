@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useLayoutEffect } from 'react';
 import { drawCurvesPreview } from './curvesCanvas.js';
 import { drawHistogram } from './histogramCanvas.js';
 import { FIT_UI_ZOOM } from './viewportZoom.js';
@@ -15,6 +15,7 @@ export function useFilmLabPreviewCanvasEffects({
   canvasRef,
   histogramCanvasRef,
   isAdjusting,
+  interactionKind,
   renderVersion,
   curvesCanvasRef,
   userCurves,
@@ -33,29 +34,22 @@ export function useFilmLabPreviewCanvasEffects({
     }
   }, [hasImage]);
 
-  useEffect(() => {
-    if (!hasImage) {
+  /**
+   * Histogram ↔ klatka podglądu: po `renderVersion` (fast/full render zakończony w silniku)
+   * rysujemy w tym samym commicie co React (`useLayoutEffect`), bez czekania na idle
+   * — unik „histogram jednej klatki do tyłu” po puszczeniu suwaka.
+   */
+  useLayoutEffect(() => {
+    if (!hasImage || isAdjusting) {
       return;
     }
-
-    if (isAdjusting) {
-      return;
-    }
-
-    const run = () => {
-      drawHistogram(canvasRef.current, histogramCanvasRef.current);
-    };
-
-    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
-      const handle = window.requestIdleCallback(run, { timeout: 240 });
-      return () => window.cancelIdleCallback(handle);
-    }
-
-    const timeoutId = window.setTimeout(run, 80);
-    return () => window.clearTimeout(timeoutId);
-  }, [canvasRef, hasImage, isAdjusting, renderVersion]);
+    drawHistogram(canvasRef.current, histogramCanvasRef.current);
+  }, [hasImage, isAdjusting, renderVersion, canvasRef, histogramCanvasRef]);
 
   useEffect(() => {
+    if (isAdjusting && interactionKind === 'curve') {
+      return;
+    }
     drawCurvesPreview(curvesCanvasRef.current, userCurves, activeCurveCh);
-  }, [activeCurveCh, activePanel, userCurves]);
+  }, [activeCurveCh, activePanel, userCurves, isAdjusting, interactionKind]);
 }

@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { useI18n } from '../i18n';
 import { PIPELINE_KIND, PIPELINE_STATUS } from '../engine/pipeline/constants.js';
 import {
   isProxyWorkerGpuInputTexDownscaled,
@@ -9,6 +10,7 @@ import {
   getMainPreviewAbRolloutHealthInfo,
   getPreviewE2eFrameCostGateInfo,
 } from './rolloutGate.js';
+import { resolveRuntimeTier, runtimeTierSourceToI18nLeaf } from './runtimeTier.js';
 
 export function useFilmLabRenderDebugStatusLabels({
   renderDebugInfo,
@@ -16,34 +18,37 @@ export function useFilmLabRenderDebugStatusLabels({
   pipelineInfo,
   activeFilmName,
 }) {
+  const { t } = useI18n();
+  const dash = t('filmLab.renderDebug.dashMark');
+
   const previewPathLabel = useMemo(() => {
     if (!renderDebugInfo?.isAdjusting) {
-      return 'cpu';
+      return t('filmLab.runtimeStatus.previewCpu');
     }
     if (!renderDebugInfo?.workerDragEnabled) {
-      return 'cpu (drag)';
+      return t('filmLab.runtimeStatus.previewCpuDrag');
     }
     if (!renderDebugInfo?.proxySourceReady) {
-      return 'worker (syncing)';
+      return t('filmLab.runtimeStatus.previewWorkerSync');
     }
     const back = renderDebugInfo?.proxyLastFrameBackend ?? 'cpu';
     const impl = renderDebugInfo?.proxyLastFrameGpuImpl;
     if (back === 'gpu' && (impl === 'webgpu' || impl === 'webgl')) {
       const segs = [];
       if (isProxyWorkerGpuInputTexDownscaled(renderDebugInfo)) {
-        segs.push('wejście do limitu 2D');
+        segs.push(t('filmLab.runtimeStatus.inputTex2DLimit'));
       }
       if (isProxyWorkerProxyOutputFitted(renderDebugInfo)) {
-        segs.push('wyjście do limitu 2D');
+        segs.push(t('filmLab.runtimeStatus.outputTex2DLimit'));
       }
       const extra = segs.length ? ` · ${segs.join(' · ')}` : '';
-      return `worker (gpu: ${impl}${extra})`;
+      return t('filmLab.runtimeStatus.previewWorkerGpu', { impl, extra });
     }
     if (isProxyWorkerProxyOutputFitted(renderDebugInfo)) {
-      return `worker (${back} · wyjście do limitu 2D)`;
+      return t('filmLab.runtimeStatus.previewWorkerBackendLimit', { back });
     }
-    return `worker (${back})`;
-  }, [renderDebugInfo]);
+    return t('filmLab.runtimeStatus.previewWorkerBackend', { back });
+  }, [renderDebugInfo, t]);
 
   const fallbackExplanation = useMemo(() => {
     const reason = String(renderDebugInfo?.proxyWorkerReason ?? '').trim();
@@ -52,16 +57,19 @@ export function useFilmLabRenderDebugStatusLabels({
     }
 
     const knownReasons = {
-      'feature-flag-off': 'GPU proxy wyłączony flagą środowiskową.',
-      'feature-flags-off': 'Worker/GPU wyłączone flagami środowiskowymi.',
-      'forced-cpu-fallback': 'Wymuszony fallback CPU (ustawienie diagnostyczne).',
-      'source-not-ready': 'Worker czeka na przygotowanie źródła.',
-      'worker init failed': 'Nie udało się uruchomić workera renderującego.',
-      'worker runtime error': 'Błąd wykonania workera renderującego.',
+      'feature-flag-off': t('filmLab.runtimeStatus.fallbackFeatureFlagOff'),
+      'feature-flags-off': t('filmLab.runtimeStatus.fallbackFeatureFlagsOff'),
+      'forced-cpu-fallback': t('filmLab.runtimeStatus.fallbackForcedCpu'),
+      'source-not-ready': t('filmLab.runtimeStatus.fallbackSourceNotReady'),
+      'worker init failed': t('filmLab.runtimeStatus.fallbackWorkerInitFailed'),
+      'worker runtime error': t('filmLab.runtimeStatus.fallbackWorkerRuntimeError'),
+      'proxy frame error': t('filmLab.runtimeStatus.fallbackProxyFrameError'),
+      'preferred:cpu': t('filmLab.runtimeStatus.fallbackPreferredCpu'),
+      'preferred:gpu': t('filmLab.runtimeStatus.fallbackPreferredGpu'),
     };
 
     return knownReasons[reason] ?? reason;
-  }, [renderDebugInfo?.proxyWorkerReason]);
+  }, [renderDebugInfo?.proxyWorkerReason, t]);
 
   const runtimeStatusBadge = useMemo(() => {
     if (!hasActiveSource) {
@@ -71,41 +79,43 @@ export function useFilmLabRenderDebugStatusLabels({
     const rawState =
       pipelineInfo?.pipelineKind === PIPELINE_KIND.RAW
         ? pipelineInfo?.status === PIPELINE_STATUS.READY
-          ? 'RAW OK'
-          : `RAW ${String(pipelineInfo?.status ?? 'pending').toUpperCase()}`
-        : 'BITMAP';
+          ? t('filmLab.runtimeStatus.badgeRawOk')
+          : t('filmLab.runtimeStatus.badgeRawStatus', {
+              status: String(pipelineInfo?.status ?? 'pending').toUpperCase(),
+            })
+        : t('filmLab.runtimeStatus.badgeBitmap');
 
-    let renderState = 'CPU';
+    let renderState = t('filmLab.runtimeStatus.renderCpu');
     const mainAbPath = String(renderDebugInfo?.mainThreadWebGpuPreviewAbPath ?? '');
     if (mainAbPath === 'webgpu-main') {
-      renderState = 'Main WebGPU (A/B)';
+      renderState = t('filmLab.runtimeStatus.renderMainWebGpuAb');
     } else if (mainAbPath === 'webgl-fallback') {
-      renderState = 'Main WebGL (A/B fallback)';
-    } else
-    if (renderDebugInfo?.proxyGpuEnabled && renderDebugInfo?.proxyWorkerStatus === 'ready') {
+      renderState = t('filmLab.runtimeStatus.renderMainWebGlFallback');
+    } else if (renderDebugInfo?.proxyGpuEnabled && renderDebugInfo?.proxyWorkerStatus === 'ready') {
       const impl = renderDebugInfo?.proxyLastFrameGpuImpl;
       if (impl === 'webgpu') {
-        renderState = 'WebGPU proxy';
+        renderState = t('filmLab.runtimeStatus.renderWebGpuProxy');
       } else if (impl === 'webgl') {
-        renderState = 'WebGL2 proxy';
+        renderState = t('filmLab.runtimeStatus.renderWebGl2Proxy');
       } else {
-        renderState = 'GPU proxy';
+        renderState = t('filmLab.runtimeStatus.renderGpuProxy');
       }
     } else if (
       renderDebugInfo?.proxyForceCpuFallback ||
       String(renderDebugInfo?.proxyWorkerStatus ?? '').includes('fallback')
     ) {
-      renderState = 'CPU fallback';
+      renderState = t('filmLab.runtimeStatus.renderCpuFallback');
     } else if (String(renderDebugInfo?.lastRenderPath ?? '').startsWith('worker')) {
-      renderState = 'Worker';
+      renderState = t('filmLab.runtimeStatus.renderWorker');
     }
 
     const e2eWarn =
       renderDebugInfo?.previewE2eKpiState === 'warn' &&
       Number.isFinite(Number(renderDebugInfo?.previewE2eMedianMs))
-        ? ` | E2E WARN ${Number(renderDebugInfo.previewE2eMedianMs).toFixed(1)}ms/${Number(
-            renderDebugInfo?.previewE2eKpiTargetMs ?? 16
-          ).toFixed(0)}`
+        ? t('filmLab.runtimeStatus.e2eWarnSegment', {
+            ms: Number(renderDebugInfo.previewE2eMedianMs).toFixed(1),
+            targetMs: Number(renderDebugInfo?.previewE2eKpiTargetMs ?? 16).toFixed(0),
+          })
         : '';
 
     const perPath = renderDebugInfo?.previewE2ePerPathStats;
@@ -116,7 +126,10 @@ export function useFilmLabRenderDebugStatusLabels({
         ? (() => {
             const delta = Number((wgMed - glMed).toFixed(2));
             const faster = delta <= 0 ? 'WGPU' : 'WGL';
-            return ` | A/B Δ${Math.abs(delta).toFixed(2)}ms (${faster})`;
+            return t('filmLab.runtimeStatus.abDeltaSegment', {
+              deltaMs: Math.abs(delta).toFixed(2),
+              faster,
+            });
           })()
         : '';
 
@@ -126,23 +139,50 @@ export function useFilmLabRenderDebugStatusLabels({
     const rolloutRatio = Number(renderDebugInfo?.mainThreadWebGpuPreviewAbWebGpuRatio);
     const rolloutSummary =
       Number.isFinite(rolloutTotal) && rolloutTotal > 0
-        ? ` | rollout ${Number.isFinite(rolloutRatio) ? `${(rolloutRatio * 100).toFixed(1)}%` : 'n/a'} (${Number.isFinite(rolloutMain) ? Math.floor(rolloutMain) : 0}/${Math.floor(rolloutTotal)}; fb:${Number.isFinite(rolloutFallback) ? Math.floor(rolloutFallback) : 0})`
+        ? t('filmLab.runtimeStatus.rolloutSegment', {
+            ratio: Number.isFinite(rolloutRatio)
+              ? `${(rolloutRatio * 100).toFixed(1)}%`
+              : t('filmLab.runtimeStatus.rolloutNa'),
+            main: Number.isFinite(rolloutMain) ? Math.floor(rolloutMain) : 0,
+            total: Math.floor(rolloutTotal),
+            fb: Number.isFinite(rolloutFallback) ? Math.floor(rolloutFallback) : 0,
+          })
         : '';
-    const rolloutHealth = getMainPreviewAbRolloutHealthInfo(renderDebugInfo).badgeSegment;
-    const rolloutReady = getMainPreviewAbRolloutGateInfo(renderDebugInfo).badgeSegment;
-    const frameCostGate = getPreviewE2eFrameCostGateInfo(renderDebugInfo).badgeSegment;
+    const rolloutOpts = { dashMark: dash };
+    const rolloutHealth = getMainPreviewAbRolloutHealthInfo(renderDebugInfo, rolloutOpts).badgeSegment;
+    const rolloutReady = getMainPreviewAbRolloutGateInfo(renderDebugInfo, rolloutOpts).badgeSegment;
+    const frameCostGate = getPreviewE2eFrameCostGateInfo(renderDebugInfo, rolloutOpts).badgeSegment;
+    const runtimeTier = resolveRuntimeTier(renderDebugInfo);
+    const tierLeaf = runtimeTierSourceToI18nLeaf(runtimeTier.source);
+    const tierSourceLabel =
+      tierLeaf === 'unknown'
+        ? String(runtimeTier.source)
+        : t(`filmLab.runtimeStatus.tierSource.${tierLeaf}`);
+    const runtimeTierSegment = t('filmLab.runtimeStatus.runtimeTierSegment', {
+      tier: runtimeTier.tier,
+      sourceLabel: tierSourceLabel,
+    });
+
+    const profileLabel = t('filmLab.runtimeStatus.badgeMainLine', {
+      rawState,
+      renderState,
+      profileName: activeFilmName ?? dash,
+    });
 
     const runtimeStatusSegments = [
-      `${rawState} | ${renderState} | Profil: ${activeFilmName ?? '—'}`,
+      profileLabel,
       rolloutSummary,
       rolloutHealth,
       rolloutReady,
       frameCostGate,
       abSummary,
       e2eWarn,
+      runtimeTierSegment,
     ];
     return runtimeStatusSegments.join('');
   }, [
+    t,
+    dash,
     activeFilmName,
     hasActiveSource,
     pipelineInfo?.pipelineKind,
