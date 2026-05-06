@@ -53,7 +53,7 @@ jobs:
             exit 1
           }
           grep -q 'libraryListboxSel' "$f" && grep -E -q '\.poll\s*\(' "$f" \
-            && grep -q '.film-lab-filmstrip-cell[data-asset-id]' "$f" || {
+            && grep -Fq '.film-lab-filmstrip-cell[data-asset-id]' "$f" || {
             echo "::error::Plik $f jest przestarzały (brak poll / libraryListboxSel / komórek filmstripu). Zmerguj main."
             sed -n '20,70p' "$f" || true
             exit 1
