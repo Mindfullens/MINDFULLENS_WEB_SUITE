@@ -28,17 +28,32 @@ test.describe('Film Lab — Develop z katalogu', () => {
      * Warstwa Biblioteki musi być aktywna (`is-route-active`); inaczej ma `visibility:hidden`
      * i asercje Playwright na potomkach mogą zwracać „element(s) not found”.
      *
-     * W CI po imporcie część przebiegów zostaje na Develop — `toBeVisible` na `.is-route-active`
-     * wtedy trafia w 0 elementów. Poll + klik w pierwszą zakładkę (Biblioteka) stabilizuje route.
+     * Po imporcie: użyj `data-testid` z `FilmLabShell` (pewniejszy niż sama klasa w CI).
+     * Jeśli shell padnie (ErrorBoundary), znika też nav — wtedy przerywamy z jasnym komunikatem.
+     *
+     * W CI część przebiegów zostaje na Develop — poll + klik w pierwszą zakładkę (Biblioteka).
      */
-    await expect(page.locator('.film-lab-route-layer--library')).toBeAttached({ timeout: 60_000 });
+    const libraryRoute = page
+      .getByTestId('film-lab-route-layer-library')
+      .or(page.locator('.film-lab-route-layer--library'));
     await expect
       .poll(
         async () => {
-          const active = await page.evaluate(() => {
-            const el = document.querySelector('.film-lab-route-layer--library');
-            return Boolean(el?.classList.contains('is-route-active'));
-          });
+          const crashed = await page.getByRole('alert').count();
+          if (crashed > 0) {
+            const msg = await page.locator('[role="alert"] pre').innerText().catch(() => '');
+            throw new Error(
+              `Film Lab runtime po imporcie (ErrorBoundary). Fragment: ${String(msg).slice(0, 500)}`
+            );
+          }
+          const navOk = await page.locator('.film-lab-studio-nav-inner').isVisible();
+          if (!navOk) {
+            throw new Error('Film Lab shell po imporcie: brak .film-lab-studio-nav-inner (cały shell odmontowany?).');
+          }
+          if ((await libraryRoute.count()) === 0) {
+            return false;
+          }
+          const active = await libraryRoute.evaluate((el) => el.classList.contains('is-route-active'));
           if (active) return true;
           await page.locator('.film-lab-studio-nav-inner button').nth(0).click();
           return false;

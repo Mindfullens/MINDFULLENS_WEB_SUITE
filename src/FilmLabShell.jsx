@@ -75,12 +75,14 @@ export default function FilmLabShell({
 
         <div className="film-lab-workspace-route-stack">
           <div
+            data-testid="film-lab-route-layer-library"
             className={`film-lab-route-layer film-lab-route-layer--library ${workspaceRouteLayerClass(isLibraryWorkspace)}`}
             aria-hidden={!isLibraryWorkspace}
           >
             <FilmLabLibraryWorkspace {...libraryWorkspaceProps} />
           </div>
           <div
+            data-testid="film-lab-route-layer-develop"
             className={`film-lab-route-layer film-lab-route-layer--develop ${workspaceRouteLayerClass(!isLibraryWorkspace)}`}
             aria-hidden={isLibraryWorkspace}
           >
