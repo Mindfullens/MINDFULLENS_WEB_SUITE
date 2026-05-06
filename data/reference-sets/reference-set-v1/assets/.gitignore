@@ -1,0 +1,4 @@
+# Duże pliki referencyjne (RAW itd.) — nie commitujemy domyślnie (rozmiar).
+# Ścieżki docelowe są w REFERENCE-SET-MANIFEST.json; lokalnie kopiuj np. z DAM.
+rs-v1-*/*
+!rs-v1-*/.gitkeep
