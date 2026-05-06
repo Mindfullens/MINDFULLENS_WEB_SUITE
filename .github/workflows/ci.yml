@@ -22,6 +22,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Debug — który commit i jaki spec E2E
+        run: |
+          echo "ref=${{ github.ref }} event=${{ github.event_name }}"
+          git rev-parse HEAD
+          grep '"test:e2e"' package.json || true
+          echo "--- fragment develop-catalog-rapid-switch.spec.js (ok. linii 20–42) ---"
+          sed -n '20,42p' e2e/develop-catalog-rapid-switch.spec.js
+
       - name: Use Node
         uses: actions/setup-node@v6
         with:
