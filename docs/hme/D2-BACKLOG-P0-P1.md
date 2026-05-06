@@ -1,7 +1,15 @@
 # D2 — Backlog P0 / P1 (Film Lab)
 
 **Okno:** tydzień wykonawczy (D2)  
-**Źródła:** ostatni duży PR (toolchain / depth / typy), testy w `package.json`, zestaw referencyjny [`reference-set-v1`](../../data/reference-sets/reference-set-v1/README.md).
+**Źródła:** testy w `package.json`, zestaw referencyjny [`reference-set-v1`](../../data/reference-sets/reference-set-v1/README.md), otwarte PR toolchain.
+
+## Stan gałęzi (snapshot 2026-05-06)
+
+| Element | Wartość |
+| --- | --- |
+| **`main` (lokalny worktree)** | `vite` ^6.4.2, `tailwindcss` ^3.4.14, `postcss.config.js`: `tailwindcss` + `autoprefixer` (klasyczny pipeline v3). |
+| **PR toolchain** | [PR #9 — Bump the development group…](https://github.com/Mindfullens/MINDFULLENS_WEB_SUITE/pull/9): **OPEN** (niezmergowany) — na gałęzi Dependabota są m.in. Vite 8, Tailwind 4, `@tailwindcss/postcss`. |
+| **Implikacja** | „Rozjazd dokumentacji pod Tailwind 4” dotyczy **dopiero po ewentualnym merge PR #9**; obecny `main` nie wymaga D2-P1-01 poza przyszłym krokiem. |
 
 ## Ownerzy (domyślnie)
 
@@ -10,13 +18,13 @@
 | Produkt / priorytet | Łukasz (kontakt@mindfullens.pl) |
 | Inżynieria / merge | Łukasz (Mindfullens Web Suite) |
 
-*(Doprecyzuj podział „produkt vs dev” w komórce zespołu — wpisy w tabeli można przypisać 1:1.)*
+*(Doprecyzuj podział „produkt vs dev” w zespole — wpisy w tabeli można przypisać 1:1.)*
 
 ## Exit criteria D2
 
-- [ ] Lista **≤ 15** pozycji; każda ma **P0 lub P1**, **krótki repro** i **owner**.
-- [ ] Wszystkie **P0** mają plan zamknięcia (data lub „w D3”).
-- [ ] Brak pozycji w stylu „kiedyś poprawimy” bez klasyfikacji.
+- [x] Lista **≤ 15** pozycji; każda ma **P0 lub P1**, **krótki repro** i **owner**.
+- [x] Wszystkie **P0** mają plan zamknięcia (data lub „w D3”).
+- [x] Brak pozycji w stylu „kiedyś poprawimy” bez klasyfikacji.
 
 ---
 
@@ -24,10 +32,8 @@
 
 | ID | Opis | Repro / dowód | Owner | Plan |
 | --- | --- | --- | --- | --- |
-| **D2-P0-01** | **Decyzja merge PR z aktualizacją toolchain** (np. Dependabot: Vite 8, Tailwind 4, plugin-react 6) jest **zsynchronizowana z `main`**: albo merge po zielonym CI, albo zamknięcie PR z uzasadnieniem. | Dwa stany gałęzi (`main` vs branch PR) nie mogą rozjechać się bez dokumentu „co jest produkcyjne”. | Łukasz | Przed release: jedna wybrana linia wersji + zielony `ci`. |
-| **D2-P0-02** | **Kontrakt eksportu / depth diagnostics** po zmianach: `npm run ci` (lub ustalony `preflight:full`) na wybranej gałęzi release bez regresji gate’ów eksportu. | Uruchom workflow release na commicie kandydującym; zbierz pierwszy log FAIL. | Łukasz | Naprawa w D3 przed tagiem. |
-
-*(Jeśli na `main` nie ma jeszcze skoków wersji z PR toolchain — **D2-P0-01** zamień na: „Potwierdź, że `main` jest docelową linią release i że nie ma ukrytej gałęzi z nowszym Vite/Tailwind”.)*
+| **D2-P0-01** | **Rozstrzygnij PR #9 (Dependabot / dev group):** `main` zostaje na Vite 6 + Tailwind 3 **dopóki** PR jest otwarty. Przed release: **merge** (po review i zielonym CI) **albo** **zamknij** PR z krótkim uzasadnieniem (odłożone / odrzucone), żeby nie było niejawnej „drugiej linii” toolchain bez decyzji. | [PR #9](https://github.com/Mindfullens/MINDFULLENS_WEB_SUITE/pull/9) `state: OPEN`; porównaj `package.json` na `main` vs gałąź PR. | Łukasz | Decyzja w D2/D3; po merge — jeden zielony `npm run ci` na `main`. |
+| **D2-P0-02** | **Release candidate na `main`:** `npm run ci` musi przechodzić na commicie, który idzie w release (lint, testy, `vite build`, `audit`). | `git checkout main && npm ci && npm run ci` — pierwszy FAIL = blokada. | Łukasz | Regresje naprawiać w D3 przed tagiem; brak zielonego CI = brak release. |
 
 ---
 
@@ -35,13 +41,13 @@
 
 | ID | Opis | Repro / dowód | Owner | Notatka |
 | --- | --- | --- | --- | --- |
-| **D2-P1-01** | **Zsynchronizuj dokumentację toolchain z `package.json`** po ewentualnym merge (Vite 6→8, Tailwind 3→4, PostCSS `@tailwindcss/postcss`). | `package.json` + `postcss.config.js` vs `docs/hme` / README. | Łukasz | Uniknij „README mówi inaczej niż build”. |
-| **D2-P1-02** | **Referencyjny zestaw vs RAW gate:** `reference-set-v1` ma 16 kadrów; `build-raw-reference-manifest` / regresja RAW często oczekuje **≥ 30** raportów — zdefiniuj relację (podzbiór, osobny gate, lub rozszerzenie manifestu). | `npm run raw:reference:gate` na czystym klonie + manifest w `data/raw/reference`. | Łukasz | Cel: jeden jasny „oficjalny” gate przed release. |
-| **D2-P1-03** | **Skrypt lub dokument „bootstrap assets”** po `git clone`: skopiowanie RAW pod `assetRelativePath` (ścieżka DAM jest w `assets/README.md`). | Fresh clone → brak plików → regresja wizualna niemożliwa. | Łukasz | Opcja: `scripts/sync-reference-set-assets.mjs` z env `MINDFULLENS_RAW_ROOT`. |
-| **D2-P1-04** | **Diag / KPI:** raporty `render-debug` pokazują **E2E WARN** i **fc-gate:HOLD** — ustalić, czy to akceptowalne przed release, czy wymaga osobnego progu (produkt). | Otwórz dowolny `data/raw/reference/reports/*.json` → `runtimeStatusBadge` / `previewE2eKpiState`. | Łukasz | Nie mieszać „jakość obrazu” z „latency KPI” bez decyzji. |
-| **D2-P1-05** | **Panel A (ingest / kalibracja):** domknięcie modelu danych + testów recipe (epik z planu produktowego). | Brak jednego miejsca „source of truth” dla `defaultAdjustments` / importu recipe. | Łukasz | Utrzymuj link do aktualnego opisu etapów w `docs/hme/`. |
-| **D2-P1-06** | **`npm audit` w CI:** po bumpach zależności monitoruj **nowe advisory**; nie ignoruj bez wpisu w backlogu. | `npm run audit` lokalnie na gałęzi release. | Łukasz | |
-| **D2-P1-07** | **Duplikaty AppleDouble (`._*`) na wolumenach sieciowych** — upewnij się, że skrypty / `.gitignore` (już `._*` w root) nie wrzucają śmieci przy dodawaniu assetów. | `git status` po pracy na LS10X. | Łukasz | |
+| **D2-P1-01** | **Dokumentacja toolchain vs repo:** *po merge PR #9* zaktualizuj `docs/hme` / README root (Vite 8, Tailwind 4, `@tailwindcss/postcss`). **Na obecnym `main` (snapshot powyżej) rozjazdu z kodem nie ma — brak obowiązkowej edycji docs w D2 przed merge PR #9.** | Po merge: `package.json` + `postcss.config.js` vs dokumentacja. | Łukasz | |
+| **D2-P1-02** | **Referencyjny zestaw vs RAW gate:** `reference-set-v1` = 16 kadrów; manifest RAW w `data/raw/reference` często liczy **≥ 30** wpisów — ustal jedną politykę (podzbiór, osobny gate „release”, albo rozszerzenie zestawu). | `npm run raw:reference:gate` na czystym klonie + `reference-manifest.json`. | Łukasz | |
+| **D2-P1-03** | **Bootstrap assetów po `git clone`:** RAW pod `assetRelativePath` są w `.gitignore` — ułatw wejście (skrypt lub krótka sekcja w README już w `assets/README.md`; ewentualnie `scripts/sync-reference-set-assets.mjs` + env `MINDFULLENS_RAW_ROOT`). | Klon bez plików w `assets/rs-v1-*` (poza `.gitkeep`). | Łukasz | |
+| **D2-P1-04** | **Diag / KPI:** raporty `render-debug` mają **E2E WARN** / **fc-gate:HOLD** — decyzja produktu: akceptacja przed release vs osobny próg latency. | `data/raw/reference/reports/*.json` → `runtimeStatusBadge`, `previewE2eKpiState`. | Łukasz | |
+| **D2-P1-05** | **Panel A (ingest / kalibracja):** domknięcie modelu danych + testów recipe (`defaultAdjustments`, import recipe). | Codebase vs brak jednego „source of truth”. | Łukasz | |
+| **D2-P1-06** | **`npm audit` w CI:** po każdym bumpie zależności sprawdź advisory; nie ignoruj bez wpisu. | `npm run audit` na gałęzi release. | Łukasz | |
+| **D2-P1-07** | **Pliki `._*` (AppleDouble) na wolumenach sieciowych** przy kopiowaniu RAW — root `.gitignore` ma już `._*`; pilnuj `git status` po pracy na LS10X. | Dodanie assetów z macOS + share. | Łukasz | |
 
 ---
 
