@@ -41,9 +41,9 @@ Dla zestawu **≥ 14** zdjęć dodaj co najmniej **dwa** ujęcia z listy „trud
 
 ## Konwencja plików
 
-- **Manifest zamrożony**: `REFERENCE-SET-MANIFEST.json` (ten sam katalog co ten README).
-- **Szablon do kopiowania przed freeze**: `REFERENCE-SET-MANIFEST.template.json`.
-- **Zasoby**: preferowane `data/reference-sets/reference-set-v1/assets/<id>/...` — unikaj spacji w nazwach plików.
+- **Manifest roboczy (uzupełniony ścieżkami + DIAG)**: `REFERENCE-SET-MANIFEST.json` — powiązanie z `data/raw/reference/reports/*.json` i docelowe `assetRelativePath` per `rs-v1-NNN`.
+- **Szablon pusty**: `REFERENCE-SET-MANIFEST.template.json` (kopie na kolejne wersje zestawu).
+- **Zasoby**: `data/reference-sets/reference-set-v1/assets/<id>/` — szczegóły w [`assets/README.md`](assets/README.md). Unikaj spacji w nazwach plików.
 - **Prywatność**: wpisy z `privacy: internal-only` **nie** powinny trafiać do publicznego repo bez osobnej decyzji.
 
 ## Następny krok po D1
