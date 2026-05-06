@@ -64,6 +64,12 @@ Krótko: raster + manifest domknięte; PSD/DNG = kolejna faza po priorytecie, be
 - Lag UI: worker scheduling i odciążenie main thread.
 - AI latency: lazy-load + cache + degradowalny fallback.
 - Spójność jakości: wspólny kontrakt renderu dla wszystkich runtime tiers.
+- Kontrakty typów depth diagnostics: polityka w [`TYPE-SAFETY-POLICY.md`](TYPE-SAFETY-POLICY.md).
+
+## When to run `preflight` vs `preflight:full`
+
+- Użyj `npm run preflight` przy codziennej pracy przed push (szybki zestaw lint + type/doc contracts).
+- Użyj `npm run preflight:full` przed merge do gałęzi docelowej (preflight + pełny `npm test`).
 
 ## Po programie etapów 1–18 (`STAGES.md`)
 
