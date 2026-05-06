@@ -2,6 +2,9 @@
 
 Każdy katalog `rs-v1-NNN` odpowiada jednej pozycji w `../REFERENCE-SET-MANIFEST.json`.
 
-**Oczekiwany plik źródłowy** jest nazwany w polu `assetRelativePath` (np. `…/rs-v1-001/Mindfullens17.dng`). Skopiuj tu właściwy RAW / plik wejściowy z archiwum Mindfullens — **same binaria nie są wersjonowane w tym repozytorium** (chyba że zdecydujecie LFS).
+**Pliki źródłowe** (nazwa = `assetRelativePath`) możesz skopiować z archiwum Mindfullens, np.  
+`/Volumes/LS10X/MULTIMEDIA/Zdjęcia/RAW MINDFULLENS/` (lub inna ustalona ścieżka DAM).
+
+**Git:** zawartość `rs-v1-*` poza `.gitkeep` jest w `.gitignore` — klon repozytorium nie pobiera RAW-ów; po `git clone` skopiuj pliki pod wskazane ścieżki albo użyj Git LFS, jeśli polityka projektu to przewiduje.
 
 Po skopiowaniu: zweryfikuj ingest w Film Lab i ewentualnie dopisz ISO / ogniskową w notatkach manifestu.

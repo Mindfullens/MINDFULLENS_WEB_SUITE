@@ -2,10 +2,10 @@
   "schema": "mindfullens.reference-set.v1",
   "version": "reference-set-v1",
   "name": "Mindfullens closed reference set v1",
-  "description": "Zestaw zamknięty D1: 16 ujęć powiązanych z istniejącymi raportami DIAG w data/raw/reference/reports. Pliki RAW skopiuj pod assetRelativePath (obecnie brak binariów w repo).",
-  "ownerProduct": null,
-  "ownerTechnical": null,
-  "frozenAt": null,
+  "description": "Zestaw zamknięty D1: 16 ujęć powiązanych z raportami DIAG (data/raw/reference/reports). Pliki źródłowe leżą pod assetRelativePath na dysku roboczym; w git są ignorowane (assets/.gitignore) — klon bez binariów uzupełnia z DAM.",
+  "ownerProduct": "Łukasz — produkt / QA (kontakt@mindfullens.pl)",
+  "ownerTechnical": "Łukasz — Mindfullens Web Suite (kontakt@mindfullens.pl)",
+  "frozenAt": "2026-05-06T18:00:00+02:00",
   "coverage": {
     "requiredLabels": [
       "exposure-high-key",

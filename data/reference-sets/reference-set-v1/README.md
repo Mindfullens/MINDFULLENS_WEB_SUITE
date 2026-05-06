@@ -9,8 +9,8 @@ Wersja jest **zamrożona na czas iteracji tygodniowej** (D2–D5): bez dokładan
 | --- | --- |
 | **Owner (produkt / jakość)** | _wpisz_ |
 | **Owner (techniczny — manifest + ścieżki)** | _wpisz_ |
-| **Data zamknięcia D1** | _YYYY-MM-DD_ |
-| **Zatwierdzenie freeze** | _podpis / link do decyzji_ |
+| **Data zamknięcia D1** | 2026-05-06 (UTC+2) |
+| **Zatwierdzenie freeze** | `frozenAt` w `REFERENCE-SET-MANIFEST.json` |
 
 ## Exit criteria (D1 = DONE tylko gdy wszystkie poniżej są spełnione)
 
