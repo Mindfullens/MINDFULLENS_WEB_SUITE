@@ -1,6 +1,6 @@
 {
   "schema": "mindfullens.raw-reference-trend.v1",
-  "generatedAt": "2026-05-06T08:08:46.826Z",
+  "generatedAt": "2026-05-06T18:02:34.655Z",
   "entryCount": 39,
   "trendSummary": {
     "highlightClipRatio": {
@@ -25,7 +25,7 @@
     }
   },
   "comparison": {
-    "previousGeneratedAt": "2026-05-06T07:35:23.143Z",
+    "previousGeneratedAt": "2026-05-06T08:08:46.826Z",
     "trendDelta": {
       "highlightClipRatio": {
         "meanDelta": 0,

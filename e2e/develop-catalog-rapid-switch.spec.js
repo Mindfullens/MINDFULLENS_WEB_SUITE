@@ -24,8 +24,43 @@ test.describe('Film Lab — Develop z katalogu', () => {
     await expect(fileInput).toBeAttached({ timeout: 60_000 });
     await fileInput.setInputFiles([fixturePng, fixtureCopy], { timeout: 60_000 });
 
-    const filmstrip = page.locator('.film-lab-library-filmstrip-host [role="listbox"]').first();
-    await expect(filmstrip).toHaveAttribute('data-asset-count', '2', { timeout: 90_000 });
+    /**
+     * Warstwa Biblioteki musi być aktywna (`is-route-active`); inaczej ma `visibility:hidden`
+     * i asercje Playwright na potomkach mogą zwracać „element(s) not found”.
+     */
+    await expect(page.locator('.film-lab-route-layer--library.is-route-active')).toBeVisible({
+      timeout: 60_000,
+    });
+
+    /**
+     * `toHaveAttribute` na locatorze czeka na widoczny element — ukryta warstwa route psuje CI.
+     * Poll + `document.querySelector` czyta `data-asset-count` z DOM i daje czas na ingest OPFS/katalog.
+     */
+    const libraryListboxSel = '.film-lab-library-filmstrip-host [role="listbox"]';
+    await expect
+      .poll(
+        async () =>
+          page.evaluate((sel) => {
+            const el = document.querySelector(sel);
+            return el?.getAttribute('data-asset-count') ?? null;
+          }, libraryListboxSel),
+        { timeout: 120_000, intervals: [200, 400, 800, 1600] }
+      )
+      .toBe('2');
+
+    /** Sloty z `data-asset-id` — potwierdzenie jak „Option 2”; virtual list może ustawić komórki nieco później niż atrybut. */
+    await expect
+      .poll(
+        async () =>
+          page.evaluate(
+            () =>
+              document.querySelectorAll(
+                '.film-lab-library-filmstrip-host .film-lab-filmstrip-cell[data-asset-id]'
+              ).length
+          ),
+        { timeout: 120_000, intervals: [200, 400, 800, 1600] }
+      )
+      .toBe(2);
 
     /** Ta sama sesja SPA — `goto` zrywał timing ładowania katalogu z OPFS w części środowisk. */
     await page.locator('.film-lab-studio-nav-inner button').nth(1).click();
@@ -34,10 +69,19 @@ test.describe('Film Lab — Develop z katalogu', () => {
     });
 
     /** Na Develop filmstrip jest w dolnym slocie globalnym (nie w gridzie biblioteki). */
-    const filmstripDev = page.locator('.film-lab-global-filmstrip-slot [role="listbox"]').first();
-    await expect(filmstripDev).toHaveAttribute('data-asset-count', '2', { timeout: 90_000 });
+    const devListboxSel = '.film-lab-global-filmstrip-slot [role="listbox"]';
+    await expect
+      .poll(
+        async () =>
+          page.evaluate((sel) => {
+            const el = document.querySelector(sel);
+            return el?.getAttribute('data-asset-count') ?? null;
+          }, devListboxSel),
+        { timeout: 90_000, intervals: [200, 400, 800] }
+      )
+      .toBe('2');
 
-    const cells = filmstripDev.locator('.film-lab-filmstrip-cell[data-asset-id]');
+    const cells = page.locator('.film-lab-global-filmstrip-slot .film-lab-filmstrip-cell[data-asset-id]');
     await expect(cells).toHaveCount(2);
     await cells.nth(0).click();
 
