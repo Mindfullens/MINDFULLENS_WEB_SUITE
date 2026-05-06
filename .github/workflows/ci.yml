@@ -34,6 +34,17 @@ jobs:
       - name: Install Playwright Chromium
         run: npx playwright install chromium --with-deps
 
+      - name: E2E spec — wymagany wait na shell Film Lab
+        run: |
+          set -euo pipefail
+          f=e2e/develop-catalog-rapid-switch.spec.js
+          test -f "$f"
+          grep -q 'film-lab-studio-nav-inner' "$f" || {
+            echo "::error::Plik $f na tym refie jest przestarzały (brak oczekiwania na .film-lab-studio-nav-inner). Zmerguj main / zaktualizuj gałąź."
+            sed -n '1,30p' "$f" || true
+            exit 1
+          }
+
       - name: E2E (Playwright)
         run: npm run test:e2e
 

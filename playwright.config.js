@@ -6,6 +6,8 @@ import { defineConfig, devices } from '@playwright/test';
 const _dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
+  /** Domyślnie 120 s — w CI lazy Film Lab + upload potrafią przekroczyć; `test.setTimeout` w specie też może podnieść. */
+  timeout: 180_000,
   testDir: path.join(_dirname, 'e2e'),
   outputDir: path.join(os.tmpdir(), 'mindfullens-playwright-output'),
   globalSetup: path.join(_dirname, 'e2e', 'global-setup.mjs'),
@@ -19,11 +21,14 @@ export default defineConfig({
     ...devices['Desktop Chrome'],
     baseURL: 'http://127.0.0.1:4174',
     trace: 'on-first-retry',
+    /** Asserty na filmstrip / canvas — wolniejsze maszyny w Actions. */
+    expect: { timeout: 30_000 },
   },
   webServer: {
     command: 'npm run dev',
     url: 'http://127.0.0.1:4174',
     reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
+    /** Pierwszy `vite` + prebundle (np. react-window) na cold starcie w CI. */
+    timeout: 180_000,
   },
 });
