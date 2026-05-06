@@ -56,3 +56,12 @@
 - **D3:** zamknięcie wszystkich P0 + część P1.  
 - **D4:** quality gate na `reference-set-v1` + checklisty z manifestu.  
 - **D5:** decyzja merge / release.
+
+---
+
+## D3 — postęp
+
+| P0 | Status | Notatka |
+| --- | --- | --- |
+| **D2-P0-02** | Zrobione (weryfikacja lokalna) | Na `main` @ `737f61b`: `npm ci && npm run ci` → **PASS** (2026-05-06). |
+| **D2-P0-01** | Oczekuje na ownera | [PR #9](https://github.com/Mindfullens/MINDFULLENS_WEB_SUITE/pull/9): merge albo zamknięcie z uzasadnieniem — nie da się zautomatyzować z tego środowiska. |
