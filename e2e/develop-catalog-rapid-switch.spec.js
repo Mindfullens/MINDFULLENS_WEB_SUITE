@@ -39,7 +39,7 @@ test.describe('Film Lab — Develop z katalogu', () => {
       await expect(canvasHost).toBeVisible();
     }
 
-    /** W wrapperze są m.in. chip Smart Preview (`aria-hidden`) i główny canvas podglądu. */
-    await expect(canvasHost.locator('canvas:not([aria-hidden="true"])')).toBeVisible();
+    /** W wrapperze są dodatkowe canvasy (preview chipy); główny podgląd to bezpośredni child. */
+    await expect(canvasHost.locator(':scope > canvas')).toBeVisible();
   });
 });
