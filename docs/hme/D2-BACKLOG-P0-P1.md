@@ -65,3 +65,21 @@
 | --- | --- | --- |
 | **D2-P0-02** | Zrobione (weryfikacja lokalna) | Na `main` @ `737f61b`: `npm ci && npm run ci` → **PASS** (2026-05-06). |
 | **D2-P0-01** | Oczekuje na ownera | [PR #9](https://github.com/Mindfullens/MINDFULLENS_WEB_SUITE/pull/9): merge albo zamknięcie z uzasadnieniem — nie da się zautomatyzować z tego środowiska. |
+
+---
+
+## D4 — quality gate (iteracja 2026-05-06)
+
+**Zakres:** automatyczne bramki na `main` + lokalna spójność `reference-set-v1` (nie ocena wizualna kadru po kadrze).
+
+| Krok | Wynik | Notatka |
+| --- | --- | --- |
+| `npm run preflight` | **PASS** | lint + pełny `npm test`. |
+| `npm run preflight:full` (= `npm run ci`) | **PASS** | Powtórzone w tej iteracji: pełny `ci` (build + audit) zielony. |
+| `npm run raw:reference:gate` | **PASS** | 39 wpisów RAW reference; brak regresji trendu względem snapshotu. Wygenerowane pliki trendu w `data/raw/reference/out/` **cofnięte**, żeby nie zaśmiecać diffu. |
+| `npm run test:reference-set-v1-assets` | **PASS** (lokalnie) | 16/16 plików pod `assetRelativePath` obecne na dysku (po kopii z DAM). **Nie** włączone do `ci` — świeży klon bez RAW-ów by nie przechodził. |
+
+**Poza zakresem tej iteracji:** ręczna checklista „pass/fail” wg `minAcceptanceCriteria` w manifeście (D4 wizualny / produktowy).  
+**Blokada release:** **D2-P0-01** nadal może być otwarta — D4 nie zastępuje decyzji o PR #9.
+
+**Polityka zestawów (nadal D2-P1-02):** `reference-set-v1` = 16 kadrów (golden manual); RAW gate = 39 raportów (regresja techniczna). Oba mogą być zielone równolegle; jedna pisemna polityka „co jest gate’em release” pozostaje do ustalenia.

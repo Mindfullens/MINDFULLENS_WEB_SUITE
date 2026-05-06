@@ -53,6 +53,8 @@
     "check": "npm run ci",
     "ci:smoke": "npm run ci && npm run profiles:verify-source",
     "preflight": "npm run lint && npm test",
+    "preflight:full": "npm run ci",
+    "test:reference-set-v1-assets": "node scripts/test-reference-set-v1-assets.mjs",
     "clean": "node scripts/clean.mjs",
     "audit": "npm audit",
     "dev": "vite --port 4174 --strictPort",

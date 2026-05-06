@@ -50,3 +50,11 @@ Dla zestawu **≥ 14** zdjęć dodaj co najmniej **dwa** ujęcia z listy „trud
 
 - D2: backlog P0/P1 powiązany z tym zestawem (repro na konkretnym `id`).
 - D4: quality gate — każde `id` ma krótką checklistę „pass/fail” w arkuszu lub issue.
+
+### Gate techniczny (pliki na dysku)
+
+Po skopiowaniu RAW z DAM:
+
+`npm run test:reference-set-v1-assets`
+
+Skrypt nie jest domyślnie w `npm run ci` (klon bez binariów). Zob. też [`docs/hme/D2-BACKLOG-P0-P1.md`](../../../docs/hme/D2-BACKLOG-P0-P1.md) sekcja **D4**.
