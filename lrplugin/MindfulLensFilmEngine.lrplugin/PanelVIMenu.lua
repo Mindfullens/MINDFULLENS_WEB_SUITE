@@ -1,4 +1,4 @@
--- Panel V — Komora Halacji, Powierzchnia i Defektow Analogowych
+-- Panel V — komora halacji, powierzchnia i defekty analogowe
 -- Suwaki 0-100 identyczne z webowym Film Lab.
 -- Mapowanie na natywne suwaki LR:
 --   chromAb  → HSL ×2 (moc przy 100): HueAdj Blue/Purple/Red + SatAdj Blue/Red (nie geometria jak na web)
@@ -33,7 +33,7 @@ local opticalDyspersjaPreview = pluginLoad("lib/OpticalDyspersjaPreview.lua")
 -- ──────────────────────────────────────────────────────────────────────────────
 -- Sekcja "Powierzchnia, Bloom i Starzenie" — dawny Panel V (PanelsIIV target=iv).
 -- Zachowujemy ten sam zestaw kluczy/poziomow i ten sam prefiks prefs `panel_iiv_`,
--- zeby silnik (EngineBridge / PanelsRuntime) nadal je rozpoznawal.
+-- żeby silnik (EngineBridge / PanelsRuntime) nadal je rozpoznawał.
 -- ──────────────────────────────────────────────────────────────────────────────
 
 local LEGACY_PANELV_KEYS = panelRuntime.PANEL_KEYS.iv  -- photon_scattering, mackie_lines, surface_roughness, anti_halation_bloom, optical_bloom, film_damage
@@ -47,20 +47,20 @@ local LEGACY_LEVEL_ITEMS = {
 }
 
 local LEGACY_FIELDS = {
-    { key = "photon_scattering",   label = "Rozpraszanie Fotonow",     note = "Wewnetrzne rozproszenie i halo swiatel." },
-    { key = "mackie_lines",        label = "Linie Mackie / FDP",       note = "Kontrast krawedzi z lokalnego wyczerpania wywolywacza." },
-    { key = "surface_roughness",   label = "Chropowatosc Powierzchni", note = "Mikrorelief powierzchni i odczuwalna akutanse." },
-    { key = "anti_halation_bloom", label = "Bloom Antyhalacyjny",      note = "Przeciek bloom w warstwie antyhalacyjnej." },
-    { key = "optical_bloom",       label = "Bloom Optyczny",           note = "Bloom optyczny niezalezny od warstwy antyhalacyjnej." },
-    { key = "film_damage",         label = "Starzenie Materialu",      note = "Patyna i zuzycie materialu bez dublowania ziarna." },
+    { key = "photon_scattering",   label = "Rozpraszanie fotonów",     note = "Wewnętrzne rozproszenie i halo świateł." },
+    { key = "mackie_lines",        label = "Linie Mackie / FDP",       note = "Kontrast krawędzi z lokalnego wyczerpania wywoływacza." },
+    { key = "surface_roughness",   label = "Chropowatość powierzchni", note = "Mikrorelief powierzchni i odczuwalna akutanse." },
+    { key = "anti_halation_bloom", label = "Bloom antyhalacyjny",      note = "Przeciek bloom w warstwie antyhalacyjnej." },
+    { key = "optical_bloom",       label = "Bloom optyczny",           note = "Bloom optyczny niezależny od warstwy antyhalacyjnej." },
+    { key = "film_damage",         label = "Starzenie materiału",      note = "Patyna i zużycie materiału bez dublowania ziarna." },
 }
 
 -- ─────────────────────────────── defaults ────────────────────────────────────
 
--- Domyslne wartosci suwakow panelu.
--- halRadius / halThresh / streakLen: min zakresu = "wylaczone" dla silnika zewnetrznego.
+-- Domyślne wartości suwaków panelu.
+-- halRadius / halThresh / streakLen: min zakresu = „wyłączone” dla silnika zewnętrznego.
 local DEFAULTS = {
-    chromAb           = 0,   -- Aberracja Barwna (LR/HSL – live preview)
+    chromAb           = 0,   -- Aberracja barwna (LR/HSL – live preview)
     spectralSeparation = 0,  -- Optyczna Dyspersja (silnik separacji spektralnej)
     bloom             = 0,
     halation          = 0,
@@ -533,10 +533,10 @@ local function showDialog()
         props.savedSummary = "Ostatnio zapisane (prefs): " .. stateSummary(lastSaved)
             .. "  |  Start sesji (sila=0): " .. stateSummary(openState)
 
-        -- Sekcja dawnego Panelu V — po wejsciu zawsze startujemy od "base" (Reset/0),
-        -- analogicznie do suwakow chromAb/bloom/halation/anamorph powyzej.
-        -- Prefs sa i tak zapisywane na koncu sesji, wiec apply z poprzedniej sesji
-        -- nadal jest na zdjeciu, dopoki uzytkownik nie kliknie Reset/Zastosuj.
+        -- Sekcja dawnego Panelu V — po wejściu zawsze startujemy od "base" (Reset/0),
+        -- analogicznie do suwaków chromAb/bloom/halation/anamorph powyżej.
+        -- Prefs są i tak zapisywane na końcu sesji, więc apply z poprzedniej sesji
+        -- nadal jest na zdjęciu, dopóki użytkownik nie kliknie Reset/Zastosuj.
         for _, field in ipairs(LEGACY_FIELDS) do
             props[field.key] = panelRuntime.DEFAULTS[field.key] or "base"
         end
@@ -762,15 +762,15 @@ local function showDialog()
             f:separator({ fill_horizontal = 1 }),
 
             -- ── Aberracja Chromatyczna ──────────────────────────────────────
-            sectionTitle("Aberracja Chromatyczna"),
-            sliderRow("chromAb", "Aberracja Barwna"),
-            sliderRow("spectralSeparation", "Optyczna Dyspersja"),
+            sectionTitle("Aberracja chromatyczna"),
+            sliderRow("chromAb", "Aberracja barwna"),
+            sliderRow("spectralSeparation", "Optyczna dyspersja"),
             f:push_button({
-                title = "Podglad na zywo - Optyczna Dyspersja",
+                title = "Podgląd na żywo — optyczna dyspersja",
                 action = function()
                     local currentPhoto = (LrApplication.activeCatalog() and LrApplication.activeCatalog():getTargetPhoto()) or targetPhoto
                     if not currentPhoto then
-                        LrDialogs.message("Panel V", "Najpierw wybierz zdjecie.", "warning")
+                        LrDialogs.message("Panel V", "Najpierw wybierz zdjęcie.", "warning")
                         return
                     end
                     local initial = tonumber(props.spectralSeparation) or 0
@@ -786,8 +786,8 @@ local function showDialog()
                                 error = tostring(resultOrErr or ""),
                             })
                             LrDialogs.message(
-                                "Optyczna Dyspersja - podglad",
-                                tostring(resultOrErr or "Nie udalo sie uruchomic podgladu."),
+                                "Optyczna dyspersja — podgląd",
+                                tostring(resultOrErr or "Nie udało się uruchomić podglądu."),
                                 "critical"
                             )
                         else
@@ -798,10 +798,10 @@ local function showDialog()
                                 logger.info("Optical dyspersja selected value applied to slider", {
                                     value = tostring(selected),
                                 })
-                                LrDialogs.showBezel("Optyczna Dyspersja ustawiona: " .. tostring(selected), 1.6)
+                                LrDialogs.showBezel("Optyczna dyspersja ustawiona: " .. tostring(selected), 1.6)
                             else
                                 logger.warn("Optical dyspersja preview closed without selected value", {})
-                                LrDialogs.showBezel("Podglad zamkniety bez odczytu wartosci", 1.6)
+                                LrDialogs.showBezel("Podgląd zamknięty bez odczytu wartości", 1.6)
                             end
                         end
                     end)
@@ -810,27 +810,27 @@ local function showDialog()
             f:separator({ fill_horizontal = 1 }),
 
             -- ── Bloom ───────────────────────────────────────────────────────
-            sectionTitle("Bloom / Poswiata"),
+            sectionTitle("Bloom / poświata"),
             sliderRow("bloom", "Bloom / Glow"),
             f:separator({ fill_horizontal = 1 }),
 
             -- ── Halacja ─────────────────────────────────────────────────────
             sectionTitle("Halacja"),
-            sliderRow("halation",  "Sila halacji"),
-            sliderRow("halRadius", "Promien (prefs)"),
-            sliderRow("halThresh", "Prog jasnosci (prefs)"),
-            sliderRow("halHue",    "Odcien R<->B"),
+            sliderRow("halation",  "Siła halacji"),
+            sliderRow("halRadius", "Promień (prefs)"),
+            sliderRow("halThresh", "Próg jasności (prefs)"),
+            sliderRow("halHue",    "Odcień R↔B"),
             f:separator({ fill_horizontal = 1 }),
 
             -- ── Smugi anamorficzne ──────────────────────────────────────────
             sectionTitle("Smugi anamorficzne"),
-            sliderRow("anamorph",  "Sila smug"),
-            sliderRow("streakLen", "Dlugosc (prefs)"),
+            sliderRow("anamorph",  "Siła smug"),
+            sliderRow("streakLen", "Długość (prefs)"),
             f:separator({ fill_horizontal = 1 }),
 
             -- ── Powierzchnia, Bloom i Starzenie (dawny Panel V) ─────────────
             sectionTitle("Powierzchnia, Bloom i Starzenie"),
-            note("Poziom dzialania kazdego efektu warstwy fizycznej. Stosowane razem z efektami powyzej przy Zastosuj."),
+            note("Poziom działania każdego efektu warstwy fizycznej. Stosowane razem z efektami powyżej przy Zastosuj."),
             legacyRow(LEGACY_FIELDS[1]),
             legacyRow(LEGACY_FIELDS[2]),
             legacyRow(LEGACY_FIELDS[3]),
@@ -838,7 +838,7 @@ local function showDialog()
             legacyRow(LEGACY_FIELDS[5]),
             legacyRow(LEGACY_FIELDS[6]),
             f:push_button({
-                title  = "Reset Powierzchnia/Bloom/Starzenie",
+                title  = "Reset: powierzchnia / bloom / starzenie",
                 action = function()
                     for _, field in ipairs(LEGACY_FIELDS) do
                         props[field.key] = panelRuntime.DEFAULTS[field.key] or "base"
@@ -848,11 +848,11 @@ local function showDialog()
             f:separator({ fill_horizontal = 1 }),
 
             -- ── Kontrolki ───────────────────────────────────────────────────
-            f:checkbox({ title = "Podglad na zywo (Develop)", value = bind("livePreview") }),
+            f:checkbox({ title = "Podgląd na żywo (Develop)", value = bind("livePreview") }),
             f:row({
                 spacing = 8,
                 f:push_button({
-                    title  = "Reset suwakow (0)",
+                    title  = "Reset suwaków (0)",
                     action = function()
                         local reset = {}
                         for _, key in ipairs(SLIDER_KEYS) do reset[key] = DEFAULTS[key] end
@@ -865,7 +865,7 @@ local function showDialog()
                     end,
                 }),
                 f:push_button({
-                    title  = "Przywroc stan wejsciowy",
+                    title  = "Przywróć stan wejściowy",
                     action = function()
                         local restore = {}
                         for k, v in pairs(entryState) do restore[k] = v end
@@ -878,11 +878,11 @@ local function showDialog()
                     end,
                 }),
                 f:push_button({
-                    title  = "Cofnij podglad",
+                    title  = "Cofnij podgląd",
                     action = function()
                         LrTasks.startAsyncTask(function()
                             restoreBaseline()
-                            LrDialogs.showBezel("MindfulLens: podglad przywrocony", 1.2)
+                            LrDialogs.showBezel("Analog Signature: podgląd przywrócony", 1.2)
                         end)
                     end,
                 }),
@@ -898,7 +898,7 @@ local function showDialog()
         end
 
         local result = LrDialogs.presentModalDialog({
-            title        = "MindfulLens — Panel V: Komora Halacji, Powierzchnia i Defektow Analogowych",
+            title        = "Panel V — Komora halacji, powierzchnia i defekty analogowe",
             actionVerb   = "Zastosuj",
             cancelVerb   = "Zamknij",
             save_frame   = "mindfullens.panel5.dialog",
@@ -953,7 +953,7 @@ local function showDialog()
                 for attempt = 1, 2 do
                     local okApply, errApply = applySettingsDeterministic(
                         commitPhoto, catalog, finalSettings,
-                        "MindfulLens Panel V — Komora Halacji i Defektow Analogowych"
+                        "Analog Signature — Panel V: komora halacji i defekty analogowe"
                     )
                     if not okApply then
                         lastErr = tostring(errApply or "apply_failed")
@@ -974,7 +974,7 @@ local function showDialog()
                     logger.error("Panel V apply failed", { error = tostring(lastErr or "") })
                     LrDialogs.message(
                         "Panel V",
-                        "Blad zapisu: " .. tostring(lastErr or "apply_failed"),
+                        "Błąd zapisu: " .. tostring(lastErr or "apply_failed"),
                         "critical"
                     )
                     return
@@ -997,7 +997,7 @@ local function showDialog()
                 sharpAmt = tostring(finalSettings["SharpenAmount"] or "nil"),
             })
             LrDialogs.showBezel(
-                "Zastosowano: Optyczna Dyspersja "
+                "Zastosowano: optyczna dyspersja "
                     .. tostring(dbgSpectral)
                     .. " | T="
                     .. tostring(math.floor(tonumber(finalSettings["Texture"] or 0) + 0.5))

@@ -84,7 +84,7 @@ end
 
 function M.captureValues(keys)
     if not M.isDevelopModuleActive() then
-        return false, "Podglad na zywo dziala tylko w module Develop.", {}
+        return false, "Podgląd na żywo działa tylko w module Develop.", {}
     end
 
     local snapshot = {}
@@ -113,7 +113,7 @@ end
 
 function M.applySettings(settings, options)
     if not M.isDevelopModuleActive() then
-        return false, "Podglad na zywo dziala tylko w module Develop.", {}
+        return false, "Podgląd na żywo działa tylko w module Develop.", {}
     end
 
     local opts = options or {}
@@ -149,7 +149,7 @@ function M.applySettings(settings, options)
     end
 
     if count == 0 then
-        return false, "Brak ustawien zgodnych z suwakami Lightrooma dla podgladu na zywo.", applied
+        return false, "Brak ustawień zgodnych z suwakami Lightrooma dla podglądu na żywo.", applied
     end
 
     return true, nil, applied
@@ -157,7 +157,7 @@ end
 
 function M.restoreSettings(baselineSettings, appliedEntries)
     if not M.isDevelopModuleActive() then
-        return false, "Przywrocenie podgladu dziala tylko w module Develop."
+        return false, "Przywrócenie podglądu działa tylko w module Develop."
     end
 
     local seen = {}

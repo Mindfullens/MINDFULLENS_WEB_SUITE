@@ -633,7 +633,7 @@ local function showDialog()
                     action = function()
                         LrTasks.startAsyncTask(function()
                             restoreBaseline()
-                            LrDialogs.showBezel("MindfulLens: podgląd przywrócony", 1.1)
+                            LrDialogs.showBezel("Analog Signature: podgląd przywrócony", 1.1)
                         end)
                     end,
                 }),
@@ -789,10 +789,10 @@ local function showDialog()
             end
 
             if committedToPhoto then
-                LrDialogs.showBezel("MindfulLens: Panel II zapisany i zastosowany na zdjęciu", 1.6)
+                LrDialogs.showBezel("Analog Signature: Panel II zapisany i zastosowany na zdjęciu", 1.6)
                 LrDialogs.message(PANEL_TITLE, savedSummary .. "\n\nZastosowano na aktywnym zdjęciu.", "info")
             else
-                LrDialogs.showBezel("MindfulLens: ustawienia Panelu II zapisane", 1.4)
+                LrDialogs.showBezel("Analog Signature: ustawienia Panelu II zapisane", 1.4)
                 local fallbackMessage = savedSummary .. "\n\nZapisano globalnie."
                 if commitError then
                     fallbackMessage = fallbackMessage .. "\nNie udało się zastosować na zdjęciu: " .. commitError

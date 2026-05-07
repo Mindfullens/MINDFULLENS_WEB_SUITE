@@ -666,7 +666,7 @@ local function showPanelsDialog(targetPanel)
 	                action = function()
 	                    LrTasks.startAsyncTask(function()
 	                        restoreBaseline()
-	                        LrDialogs.showBezel("MindfulLens: podgląd przywrócony", 1.2)
+	                        LrDialogs.showBezel("Analog Signature: podgląd przywrócony", 1.2)
 	                    end)
 	                end,
 	            }),
@@ -797,7 +797,7 @@ local function showPanelsDialog(targetPanel)
                 panel = tostring(panelTarget),
                 keys = tostring(appliedCount),
             })
-            LrDialogs.showBezel("MindfulLens: panel zastosowany", 1.2)
+            LrDialogs.showBezel("Analog Signature: panel zastosowany", 1.2)
 
             -- Do NOT restore baseline after commit; that would undo the applied settings.
             previewAppliedEntries = {}

@@ -34,14 +34,14 @@ if ok and result then
     })
     if (result.legacy_removed or 0) > 0 or (result.caches_deleted or 0) > 0 then
         local lines = {
-            "MindfulLens migrated a legacy Lightroom profile state.",
+            "Analog Signature — migracja starego stanu profili Lightroom.",
             "",
-            "Removed stale camera-specific AI_KM profiles: " .. tostring(result.legacy_removed or 0),
-            "Cleared Adobe profile caches: " .. tostring(result.caches_deleted or 0),
+            "Usunięto przestarzałe profile AI_KM (per aparat): " .. tostring(result.legacy_removed or 0),
+            "Wyczyszczono cache profili Adobe: " .. tostring(result.caches_deleted or 0),
             "",
-            "If the profile browser still looks stale, restart Lightroom Classic once.",
+            "Jeśli przeglądarka profili nadal wygląda na „zastaną”, zrestartuj Lightroom Classic raz.",
         }
-        LrDialogs.message("MindfulLens", table.concat(lines, "\n"), "info")
+        LrDialogs.message("Analog Signature", table.concat(lines, "\n"), "info")
     end
 else
     logger.error("Plugin init DCP sync failed", {

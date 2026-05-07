@@ -548,7 +548,7 @@ local function showDialogAndRun()
             if not selected then
                 props.emulsionFamilyTitle = "Rodzina zastosowania: baza zdjęcia"
                 props.emulsionFamilyDescription = "Ta opcja nie nakłada charakteru filmu i pozostawia bieżący stan zdjęcia."
-                props.emulsionTagLine = "Tagi: neutralne • wejscie"
+                props.emulsionTagLine = "Tagi: neutralne • wejście"
                 return
             end
 
@@ -556,7 +556,7 @@ local function showDialogAndRun()
             local familyDescription = tostring(selected.publicCategoryDescription or "Film gotowy do dalszego dopracowania w kolejnych panelach.")
             props.emulsionFamilyTitle = "Rodzina zastosowania: " .. familyTitle
             props.emulsionFamilyDescription = familyDescription
-            props.emulsionSignatureLine = "Sygnatura MindfulLens: " .. tostring(selected.publicLabel or selected.label or "")
+            props.emulsionSignatureLine = "Sygnatura Analog Signature: " .. tostring(selected.publicLabel or selected.label or "")
             props.emulsionTagLine = formatTagLine(selected.publicTags)
         end
 
@@ -722,11 +722,11 @@ local function showDialogAndRun()
                     value = bind("applyCameraProfile"),
                 }),
                 f:checkbox({
-                    title = "Zezwol na nadpisania koloru i krzywej z analizatora (eksperymentalne)",
+                    title = "Zezwól na nadpisania koloru i krzywej z analizatora (eksperymentalne)",
                     value = bind("useAnalyzerOverrides"),
                 }),
                 f:checkbox({
-                    title = "Wlacz zapasowy render TIFF/JPEG",
+                    title = "Włącz zapasowy render TIFF/JPEG",
                     value = bind("enableBackupRender"),
                 }),
                 f:checkbox({
@@ -734,7 +734,7 @@ local function showDialogAndRun()
                     value = bind("allowGenericFallback"),
                 }),
                 f:checkbox({
-                    title = "Match po konwersji: zastosuj wynik na cale zaznaczenie",
+                    title = "Match po konwersji: zastosuj wynik na całe zaznaczenie",
                     value = bind("matchSelection"),
                 }),
             }),
@@ -742,13 +742,13 @@ local function showDialogAndRun()
 
         if serviceModeEnabled then
             table.insert(contentItems, f:separator({ fill_horizontal = 1 }))
-            table.insert(contentItems, sectionTitle("Narzedia Serwisowe (ukryte w buildzie klienckim)"))
+            table.insert(contentItems, sectionTitle("Narzędzia serwisowe (ukryte w buildzie klienckim)"))
             table.insert(contentItems, f:checkbox({
-                title = "Developer unlock (fallback bez wymaganych assetow)",
+                title = "Developer unlock (fallback bez wymaganych assetów)",
                 value = bind("devUnlock"),
             }))
             table.insert(contentItems, f:push_button({
-                title = "Uruchom test integralnosci systemu",
+                title = "Uruchom test integralności systemu",
                 action = function()
                     pluginLoad("SystemHealthMenu.lua")
                 end,
@@ -848,13 +848,13 @@ local function showDialogAndRun()
             local missing = {}
             local warnings = {}
             if not sourceExists then
-                missing[#missing + 1] = "Brak zrodla DCP w pluginie:\n - " .. dcpSourcePath
+                missing[#missing + 1] = "Brak źródła DCP w pluginie:\n - " .. dcpSourcePath
             end
             if sourceExists and not installedExists then
-                warnings[#warnings + 1] = "Glowne DCP zostanie zainstalowane przy uruchomieniu:\n - " .. dcpInstalledPath
+                warnings[#warnings + 1] = "Główne DCP zostanie zainstalowane przy uruchomieniu:\n - " .. dcpInstalledPath
             end
             if props.allowGenericFallback then
-                warnings[#warnings + 1] = "Wlaczony jest fallback uniwersalnego glownego DCP."
+                warnings[#warnings + 1] = "Włączony jest fallback uniwersalnego głównego DCP."
             end
             if selectedEmulsion.foundationPreset and selectedEmulsion.foundationPreset ~= "" then
                 local foundationPath = LrPathUtils.child(_PLUGIN.path, selectedEmulsion.foundationPreset)
@@ -881,7 +881,7 @@ local function showDialogAndRun()
                 local lines = {
                     "Wybrana emulsja: " .. displayEmulsionLabel(selectedEmulsion),
                     "",
-                    "Brak wymaganych assetow:",
+                    "Brak wymaganych assetów:",
                     table.concat(missing, "\n\n"),
                     "",
                     "Najpierw napraw:",
@@ -890,7 +890,7 @@ local function showDialogAndRun()
                 }
                 if devUnlockEnabled or (serviceModeEnabled and props.devUnlock) then
                     lines[#lines + 1] = ""
-                    lines[#lines + 1] = "Developer unlock jest WLACZONY. Mozesz kontynuowac, ale zgodnosc kolorystyczna nie jest gwarantowana."
+                    lines[#lines + 1] = "Developer unlock jest WŁĄCZONY. Możesz kontynuować, ale zgodność kolorystyczna nie jest gwarantowana."
                     local confirm = LrDialogs.confirm(
                         PANEL1_TITLE,
                         table.concat(lines, "\n"),
@@ -918,9 +918,9 @@ local function showDialogAndRun()
                     local blockLines = {
                         "Wybrana emulsja: " .. displayEmulsionLabel(selectedEmulsion),
                         "",
-                        "Tryb strict assets jest WLACZONY.",
-                        "Ta emulsja wspoldzieli " .. table.concat(sharedNotes, " i ") .. " z innymi filmami.",
-                        "Zapewnij unikalne assety lub wylacz tryb strict.",
+                        "Tryb strict assets jest WŁĄCZONY.",
+                        "Ta emulsja współdzieli " .. table.concat(sharedNotes, " i ") .. " z innymi filmami.",
+                        "Zapewnij unikalne assety lub wyłącz tryb strict.",
                     }
                     LrDialogs.message(PANEL1_TITLE, table.concat(blockLines, "\n"), "critical")
                     return
@@ -928,8 +928,8 @@ local function showDialogAndRun()
                 local warnLines = {
                     "Wybrana emulsja: " .. displayEmulsionLabel(selectedEmulsion),
                     "",
-                    "Informacja: ta emulsja wspoldzieli " .. table.concat(sharedNotes, " i ") .. " z innymi filmami.",
-                    "Kolory moga wygladac podobnie miedzy filmami, dopoki nie dostarczysz unikalnych assetow.",
+                    "Informacja: ta emulsja współdzieli " .. table.concat(sharedNotes, " i ") .. " z innymi filmami.",
+                    "Kolory mogą wyglądać podobnie między filmami, dopóki nie dostarczysz unikalnych assetów.",
                 }
                 local confirm = LrDialogs.confirm(
                     PANEL1_TITLE,
@@ -1024,12 +1024,12 @@ local function showDialogAndRun()
                         .. tostring(matchedCount) .. " klatkach (klucze: " .. tostring(matchKeyCount or 0) .. ")."
                 else
                     if tostring(matchErr or "") == "no_targets" then
-                        lines[#lines + 1] = "Match: pominieto (brak dodatkowych klatek)."
+                        lines[#lines + 1] = "Match: pominięto (brak dodatkowych klatek)."
                     elseif string.find(tostring(matchErr or ""), "no_keys_for_match_mode_", 1, true) == 1 then
-                        lines[#lines + 1] = "Match (" .. tostring(matchModeUsed or "full") .. "): pominieto (brak kompatybilnych ustawien, klucze: "
+                        lines[#lines + 1] = "Match (" .. tostring(matchModeUsed or "full") .. "): pominięto (brak kompatybilnych ustawień, klucze: "
                             .. tostring(matchKeyCount or 0) .. ")."
                     else
-                        lines[#lines + 1] = "Match: blad (" .. tostring(matchErr or "unknown") .. ")."
+                        lines[#lines + 1] = "Match: błąd (" .. tostring(matchErr or "unknown") .. ")."
                     end
                 end
             end

@@ -36,13 +36,13 @@ local DELTA_BLEND_FIELDS = {
 local MODULAR_LIBRARY = {
     prep = {
         label = "Przygotowanie Negatywu",
-        caption = "Usun artefakty optyczne przed wejsciem obrazu w lancuch ciemni.",
+        caption = "Usuń artefakty optyczne przed wejściem obrazu w łańcuch ciemni.",
         field = "prepDefringe",
         rowLabel = "Oczyszczenie Aberracji",
         items = {
             { title = "Reset (0)", value = "off" },
             { title = "Poziom I | Delikatne", value = "profiles/modular/prep/prep_defringe_soft.xmp" },
-            { title = "Poziom III | Glebokie", value = "profiles/modular/prep/prep_defringe_strong.xmp" },
+            { title = "Poziom III | Głębokie", value = "profiles/modular/prep/prep_defringe_strong.xmp" },
         },
     },
     release_print = {
@@ -62,15 +62,15 @@ local MODULAR_LIBRARY = {
         rowLabel = "Powierzchnia Papieru",
         items = {
             { title = "Reset (0)", value = "off" },
-            { title = "Poziom II | Kodak Endura Cieply", value = "profiles/modular/print/print_kodak_endura_warm.xmp" },
+            { title = "Poziom II | Kodak Endura Ciepły", value = "profiles/modular/print/print_kodak_endura_warm.xmp" },
             { title = "Poziom II | Fuji Crystal Czysty", value = "profiles/modular/print/print_fuji_crystal_clean.xmp" },
         },
     },
     halation = {
-        label = "Polysk Barytowy",
-        caption = "Finalny etap odbitki: charakter swiatla po suszeniu i szkleniu papieru.",
+        label = "Połysk Barytowy",
+        caption = "Finalny etap odbitki: charakter światła po suszeniu i szkleniu papieru.",
         field = "halation",
-        rowLabel = "Polysk Odbitki",
+        rowLabel = "Połysk Odbitki",
         items = {
             { title = "Reset (0)", value = "off" },
             { title = "Poziom I | Satyna Barytowa", value = "profiles/modular/print/final_paper_glaze_soft.xmp" },
@@ -79,7 +79,7 @@ local MODULAR_LIBRARY = {
     },
     bloom = {
         label = "Dyfuzja Bloom",
-        caption = "Kontrola bloom niezalezna od polysku papieru.",
+        caption = "Kontrola bloom niezależna od połysku papieru.",
         field = "bloom",
         rowLabel = "Bloom",
         items = {
@@ -90,14 +90,14 @@ local MODULAR_LIBRARY = {
     },
     vignette = {
         label = "Winieta Odbitki",
-        caption = "Subtelne domkniecie kadru dla finalnej odbitki.",
+        caption = "Subtelne domknięcie kadru dla finalnej odbitki.",
         field = "vignette",
         rowLabel = "Winieta",
         items = {
             { title = "Reset (0)", value = "off" },
             { title = "Poziom I | Subtelna", value = "profiles/modular/optics/vignette_soft.xmp" },
             { title = "Poziom II | Klasyczna", value = "profiles/modular/optics/vignette_medium.xmp" },
-            { title = "Poziom III | Gleboka", value = "profiles/modular/optics/vignette_strong.xmp" },
+            { title = "Poziom III | Głęboka", value = "profiles/modular/optics/vignette_strong.xmp" },
         },
     },
     grain = {
@@ -131,48 +131,48 @@ local GROUPS = {
     stage01_stock = {
         stageId = "01",
         field = "stockMaster",
-        header = "A) Material Bazowy",
-        caption = "Wybierz material glowny: negatyw, slajd, stock filmowy lub B&W.",
-        rowLabel = "Material Glowny",
+        header = "A) Materiał Bazowy",
+        caption = "Wybierz materiał główny: negatyw, slajd, stock filmowy lub B&W.",
+        rowLabel = "Materiał Główny",
         allowAll = true,
     },
     stage02_scan_neutrality = {
         stageId = "02",
         field = "scanNeutrality",
-        header = "B) Neutralnosc Skanu",
+        header = "B) Neutralność Skanu",
         caption = "Ustaw czysty punkt startowy skanu przed dalszym kształtowaniem.",
-        rowLabel = "Neutralnosc",
+        rowLabel = "Neutralność",
         match = { "clean canvas", "natural" },
     },
     stage02_lab_balance = {
         stageId = "02",
         field = "labBalance",
         header = "C) Balans Ciemni",
-        caption = "Balans chemiczny: dzienny, tungsten lub ciepla korekta procesu.",
+        caption = "Balans chemiczny: dzienny, tungsten lub ciepła korekta procesu.",
         rowLabel = "Balans",
         match = { "balance", "warm fix", "cool balance", "indoor balance", "tungsten clean", "warm control" },
     },
     stage02_skin_harmony = {
         stageId = "02",
         field = "skinHarmony",
-        header = "D) Harmonia Skory",
-        caption = "Kontrola odcieni skory bez cyfrowej czerwieni i magenty.",
-        rowLabel = "Skora",
+        header = "D) Harmonia Skóry",
+        caption = "Kontrola odcieni skóry bez cyfrowej czerwieni i magenty.",
+        rowLabel = "Skóra",
         match = { "reduce redness", "soft touch" },
     },
     stage02_negative_density = {
         stageId = "02",
         field = "negativeDensity",
-        header = "E) Gestosc Negatywu",
-        caption = "Ksztaltuj toe, shoulder i miekkosc gestosci negatywu.",
-        rowLabel = "Gestosc",
+        header = "E) Gęstość Negatywu",
+        caption = "Kształtuj toe, shoulder i miękkość gęstości negatywu.",
+        rowLabel = "Gęstość",
         match = { "highlight soft", "shadow open", "soft control" },
     },
     stage03_palette = {
         stageId = "03",
         field = "paletteShape",
         header = "F) Sygnatura Palety",
-        caption = "Ksztalt palety i separacji barw w stylu analogowej ciemni.",
+        caption = "Kształt palety i separacji barw w stylu analogowej ciemni.",
         rowLabel = "Paleta",
         match = { "calm colors", "color separation", "pastel" },
     },
@@ -180,15 +180,15 @@ local GROUPS = {
         stageId = "03",
         field = "tonalArchitecture",
         header = "G) Architektura Tonalna",
-        caption = "Buduj glebie i separacje tonalna bez utraty filmowej miekkosci.",
+        caption = "Buduj głębię i separację tonalną bez utraty filmowej miękkości.",
         rowLabel = "Ton",
         match = { "contrast", "depth", "tonal separation" },
     },
     stage03_subject = {
         stageId = "03",
         field = "subjectRender",
-        header = "H) Obecnosc Tematu",
-        caption = "Wzmocnij temat glowny bez sztucznej cyfrowej ostrosci.",
+        header = "H) Obecność Tematu",
+        caption = "Wzmocnij temat główny bez sztucznej cyfrowej ostrości.",
         rowLabel = "Temat",
         match = { "subject focus", "subject polish", "subject lift" },
     },
@@ -196,32 +196,32 @@ local GROUPS = {
         stageId = "03",
         field = "atmosphereShape",
         header = "I) Atmosfera Kadru",
-        caption = "Powietrze, wrap swiatla i miekkosc skanu premium.",
+        caption = "Powietrze, wrap światła i miękkość skanu premium.",
         rowLabel = "Atmosfera",
         match = { "film fade", "light wrap", "soft" },
     },
     stage03_edge_definition = {
         stageId = "03",
         field = "edgeDefinition",
-        header = "J) Definicja Krawedzi",
-        caption = "Kontrola granicy miedzy miekkoscia i precyzja detalu.",
-        rowLabel = "Krawedzie",
+        header = "J) Definicja Krawędzi",
+        caption = "Kontrola granicy między miękkością i precyzją detalu.",
+        rowLabel = "Krawędzie",
         match = { "crisp" },
     },
     stage04_shadow_weight = {
         stageId = "04",
         field = "shadowWeight",
         header = "K) Waga Cieni",
-        caption = "Ustaw finalna sile cieni: od otwartych po glebokie kinowe.",
+        caption = "Ustaw finalną siłę cieni: od otwartych po głębokie kinowe.",
         rowLabel = "Cienie",
         match = { "deep shadows" },
     },
     stage04_highlight_silk = {
         stageId = "04",
         field = "highlightSilk",
-        header = "L) Jedwabne Swiatla",
-        caption = "Kontrola roll-off swiatel, aby biele byly miekkie i eleganckie.",
-        rowLabel = "Swiatla",
+        header = "L) Jedwabne Światła",
+        caption = "Kontrola roll-off świateł, aby biele były miękkie i eleganckie.",
+        rowLabel = "Światła",
         match = { "soft highlights" },
     },
     stage04_surface_finish = {
@@ -556,7 +556,7 @@ local function buildMergedSettings(selectedEntries, baselineSettings)
         end
     end
     if loadedCount == 0 then
-        return false, "Nie wybrano zadnych narzedzi"
+        return false, "Nie wybrano żadnych narzędzi"
     end
     return true, nil, merged, loadedCount
 end
@@ -760,7 +760,7 @@ local function applyXmpStack(photo, selectedEntries, options)
         errWrite = tostring(tryErr or "apply_failed")
     end
     if not okWrite then
-        return false, "Blad zapisu narzedzi: " .. tostring(errWrite or "apply_failed")
+        return false, "Błąd zapisu narzędzi: " .. tostring(errWrite or "apply_failed")
     end
 
     matched = countReadbackMatches(photo, merged, 2.0)
@@ -797,7 +797,7 @@ local function applyXmpStack(photo, selectedEntries, options)
     end
 
     if matched < requiredMatches and next(merged or {}) ~= nil then
-        return false, "Blad zapisu narzedzi: readback_mismatch"
+        return false, "Błąd zapisu narzędzi: readback_mismatch"
     end
 
     logger.info("Tools stack applied", {
@@ -1074,7 +1074,7 @@ local function showToolsDialog(toolTarget)
             local previewEntries = buildSelectedEntriesForTarget(props, target)
             local ok, err, merged = buildMergedSettings(previewEntries, baselineDevelopSettings)
             if not ok then
-                if err == "Nie wybrano zadnych narzedzi" then
+                if err == "Nie wybrano żadnych narzędzi" then
                     return true, nil, {}
                 end
                 return false, err, {}
@@ -1094,7 +1094,7 @@ local function showToolsDialog(toolTarget)
                 return true, nil
             end
             if not targetPhoto then
-                return false, "Najpierw wybierz zdjecie."
+                return false, "Najpierw wybierz zdjęcie."
             end
             if not developPreview.isDevelopModuleActive() then
                 return true, nil
@@ -1248,7 +1248,7 @@ local function showToolsDialog(toolTarget)
                     end,
                 }),
                 f:push_button({
-                    title = "Przywroc stan wejsciowy",
+                    title = "Przywróć stan wejściowy",
                     action = function()
                         restoreEntryState()
                         LrTasks.startAsyncTask(function()
@@ -1260,11 +1260,11 @@ local function showToolsDialog(toolTarget)
                     end,
                 }),
                 f:push_button({
-                    title = "Cofnij podglad",
+                    title = "Cofnij podgląd",
                     action = function()
                         LrTasks.startAsyncTask(function()
                             restoreBaseline()
-                            LrDialogs.showBezel("MindfulLens: podglad przywrocony", 1.2)
+                            LrDialogs.showBezel("Analog Signature: podgląd przywrócony", 1.2)
                         end)
                     end,
                 }),
@@ -1376,7 +1376,7 @@ local function showToolsDialog(toolTarget)
                     grain = "off",
                     preview_commit = tostring(previewCommit),
                 })
-                LrDialogs.showBezel("MindfulLens: wykończenie odbitki przywrócone do stanu wyjściowego", 1.5)
+                LrDialogs.showBezel("Analog Signature: wykończenie odbitki przywrócone do stanu wyjściowego", 1.5)
                 return
             end
 
@@ -1391,7 +1391,7 @@ local function showToolsDialog(toolTarget)
                 if isPrintTarget(target) then
                     restoreBaseline()
                 end
-                if isPrintTarget(target) and tostring(msg or "") == "Nie wybrano zadnych narzedzi" then
+                if isPrintTarget(target) and tostring(msg or "") == "Nie wybrano żadnych narzędzi" then
                     prefs[prefKey("halation")] = "off"
                     prefs[prefKey("bloom")] = "off"
                     prefs[prefKey("vignette")] = "off"
@@ -1402,7 +1402,7 @@ local function showToolsDialog(toolTarget)
                         vignette = "off",
                         grain = "off",
                     })
-                    LrDialogs.showBezel("MindfulLens: wykończenie odbitki wyzerowane", 1.5)
+                    LrDialogs.showBezel("Analog Signature: wykończenie odbitki wyzerowane", 1.5)
                     return
                 end
                 LrDialogs.message(panelDialogTitle, msg or "Nie wybrano żadnych narzędzi.", "info")
@@ -1436,7 +1436,7 @@ local function showToolsDialog(toolTarget)
             end
 
             prefs.toolsRunCount = (prefs.toolsRunCount or 0) + 1
-            LrDialogs.showBezel("MindfulLens: " .. string.lower(panelTitle) .. " zastosowano", 1.5)
+            LrDialogs.showBezel("Analog Signature: " .. string.lower(panelTitle) .. " zastosowano", 1.5)
         end)
 
         if not okTask then
