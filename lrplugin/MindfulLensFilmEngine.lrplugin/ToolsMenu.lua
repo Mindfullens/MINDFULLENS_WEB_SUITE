@@ -1190,9 +1190,9 @@ local function showToolsDialog(toolTarget)
             panelDialogTitle = "MindfulLens — Wykończenie: Odbitka i papier"
             panelIntro = "Odbitka, papier, bloom, winieta i ziarno — podgląd na żywo przed zatwierdzeniem."
         elseif target == "print_optics" then
-            panelTitle = "Panel V — Optyka Odbitki (Połysk + Winieta)"
-            panelDialogTitle = "Panel V — Optyka Odbitki (Połysk + Winieta)"
-            panelIntro = "Po powierzchni i halacji (Panel V): połysk papieru i winieta obiektywu — ten sam zestaw co pozycja menu 6, skrót kontekstowy."
+            panelTitle = "Panel VI — Optyka Odbitki (Połysk + Winieta)"
+            panelDialogTitle = "Panel VI — Optyka Odbitki (Połysk + Winieta)"
+            panelIntro = "Po powierzchni i halacji (Panel V): połysk papieru i winieta — ten sam zestaw co pozycja menu 6, skrót kontekstowy."
         end
 
         local contentParts = {

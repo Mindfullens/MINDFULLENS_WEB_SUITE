@@ -20,7 +20,7 @@ local MENU_ITEMS = {
         file = "PanelVIMenu.lua",
     },
     {
-        title = "6) Panel V — Optyka Odbitki (Polysk + Winieta)",
+        title = "6) Panel VI — Optyka Odbitki (Połysk + Winieta)",
         file = "PanelVOpticsMenu.lua",
     },
     {
@@ -67,7 +67,7 @@ return {
         major = 0,
         minor = 2,
         revision = 1,
-        build = 10,
+        build = 11,
     },
 
     LrInitPlugin = "PluginInit.lua",

@@ -316,7 +316,7 @@ local EFFECTS = {
     },
     ssg_grain = {
         refined = {
-            { key = "GrainAmount", delta = 8, min = 0, max = 100 },
+            { key = "GrainAmount", delta = 9, min = 0, max = 100 },
             { key = "GrainSize", delta = 2, min = 0, max = 100 },
             { key = "GrainFrequency", delta = 6, min = 0, max = 100 },
             { key = "Clarity2012", delta = -4, min = -100, max = 100 },
@@ -324,7 +324,7 @@ local EFFECTS = {
             { key = "Blacks2012", delta = 1, min = -100, max = 100 },
         },
         balanced = {
-            { key = "GrainAmount", delta = 14, min = 0, max = 100 },
+            { key = "GrainAmount", delta = 15, min = 0, max = 100 },
             { key = "GrainSize", delta = 5, min = 0, max = 100 },
             { key = "GrainFrequency", delta = 11, min = 0, max = 100 },
             { key = "Clarity2012", delta = -5, min = -100, max = 100 },
@@ -332,7 +332,7 @@ local EFFECTS = {
             { key = "Blacks2012", delta = 2, min = -100, max = 100 },
         },
         raw = {
-            { key = "GrainAmount", delta = 20, min = 0, max = 100 },
+            { key = "GrainAmount", delta = 22, min = 0, max = 100 },
             { key = "GrainSize", delta = 8, min = 0, max = 100 },
             { key = "GrainFrequency", delta = 17, min = 0, max = 100 },
             { key = "Clarity2012", delta = -7, min = -100, max = 100 },
@@ -404,15 +404,15 @@ local EFFECTS = {
             { key = "Texture", delta = 2, min = -100, max = 100 },
         },
         neutral = {
-            { key = "GrainAmount", delta = 11, min = 12, max = 100 },
+            { key = "GrainAmount", delta = 12, min = 12, max = 100 },
             { key = "GrainSize", delta = 3, min = 8, max = 100 },
             { key = "GrainFrequency", delta = 9, min = 18, max = 100 },
             { key = "Texture", delta = 4, min = -100, max = 100 },
         },
         bold = {
-            { key = "GrainAmount", delta = 14, min = 8, max = 100 },
+            { key = "GrainAmount", delta = 16, min = 8, max = 100 },
             { key = "GrainSize", delta = 7, min = 8, max = 100 },
-            { key = "GrainFrequency", delta = 10, min = 18, max = 100 },
+            { key = "GrainFrequency", delta = 11, min = 18, max = 100 },
         },
     },
     grain_clumping = {
