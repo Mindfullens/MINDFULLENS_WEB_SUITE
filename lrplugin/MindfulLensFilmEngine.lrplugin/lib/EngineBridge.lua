@@ -62,6 +62,12 @@ local function normalizeColorProcess(value)
     if normalized == "neutral_soft" then
         return "neutral_soft"
     end
+    if normalized == "portrait_gentle" then
+        return "portrait_gentle"
+    end
+    if normalized == "cinema_grade" then
+        return "cinema_grade"
+    end
     return "refined"
 end
 
@@ -1356,7 +1362,7 @@ local function applyDevelopSettings(photo, baseSettings, analyzerData, emulsion,
         end
 
         local function applyColorProcessStyle()
-            if colorProcessUsed ~= "classic" and colorProcessUsed ~= "neutral_soft" then
+            if colorProcessUsed == "refined" then
                 return false, 0
             end
 
@@ -1391,6 +1397,29 @@ local function applyDevelopSettings(photo, baseSettings, analyzerData, emulsion,
                 adjust("Shadows2012", 2, -100, 100)
                 if not monochromeEmulsion then
                     adjust("Vibrance", 2, -100, 100)
+                end
+            elseif colorProcessUsed == "portrait_gentle" then
+                -- Soft rolloff: less micro-contrast, gentler highlights, lifted mids for skin after inversion.
+                adjust("Contrast2012", -3, -100, 100)
+                adjust("Clarity2012", -5, -100, 100)
+                adjust("Dehaze", -2, -100, 100)
+                adjust("Highlights2012", -4, -100, 100)
+                adjust("Shadows2012", 6, -100, 100)
+                if not monochromeEmulsion then
+                    adjust("Vibrance", 5, -100, 100)
+                    adjust("Saturation", 2, -100, 100)
+                end
+            elseif colorProcessUsed == "cinema_grade" then
+                -- Moderate S-curve with highlight headroom; distinct from full “classic” punch.
+                adjust("Contrast2012", 3, -100, 100)
+                adjust("Clarity2012", 2, -100, 100)
+                adjust("Dehaze", 1, -100, 100)
+                adjust("Highlights2012", -6, -100, 100)
+                adjust("Shadows2012", 4, -100, 100)
+                adjust("Blacks2012", -3, -100, 100)
+                if not monochromeEmulsion then
+                    adjust("Vibrance", 4, -100, 100)
+                    adjust("Saturation", 2, -100, 100)
                 end
             end
             return touched > 0, touched

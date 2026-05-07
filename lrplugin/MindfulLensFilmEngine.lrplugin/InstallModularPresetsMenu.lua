@@ -22,17 +22,17 @@ local function runInstall()
         })
 
         local lines = {
-            "Modular XMP install summary",
+            "Instalacja presetów modularnych XMP — podsumowanie",
             "",
-            "Target: " .. tostring(result.target),
-            "Preset entries scanned: " .. tostring(result.total or 0),
-            "Installed: " .. tostring(result.installed),
-            "Already present (skipped): " .. tostring(result.skipped),
-            "Missing in plugin modular folder: " .. tostring(result.missing),
-            "Copy errors: " .. tostring(result.errors),
+            "Folder docelowy: " .. tostring(result.target),
+            "Przeskanowano wpisów: " .. tostring(result.total or 0),
+            "Zainstalowano: " .. tostring(result.installed),
+            "Pominięto (już były): " .. tostring(result.skipped),
+            "Brak w bundle (modular): " .. tostring(result.missing),
+            "Błędy kopiowania: " .. tostring(result.errors),
         }
 
-        LrDialogs.message("MindfulLens", table.concat(lines, "\n"), "info")
+        LrDialogs.message("Analog Signature — presety XMP", table.concat(lines, "\n"), "info")
     end)
 end
 

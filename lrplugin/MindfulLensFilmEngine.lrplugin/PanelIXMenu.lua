@@ -221,7 +221,7 @@ local function showDialog()
     local catalog = LrApplication.activeCatalog()
     local targetPhoto = catalog:getTargetPhoto()
     if not targetPhoto then
-        LrDialogs.message("Panel IX", "Brak zaznaczonego zdjecia.", "info")
+        LrDialogs.message("Panel IX", "Brak zaznaczonego zdjęcia.", "info")
         return
     end
 
@@ -313,21 +313,29 @@ local function showDialog()
         local content = f:column({
             fill_horizontal = 1, spacing = 6, margin_horizontal = 14,
 
-            sectionTitle("Uszkodzenia i Chemia"),
+            f:static_text({
+                title = "Po stylach kinowych (Panel VIII): „chemia stołu”, epoka i halacja tungsten — nadal na natywnych suwakach Lightroom.",
+                font = "<system/small>",
+                fill_horizontal = 1,
+                height_in_lines = 2,
+            }),
+            f:separator({ fill_horizontal = 1 }),
+
+            sectionTitle("Uszkodzenia i chemia"),
 
             sliderRow("filmSoup",
-                "Film Soup — Chemiczna Korozja",
-                "Smuzysте znieksztalcenia po zanurzeniu kliszy w substancjach organicznych. Chaotyczne przebarwienia polcieni, anomalie nasycenia per kanal, degradacja detalu."),
+                "Film Soup — chemiczna korozja",
+                "Smużyste zniekształcenia po zanurzeniu kliszy w substancjach organicznych: chaotyczne przebarwienia półcieni, anomalie nasycenia per kanał, degradacja detalu."),
 
-            sectionTitle("Klimat i Epoki"),
+            sectionTitle("Klimat i epoki"),
 
             sliderRow("lomoColor92",
                 "LomoChrome Color '92",
-                "Menty klimat lat 90.: teal shadows, fade (podniesione czernie), zmeczone stonowane kolory, ujemny mikrokontrast. Asymetryczne ziarno halogenkowe."),
+                "Mętny klimat lat 90.: teal w cieniach, fade (podniesione czernie), zmęczone stonowane kolory, lżejszy mikrokontrast."),
 
             sliderRow("cinestill800t",
                 "CineStill 800T — Tungsten Shift",
-                "Klisza kinowa bez warstwy Remjet: ekstremalny chlodny WB (Tungsten), czerwona halacja swiatel (rozlana czerwien bez Remjet), niebieskie midtony Vision3."),
+                "Klisza kinowa bez warstwy Remjet: zimny balans (tungsten), czerwona halacja świateł, niebieskie midtony w stylu Vision3."),
 
             f:spacer({ height = 8 }),
 
@@ -340,7 +348,7 @@ local function showDialog()
         })
 
         local result = LrDialogs.presentModalDialog({
-            title      = "MindfulLens — Panel IX: Chemia, Klimat i Epoki",
+            title      = "Panel IX — Chemia, Klimat i Epoki",
             actionVerb = "Zastosuj",
             cancelVerb = "Zamknij",
             save_frame = "mindfullens.panel9.dialog",
@@ -395,7 +403,7 @@ local function showDialog()
 
                 if not committed then
                     logger.error("Panel IX apply failed", { error = tostring(lastErr or "") })
-                    LrDialogs.message("Panel IX", "Blad zapisu: " .. tostring(lastErr or ""), "critical")
+                    LrDialogs.message("Panel IX", "Błąd zapisu: " .. tostring(lastErr or ""), "critical")
                     return
                 end
             end

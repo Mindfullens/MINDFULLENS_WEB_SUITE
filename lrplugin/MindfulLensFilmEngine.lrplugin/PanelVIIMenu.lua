@@ -251,7 +251,7 @@ local function showDialog()
     local catalog = LrApplication.activeCatalog()
     local targetPhoto = catalog:getTargetPhoto()
     if not targetPhoto then
-        LrDialogs.message("Panel VII", "Brak zaznaczonego zdjecia.", "info")
+        LrDialogs.message("Panel VII", "Brak zaznaczonego zdjęcia.", "info")
         return
     end
 
@@ -370,29 +370,37 @@ local function showDialog()
             spacing         = 6,
             margin_horizontal = 14,
 
+            f:static_text({
+                title = "Po wcześniejszych panelach (ton i materiał): matryca kreacyjnych „emulsji” — mapowanie na HSL i Color Grade. Podgląd przy przesuwaniu suwaka w Develop.",
+                font = "<system/small>",
+                fill_horizontal = 1,
+                height_in_lines = 2,
+            }),
+            f:separator({ fill_horizontal = 1 }),
+
             sectionTitle("Matryca Barw — LomoChrome"),
 
             sliderRow("lomoPurple",
                 "LomoChrome Purple",
-                "Purple Matrix Shift: zielenie przesuwaja sie w kierunku magenty i purpury. Przestrzenna rearanżacja barwnikow."),
+                "Purple Matrix Shift: zieleń przesuwa się w stronę magenty i purpury. Rearanżacja dominacji barwników."),
 
             sliderRow("lomoTurquoise",
                 "LomoChrome Turquoise",
-                "Przesuniecie fazowe ~90-120 stopni: cieple barwy (czerwien, pomaran) laduja w turkusach i tealach."),
+                "Przesunięcie fazowe (ok. 90–120°): ciepłe barwy (czerwień, pomarańcz) schodzą w turkus i teal."),
 
             sliderRow("metropolis",
                 "LomoChrome Metropolis",
-                "Kompresja tonalna / Bleach Bypass: drastyczne czernie, zgaszone kolory. Czerwien chroniona przed utrata chrominancji."),
+                "Kompresja tonalna / bleach bypass: głębsze czernie, przygasłe kolory. Czerwień chroniona przed utratą chrominancji."),
 
-            sectionTitle("Materialy Specjalne"),
+            sectionTitle("Materiały specjalne"),
 
             sliderRow("redscale",
                 "Redscale",
-                "Optyczna Przenikalnosc: blokada fal niebieskich i zielonych przez pomaranczowy zafarb celuloidu. Silny cieplo-czerwony shift."),
+                "Optyczna przenikalność: odcięcie niebieskiego i zieleni przez pomarańczowy podkład celuloidu. Wyraźny ciepło-czerwony shift."),
 
             sliderRow("crossProcess",
                 "Cross Processing",
-                "Niestabilnosc Ukladow E-6 w C-41: destrukcyjne rozdzielenie kanalow. Cienie→cyan, swiatla→zolty, polcienie→fiolet."),
+                "Niestabilność procesów E-6 w C-41: rozjeżdżanie kanałów. Cienie → cyan, światła → żółć, półcienie → fiolet."),
 
             f:spacer({ height = 8 }),
 
@@ -407,7 +415,7 @@ local function showDialog()
         })
 
         local result = LrDialogs.presentModalDialog({
-            title       = "MindfulLens — Panel VII: Matryca Barw: Kreacyjne Emulsje Specjalne",
+            title       = "Panel VII — Matryca Barw: Kreacyjne Emulsje Specjalne",
             actionVerb  = "Zastosuj",
             cancelVerb  = "Zamknij",
             save_frame  = "mindfullens.panel7.dialog",
@@ -467,7 +475,7 @@ local function showDialog()
 
                 if not committed then
                     logger.error("Panel VII apply failed", { error = tostring(lastErr or "") })
-                    LrDialogs.message("Panel VII", "Blad zapisu: " .. tostring(lastErr or ""), "critical")
+                    LrDialogs.message("Panel VII", "Błąd zapisu: " .. tostring(lastErr or ""), "critical")
                     return
                 end
             end

@@ -122,13 +122,13 @@ end
 
 local PANEL_DEFINITIONS = {
     ii = {
-        dialogTitle = "MindfulLens — Panel III: Sensytometria i baza",
-        header = "Panel III: Sensytometria i krzywa H&D",
-        subtitle = "Etap ciemni: baza materiału, D-min/D-max i charakterystyka gęstości.",
+        dialogTitle = "Panel III — Sensytometria i H&D",
+        header = "Panel III — Sensytometria i H&D",
+        subtitle = "Po charakterze ciemni (Panel II): krzywa H&D, D-min / D-max, reciprocity — sterowane poziomami I–III i mapowane na suwaki Lightroom (podgląd LIVE).",
         sections = {
             {
                 title = "Baza i maskowanie",
-                subtitle = "Kontrola maskowania integralnego oraz zakresu gęstości bazy.",
+                subtitle = "Maska barwna materiału oraz zakres gęstości bazy (D-min jako mgła / punkt czerni).",
                 fields = {
                     {
                         key = "integral_masking",
@@ -138,14 +138,14 @@ local PANEL_DEFINITIONS = {
                     },
                     {
                         key = "d_min",
-                        label = "D-min (Base + Fog)",
-                        note = "Kontrola gęstości bazy i punktu czerni.",
+                        label = "D-min (baza + mgła)",
+                        note = "Gęstość bazy i kotwica czerni po inwersji.",
                         items = levelItems(),
                     },
                     {
                         key = "d_max",
-                        label = "D-max (Maximum Density)",
-                        note = "Sufit gęstości świateł i ich kompresja.",
+                        label = "D-max (sufit gęstości)",
+                        note = "Sufit świateł i kompresja szczytu tonalnego.",
                         items = levelItems(),
                     },
                 },
@@ -183,42 +183,42 @@ local PANEL_DEFINITIONS = {
         },
     },
     iii = {
-        dialogTitle = "MindfulLens — Panel IV: Morfologia ziarna i generator srebra",
-        header = "Panel IV: Morfologia ziarna i generator srebra",
-        subtitle = "Energia ziarna, geometria kryształów i rdzeń generatora srebra.",
+        dialogTitle = "Panel IV — Morfologia Ziarna i Generator Srebra",
+        header = "Panel IV — Morfologia Ziarna i Generator Srebra",
+        subtitle = "Po krzywej H&D (Panel III): energia ziarna, klastry, skala kryształów i SSG — z podglądem LIVE w Develop (mapowanie na Grain / Effects).",
         sections = {
             {
                 title = "Energia i geometria ziarna",
-                subtitle = "Amplituda ziarna, klastrowanie i wielkość kryształów.",
+                subtitle = "Amplituda, klastrowanie, rozmiar kryształów i chropowatość w kanale Adobe Grain — spójnie z formatem z Panelu I.",
                 fields = {
                     {
                         key = "ssg_grain",
-                        label = "Generator Srebra (SSG)",
-                        note = "Kształt ziarna emulsji bez podmiany stockowego presetu.",
+                        label = "Generator srebra (SSG)",
+                        note = "Kształt obrazu ziarna emulsji (styl) bez wymuszania stockowego presetu Lightroom.",
                         items = levelItems(),
                     },
                     {
                         key = "grain_rms",
-                        label = "Bazowa Energia Ziarna",
-                        note = "Bazowa energia ziarna po normalizacji formatu.",
+                        label = "Bazowa energia ziarna",
+                        note = "Bazowa energia po normalizacji formatu (35 mm / 120 / wielki format).",
                         items = levelItems(),
                     },
                     {
                         key = "grain_clumping",
-                        label = "Klastrowanie Ziarna",
-                        note = "Gładkość lub organiczne skupiska ziaren.",
+                        label = "Klastrowanie ziarna",
+                        note = "Od gładkiej emulsji po organiczne skupiska ziaren.",
                         items = levelItems(),
                     },
                     {
                         key = "crystal_size",
-                        label = "Wielkość Kryształów",
-                        note = "Skala kryształów bez zmiany charakteru narzędzia.",
+                        label = "Wielkość kryształów",
+                        note = "Skala kryształów przy zachowanym charakterze narzędzia.",
                         items = levelItems(),
                     },
                     {
                         key = "grain_lr_roughness",
-                        label = "Chropowatość ziarna (LR Roughness)",
-                        note = "Mapuje na suwak Roughness w Effects › Grain (technicznie GrainFrequency). Reset (0) nie dodaje offsetu.",
+                        label = "Chropowatość ziarna (Roughness)",
+                        note = "Offset na suwaku Roughness w Effects › Grain (technicznie GrainFrequency). Reset (0) = brak dodatkowego offsetu.",
                         items = levelItems(),
                     },
                 },
@@ -226,54 +226,54 @@ local PANEL_DEFINITIONS = {
         },
     },
     iv = {
-        dialogTitle = "MindfulLens — Panel V: Powierzchnia, bloom i starzenie",
-        header = "Panel V: Powierzchnia, bloom i starzenie",
-        subtitle = "Rozpraszanie światła, mikrostruktura powierzchni, bloom i patyna nośnika.",
+        dialogTitle = "Panel V — Komora Halacji, Powierzchnia i Defekty Analogowe",
+        header = "Panel V — Komora Halacji, Powierzchnia i Defekty Analogowe",
+        subtitle = "Po morfologii ziarna (Panel IV): halacja, rozpraszanie, powierzchnia nośnika i starzenie — podgląd LIVE w Develop.",
         sections = {
             {
                 title = "Rozpraszanie i krawędź wywołania",
-                subtitle = "Kontrola rozpraszania fotonów i efektu Mackie.",
+                subtitle = "Komora halacji w sensie rozpraszania fotonów oraz kontrast krawędzi (Mackie / FDP).",
                 fields = {
                     {
                         key = "photon_scattering",
-                        label = "Rozpraszanie Fotonów",
-                        note = "Wewnętrzne rozproszenie i halo świateł.",
+                        label = "Rozpraszanie fotonów",
+                        note = "Wewnętrzne rozproszenie i halo w światłach.",
                         items = levelItems(),
                     },
                     {
                         key = "mackie_lines",
                         label = "Linie Mackie / FDP",
-                        note = "Kontrast krawędzi z lokalnego wyczerpania wywoływacza.",
+                        note = "Kontrast krawędzi z lokalnego wyczerpania wywoływacza przy wywołaniu.",
                         items = levelItems(),
                     },
                 },
             },
             {
                 title = "Mikrostruktura, bloom i starzenie",
-                subtitle = "Mikrostruktura powierzchni, bloom oraz starzenie nośnika.",
+                subtitle = "Relief powierzchni, bloom antyhalacyjny / optyczny oraz patyna i zużycie materiału.",
                 fields = {
                     {
                         key = "surface_roughness",
-                        label = "Chropowatość Powierzchni",
-                        note = "Mikrorelief powierzchni i odczuwalna akutanse.",
+                        label = "Chropowatość powierzchni",
+                        note = "Mikrorelief powierzchni i odczuwalna ostrość mikrostruktury.",
                         items = levelItems(),
                     },
                     {
                         key = "anti_halation_bloom",
-                        label = "Bloom Antyhalacyjny",
-                        note = "Przeciek bloom w warstwie antyhalacyjnej.",
+                        label = "Bloom antyhalacyjny",
+                        note = "Przeciek bloom w warstwie antyhalacyjnej filmu.",
                         items = levelItems(),
                     },
                     {
                         key = "optical_bloom",
-                        label = "Bloom Optyczny",
-                        note = "Bloom optyczny niezależny od warstwy antyhalacyjnej.",
+                        label = "Bloom optyczny",
+                        note = "Bloom od optyki / komory, niezależny od warstwy antyhalacyjnej.",
                         items = levelItems(),
                     },
                     {
                         key = "film_damage",
-                        label = "Starzenie Materiału",
-                        note = "Patyna i zużycie materiału bez dublowania ziarna.",
+                        label = "Starzenie materiału",
+                        note = "Patyna i zużycie nośnika bez dublowania ustawień ziarna z Panelu IV.",
                         items = levelItems(),
                     },
                 },
@@ -491,7 +491,7 @@ local function showPanelsDialog(targetPanel)
                         return true, nil
                     end
 		            if not targetPhoto then
-		                return false, "Najpierw wybierz zdjecie."
+		                return false, "Najpierw wybierz zdjęcie."
 		            end
             if not developPreview.isDevelopModuleActive() then
                 return true, nil
@@ -628,7 +628,7 @@ local function showPanelsDialog(targetPanel)
 
 	        contentItems[#contentItems + 1] = f:separator({ fill_horizontal = 1 })
 	        contentItems[#contentItems + 1] = f:checkbox({
-	            title = "Podgląd na żywo",
+	            title = "Podgląd na żywo (Develop)",
 	            value = bind("livePreview"),
 	        })
 	        contentItems[#contentItems + 1] = f:row({
@@ -785,7 +785,7 @@ local function showPanelsDialog(targetPanel)
                     })
                     LrDialogs.message(
                         panelDefinition.dialogTitle,
-                        "Blad zapisu panelu: " .. tostring(lastErr or "commit_failed"),
+                        "Błąd zapisu panelu: " .. tostring(lastErr or "commit_failed"),
                         "critical"
                     )
                     return

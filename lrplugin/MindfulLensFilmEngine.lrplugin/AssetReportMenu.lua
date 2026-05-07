@@ -123,7 +123,7 @@ local function generateReport()
     )
     local ok, err = writeCsv(reportPath, emulsions, dcpUsage, lutUsage, foundationUsage)
     if not ok then
-        LrDialogs.message("MindfulLens — Asset Report", err or "Failed to write report.", "critical")
+        LrDialogs.message("Analog Signature — raport assetów", err or "Nie udało się zapisać raportu.", "critical")
         return
     end
 
@@ -135,16 +135,16 @@ local function generateReport()
     })
 
     local lines = {
-        "Asset uniqueness report generated.",
+        "Wygenerowano raport unikalności assetów (CSV).",
         "",
-        "Emulsions: " .. tostring(#emulsions),
-        "Shared DCP files: " .. tostring(sharedDcp),
-        "Shared LUT files: " .. tostring(sharedLut),
+        "Emulsje: " .. tostring(#emulsions),
+        "Współdzielone pliki DCP: " .. tostring(sharedDcp),
+        "Współdzielone pliki LUT: " .. tostring(sharedLut),
         "",
-        "Report saved to:",
+        "Zapisano w:",
         reportPath,
     }
-    LrDialogs.message("MindfulLens — Asset Report", table.concat(lines, "\n"), "info")
+    LrDialogs.message("Analog Signature — raport assetów", table.concat(lines, "\n"), "info")
 end
 
 generateReport()

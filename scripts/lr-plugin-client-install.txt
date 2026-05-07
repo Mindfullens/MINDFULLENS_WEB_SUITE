@@ -1,0 +1,50 @@
+Analog Signature — instalacja wtyczki Lightroom (macOS / Windows)
+Analog Signature — Lightroom plug-in install (macOS / Windows)
+================================================================
+
+POLSKI
+------
+1) Zamknij Adobe Lightroom Classic (całkowicie).
+
+2) Rozpakuj archiwum ZIP (np. na Pulpicie).
+
+3) Skopiuj folder „MindfulLensFilmEngine.lrplugin” do katalogu modułów Lightroom:
+   macOS:
+   ~/Library/Application Support/Adobe/Lightroom/Modules/
+   (Finder → Idź → Idź do folderu… → wklej ścieżkę powyżej)
+
+   Windows:
+   %AppData%\Adobe\Lightroom\Modules\
+   (Wpisz %appdata%\Adobe\Lightroom\Modules w pasku adresu Eksploratora.)
+
+4) Jeśli wcześniej była starsza wersja — usuń lub zastąp istniejący folder
+   „MindfulLensFilmEngine.lrplugin”, żeby nie mieszać dwóch kopii.
+
+5) Uruchom Lightroom → Moduł deweloperski → Plug-in Manager → Add → wskaż
+   folder „MindfulLensFilmEngine.lrplugin”, jeśli Lightroom nie wykrył go automatycznie.
+
+W razie problemów napisz na adres wsparcia podany przy zakupie licencji.
+
+
+ENGLISH
+-------
+1) Quit Adobe Lightroom Classic completely.
+
+2) Unzip the archive (e.g. on Desktop).
+
+3) Copy the folder “MindfulLensFilmEngine.lrplugin” into Lightroom’s Modules folder:
+   macOS:
+   ~/Library/Application Support/Adobe/Lightroom/Modules/
+   (Finder → Go → Go to Folder… → paste the path above)
+
+   Windows:
+   %AppData%\Adobe\Lightroom\Modules\
+   (Paste into Explorer’s address bar.)
+
+4) If an older version exists, delete or replace the existing
+   “MindfulLensFilmEngine.lrplugin” folder so you don’t run two copies.
+
+5) Start Lightroom → Develop → Plug-in Manager → Add → select the
+   “MindfulLensFilmEngine.lrplugin” bundle if Lightroom didn’t pick it up.
+
+For issues, use the support channel included with your license.

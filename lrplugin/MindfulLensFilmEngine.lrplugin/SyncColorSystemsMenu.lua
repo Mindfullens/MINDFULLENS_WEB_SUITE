@@ -9,8 +9,8 @@ local IMPORTER = repoRoot and LrPathUtils.child(repoRoot, "dcp_pipeline/tools/im
 LrTasks.startAsyncTask(function()
     if not IMPORTER then
         LrDialogs.message(
-            "MindfulLens — Auto-Sync failed",
-            "Cannot resolve repository root from the current plugin path.",
+            "Analog Signature — synchronizacja",
+            "Nie znaleziono katalogu repozytorium względem ścieżki wtyczki (oczekiwany import_color_systems.py). Ta opcja działa tylko w środowisku deweloperskim.",
             "critical"
         )
         return
@@ -20,14 +20,14 @@ LrTasks.startAsyncTask(function()
 
     if status == 0 then
         LrDialogs.message(
-            "MindfulLens — Auto-Sync complete",
-            "Color-system XMP packs were rebuilt. Reopen Step 1 if it was already open.",
+            "Analog Signature — synchronizacja",
+            "Pakiety XMP systemów koloru zostały przebudowane. Jeśli krok 1 był otwarty, zamknij i otwórz ponownie.",
             "info"
         )
     else
         LrDialogs.message(
-            "MindfulLens — Auto-Sync failed",
-            "Importer returned status " .. tostring(status) .. ".",
+            "Analog Signature — synchronizacja",
+            "Importer zwrócił kod " .. tostring(status) .. ". Sprawdź log w terminalu / skrypt import_color_systems.py.",
             "critical"
         )
     end

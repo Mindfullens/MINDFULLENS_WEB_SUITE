@@ -4,7 +4,7 @@ local MENU_ITEMS = {
         file = "FilmEngineMenu.lua",
     },
     {
-        title = "2) Panel II — Charakter Ciemni i Soft Clip (LIVE)",
+        title = "2) Panel II — Charakter ciemni i Soft Clip (LIVE)",
         file = "PanelIIMenu.lua",
     },
     {
@@ -28,7 +28,7 @@ local MENU_ITEMS = {
         file = "PanelVIIMenu.lua",
     },
     {
-        title = "8) Panel VIII — Glebia Subtraktywna i Kinematografia",
+        title = "8) Panel VIII — Głębia Subtraktywna i Kinematografia",
         file = "PanelVIIIMenu.lua",
     },
     {
@@ -44,15 +44,15 @@ local MENU_ITEMS = {
         file = "InstallModularPresetsMenu.lua",
     },
     {
-        title = "Serwis — Raport Unikalnosci Assetow",
+        title = "Serwis — Raport unikalności assetów",
         file = "AssetReportMenu.lua",
     },
     {
-        title = "Serwis — Synchronizacja Systemow Koloru",
+        title = "Serwis — Synchronizacja systemów koloru",
         file = "SyncColorSystemsMenu.lua",
     },
     {
-        title = "Serwis — Kontrola Integralnosci",
+        title = "Serwis — Kontrola integralności",
         file = "SystemHealthMenu.lua",
     },
 }
@@ -67,7 +67,7 @@ return {
         major = 0,
         minor = 2,
         revision = 1,
-        build = 2,
+        build = 10,
     },
 
     LrInitPlugin = "PluginInit.lua",

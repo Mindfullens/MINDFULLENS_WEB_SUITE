@@ -30,7 +30,8 @@ local function showHealth()
     local pyAnalyzer = LrPathUtils.child(_PLUGIN.path, "bin/analyzer_stub.py")
     local hasAnalyzer = LrFileUtils.exists(macAnalyzer) or LrFileUtils.exists(winAnalyzer) or LrFileUtils.exists(pyAnalyzer)
 
-    lines[#lines + 1] = "MindfulLens System Health"
+    lines[#lines + 1] = "Analog Signature — kontrola integralności (raport techniczny)"
+    lines[#lines + 1] = "Poniżej: ścieżki i statusy zasobów; etykiety pól po angielsku ułatwiają wsparcie."
     lines[#lines + 1] = ""
     lines[#lines + 1] = "Analyzer:"
     lines[#lines + 1] = " - macOS binary: " .. stateLabel(LrFileUtils.exists(macAnalyzer)) .. " (" .. macAnalyzer .. ")"
@@ -182,10 +183,10 @@ local function showHealth()
     if rf then
         rf:write(message)
         rf:close()
-        message = message .. "\n\nReport saved to:\n" .. reportPath
+        message = message .. "\n\nRaport zapisano w:\n" .. reportPath
     end
     logger.info("System health check", { analyzer = tostring(hasAnalyzer), camera_profiles = cameraProfilesDir })
-    LrDialogs.message("MindfulLens", message, "info")
+    LrDialogs.message("Analog Signature — integralność", message, "info")
 end
 
 showHealth()

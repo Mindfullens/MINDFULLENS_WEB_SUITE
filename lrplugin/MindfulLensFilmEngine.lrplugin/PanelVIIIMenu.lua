@@ -230,7 +230,7 @@ local function showDialog()
     local catalog = LrApplication.activeCatalog()
     local targetPhoto = catalog:getTargetPhoto()
     if not targetPhoto then
-        LrDialogs.message("Panel VIII", "Brak zaznaczonego zdjecia.", "info")
+        LrDialogs.message("Panel VIII", "Brak zaznaczonego zdjęcia.", "info")
         return
     end
 
@@ -322,25 +322,33 @@ local function showDialog()
         local content = f:column({
             fill_horizontal = 1, spacing = 6, margin_horizontal = 14,
 
-            sectionTitle("Emulsje Slajdowe i Negatywowe"),
+            f:static_text({
+                title = "Po matrycy barw (Panel VII): subtraktywna gęstość i styl kinowy — Velvia/Portra/Cineon/Kodachrome jako wektory na suwakach LR.",
+                font = "<system/small>",
+                fill_horizontal = 1,
+                height_in_lines = 2,
+            }),
+            f:separator({ fill_horizontal = 1 }),
+
+            sectionTitle("Emulsje slajdowe i negatywowe"),
 
             sliderRow("velviaOverdrive",
                 "Velvia / Provia — Subtractive Overdrive",
-                "Matematyka subtraktywna CMY: zielenie i blekity gestneja logarytmicznie. Zapobiega swieceniu barw cyfrowych, wchodzi w glebsze, mroczne tony."),
+                "Subtraktywna „zieleń” i błękit zagęszczają się logarytmicznie (CMY): mniej „cyfrowego świecenia”, więcej głębi w nasyceniu."),
 
             sliderRow("portaSkinGuard",
-                "Kodak Portra — Ochrona Tonacji Skory",
-                "Dynamic Skin-Tone Preservation: izolacja HSL pomarancz/zolc, soft-clipping. Spowalnia reakcje tonalna w swiatach skory. Cyan roll-off w cieniach."),
+                "Kodak Portra — ochrona tonacji skóry",
+                "Izolacja HSL pomarańcz / żółć, soft clipping skóry; roll-off cyan w cieniach przy portrecie."),
 
-            sectionTitle("Procesy Kinowe"),
+            sectionTitle("Procesy kinowe"),
 
             sliderRow("cineonLog",
                 "Print Film / Cineon Log",
-                "Emulacja plaskiej przestrzeni logarytmicznej Cineon. Wirtualna glowica powiększalnika CMY: bezstratne zageszczenie przejsc tonalnych jak odbitka na kinowym papierze."),
+                "Emulacja płaskiej przestrzeni logarytmicznej Cineon: kompresja tonalna jak pośrednia na papierze kinowym (bez podmiany podglądu kamery)."),
 
             sliderRow("kodachromeK14",
                 "Kodachrome K-14",
-                "Trojwarstwowa synteza: algorytmiczne rozebrance obrazu na wirtualne kanaly gestosci. Sterylna struktura, czerwien zywia, cienie w glebokim niebiesko-czarnym."),
+                "Trzy warstwy barwnika — czystsza struktura: żywsza czerwień, cienie w głębokim niebiesko-czerni."),
 
             f:spacer({ height = 8 }),
 
@@ -353,7 +361,7 @@ local function showDialog()
         })
 
         local result = LrDialogs.presentModalDialog({
-            title      = "MindfulLens — Panel VIII: Glebia Subtraktywna i Kinematografia",
+            title      = "Panel VIII — Głębia Subtraktywna i Kinematografia",
             actionVerb = "Zastosuj",
             cancelVerb = "Zamknij",
             save_frame = "mindfullens.panel8.dialog",
@@ -391,7 +399,7 @@ local function showDialog()
                 for attempt = 1, 2 do
                     local okApply, errApply = applySettingsDeterministic(
                         targetPhoto, catalog, finalSettings,
-                        "MindfulLens Panel VIII — Glebia Subtraktywna"
+                        "MindfulLens Panel VIII — Głębia Subtraktywna"
                     )
                     if not okApply then
                         lastErr = tostring(errApply or "apply_failed")
@@ -408,7 +416,7 @@ local function showDialog()
 
                 if not committed then
                     logger.error("Panel VIII apply failed", { error = tostring(lastErr or "") })
-                    LrDialogs.message("Panel VIII", "Blad zapisu: " .. tostring(lastErr or ""), "critical")
+                    LrDialogs.message("Panel VIII", "Błąd zapisu: " .. tostring(lastErr or ""), "critical")
                     return
                 end
             end

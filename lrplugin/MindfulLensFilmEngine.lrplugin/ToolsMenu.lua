@@ -1182,25 +1182,25 @@ local function showToolsDialog(toolTarget)
             end
         end)
 
-        local panelTitle = "Panel II — Tonalność i Lab (live tools)"
-        local panelDialogTitle = "MindfulLens — Panel II: Tonalność i Lab (live tools)"
-        local panelIntro = "Balans tonalny i lab — podgląd na żywo przed zatwierdzeniem (uzupełnia menu Panel II)."
+        local panelTitle = "Panel II — Charakter ciemni / Lab (live tools)"
+        local panelDialogTitle = "MindfulLens — Panel II: charakter ciemni i Lab (live tools)"
+        local panelIntro = "Tonalność, Lab glow/fade i soft clip — podgląd na żywo przed zatwierdzeniem (to samo co menu Panel II, skrót kontekstowy)."
         if target == "print" then
             panelTitle = "Wykończenie — Odbitka i papier (live tools)"
             panelDialogTitle = "MindfulLens — Wykończenie: Odbitka i papier"
             panelIntro = "Odbitka, papier, bloom, winieta i ziarno — podgląd na żywo przed zatwierdzeniem."
         elseif target == "print_optics" then
-            panelTitle = "Panel VI — Optyka odbitki"
-            panelDialogTitle = "MindfulLens — Panel VI: Optyka odbitki"
-            panelIntro = "Połysk barytowy i winieta — narzędzia kontekstowe (równolegle z menu Plug-in Extras)."
+            panelTitle = "Panel V — Optyka Odbitki (Połysk + Winieta)"
+            panelDialogTitle = "Panel V — Optyka Odbitki (Połysk + Winieta)"
+            panelIntro = "Po powierzchni i halacji (Panel V): połysk papieru i winieta obiektywu — ten sam zestaw co pozycja menu 6, skrót kontekstowy."
         end
 
         local contentParts = {
             f:static_text({ title = panelTitle, fill_horizontal = 1, font = "<system/bold>" }),
             f:static_text({ title = panelIntro, fill_horizontal = 1 }),
-            f:static_text({ title = "Podglad na zywo dziala w module Develop i pokazuje zmiany suwakowe przed zatwierdzeniem.", fill_horizontal = 1 }),
-            f:static_text({ title = "Moc narzedzi: " .. tostring(TOOL_STRENGTH_MULTIPLIER) .. "x", fill_horizontal = 1 }),
-            f:static_text({ title = "Liczba uruchomien: " .. tostring(prefs.toolsRunCount), fill_horizontal = 1 }),
+            f:static_text({ title = "Podgląd na żywo działa w module Develop i pokazuje zmiany suwakowe przed zatwierdzeniem.", fill_horizontal = 1 }),
+            f:static_text({ title = "Moc narzędzi: " .. tostring(TOOL_STRENGTH_MULTIPLIER) .. "x", fill_horizontal = 1 }),
+            f:static_text({ title = "Liczba uruchomień: " .. tostring(prefs.toolsRunCount), fill_horizontal = 1 }),
         }
 
 	        if target == "lab" then
@@ -1302,7 +1302,7 @@ local function showToolsDialog(toolTarget)
 
         local photo = catalog:getTargetPhoto()
         if not photo then
-            LrDialogs.message(panelDialogTitle, "Najpierw wybierz zdjecie.", "critical")
+            LrDialogs.message(panelDialogTitle, "Najpierw wybierz zdjęcie.", "critical")
             return
         end
 
@@ -1405,7 +1405,7 @@ local function showToolsDialog(toolTarget)
                     LrDialogs.showBezel("MindfulLens: wykończenie odbitki wyzerowane", 1.5)
                     return
                 end
-                LrDialogs.message(panelDialogTitle, msg or "Nie wybrano zadnych narzedzi.", "info")
+                LrDialogs.message(panelDialogTitle, msg or "Nie wybrano żadnych narzędzi.", "info")
                 return
             end
 
@@ -1444,7 +1444,7 @@ local function showToolsDialog(toolTarget)
                 error = tostring(taskErr or ""),
                 target = tostring(target),
             })
-            LrDialogs.message(panelDialogTitle, "Blad zapisu panelu: " .. tostring(taskErr or "unknown"), "critical")
+            LrDialogs.message(panelDialogTitle, "Błąd zapisu panelu: " .. tostring(taskErr or "unknown"), "critical")
         end
     end)
 end

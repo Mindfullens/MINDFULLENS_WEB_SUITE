@@ -16,7 +16,7 @@ local logger = pluginLoad("lib/Logger.lua")
 local developPreview = pluginLoad("lib/DevelopPreview.lua")
 local catalogWrite = pluginLoad("lib/CatalogWrite.lua")
 
-local PANEL_TITLE = "Panel II: Charakter Ciemni (LIVE)"
+local PANEL_TITLE = "Panel II — Charakter ciemni i Soft Clip (LIVE)"
 local PANEL2_DIALOG_FRAME_KEY = "mindfullens.panel2.dialog"
 
 local PREVIEW_KEYS = {
@@ -51,8 +51,10 @@ end
 local function makeColorProcessItems()
     return {
         { title = "Refined (neutralny, nowa baza)", value = "refined" },
-        { title = "Neutral Soft (bezpieczny srodek)", value = "neutral_soft" },
-        { title = "Classic (bardziej analogowy kontrast)", value = "classic" },
+        { title = "Neutral Soft (bezpieczny środek)", value = "neutral_soft" },
+        { title = "Portrait Gentle (portretowy rolloff)", value = "portrait_gentle" },
+        { title = "Cinema Grade (kontrast scenowy)", value = "cinema_grade" },
+        { title = "Classic (analogowy kontrast)", value = "classic" },
     }
 end
 
@@ -143,12 +145,12 @@ end
 local function panel2StateSummary(state)
     local source = state or {}
     return "Ostatnio zapisane: "
-        .. "Color " .. tostring(source.colorProcess or "refined")
+        .. "proces " .. tostring(source.colorProcess or "refined")
         .. " | Glow " .. tostring(source.labGlow or "0")
         .. " | Fade " .. tostring(source.labFade or "0")
-        .. " | SH " .. tostring(source.softHighs == true)
+        .. " | światła " .. tostring(source.softHighs == true)
         .. " (" .. tostring(source.whiteClip or "0") .. ")"
-        .. " | SL " .. tostring(source.softLows == true)
+        .. " | cienie " .. tostring(source.softLows == true)
         .. " (" .. tostring(source.blackClip or "0") .. ")"
 end
 
@@ -264,6 +266,27 @@ local function buildPreviewSettings(baselineSettings, props, emulsionId)
         adjust("Shadows2012", 2, -100, 100)
         if not monochrome then
             adjust("Vibrance", 2, -100, 100)
+        end
+    elseif colorProcess == "portrait_gentle" then
+        adjust("Contrast2012", -3, -100, 100)
+        adjust("Clarity2012", -5, -100, 100)
+        adjust("Dehaze", -2, -100, 100)
+        adjust("Highlights2012", -4, -100, 100)
+        adjust("Shadows2012", 6, -100, 100)
+        if not monochrome then
+            adjust("Vibrance", 5, -100, 100)
+            adjust("Saturation", 2, -100, 100)
+        end
+    elseif colorProcess == "cinema_grade" then
+        adjust("Contrast2012", 3, -100, 100)
+        adjust("Clarity2012", 2, -100, 100)
+        adjust("Dehaze", 1, -100, 100)
+        adjust("Highlights2012", -6, -100, 100)
+        adjust("Shadows2012", 4, -100, 100)
+        adjust("Blacks2012", -3, -100, 100)
+        if not monochrome then
+            adjust("Vibrance", 4, -100, 100)
+            adjust("Saturation", 2, -100, 100)
         end
     end
 
@@ -460,20 +483,29 @@ local function showDialog()
         local content = f:column({
             bind_to_object = props,
             spacing = f:control_spacing(),
-            subtitleText("Panel II ustawia charakter ciemni dla konwersji z Panelu I."),
-            subtitleText("Podglad LIVE jest tymczasowy (Develop) i sluzy tylko do wyboru ustawien."),
-            subtitleText("Referencja emulsji: " .. tostring(emulsionId)),
-            subtitleText("Panel startuje od neutralnych delt (0), a zapisane wartosci sa stosowane przez Panel I."),
+            subtitleText(
+                "PANEL II — CHARAKTER CIEMNI: styl wywołania barwy i papieru po inwersji (LUT, nasycenie, Lab glow/fade, soft clip)."
+            ),
+            subtitleText(
+                "Podgląd LIVE jest tymczasowy w module Develop i służy do decyzji; po „Zapisz ustawienia” wartości trafiają do zdjęcia i preferencji wtyczki."
+            ),
+            subtitleText("Emulsja referencyjna (Panel I): " .. tostring(emulsionId)),
+            subtitleText(
+                "Te same parametry są wczytywane przy kolejnym uruchomieniu Panelu I (pipeline spójny end-to-end)."
+            ),
             f:static_text({
                 title = bind("savedStateSummary"),
                 fill_horizontal = 1,
                 font = "<system/small>",
             }),
             f:separator({ fill_horizontal = 1 }),
-            sectionTitle("Charakter i Soft Clip"),
+            sectionTitle("Proces kolorystyczny i LUT"),
+            subtitleText(
+                "Proces kolorystyczny: pięć baz (refined, neutral soft, portrait gentle, cinema grade, classic). LUT i nasycenie nakładają się na kanał koloru po ingest."
+            ),
             f:row({
                 spacing = f:label_spacing(),
-                toolLabel("Color Process", 180),
+                toolLabel("Proces kolorystyczny", 180),
                 f:popup_menu({
                     value = bind("colorProcess"),
                     items = makeColorProcessItems(),
@@ -482,7 +514,7 @@ local function showDialog()
             }),
             f:row({
                 spacing = f:label_spacing(),
-                toolLabel("LUT Intensity", 180),
+                toolLabel("Intensywność LUT", 180),
                 f:popup_menu({
                     value = bind("lutIntensity"),
                     items = makeLutIntensityItems(),
@@ -491,16 +523,18 @@ local function showDialog()
             }),
             f:row({
                 spacing = f:label_spacing(),
-                toolLabel("Saturation Trim", 180),
+                toolLabel("Korekta nasycenia", 180),
                 f:popup_menu({
                     value = bind("saturationTrim"),
                     items = makeSaturationTrimItems(),
                     fill_horizontal = 1,
                 }),
             }),
+            sectionTitle("Lab — Glow i Fade"),
+            subtitleText("Sterowanie „papierem” i rolloffem: glow redukuje sztuczną klarowność w światłach; fade rozluźnia kontrast jak rozjaśnienie cienia w ciemni."),
             f:row({
                 spacing = f:label_spacing(),
-                toolLabel("Lab Glow", 180),
+                toolLabel("Glow (lab)", 180),
                 f:popup_menu({
                     value = bind("labGlow"),
                     items = makeLabToneItems(),
@@ -509,16 +543,18 @@ local function showDialog()
             }),
             f:row({
                 spacing = f:label_spacing(),
-                toolLabel("Lab Fade", 180),
+                toolLabel("Fade (lab)", 180),
                 f:popup_menu({
                     value = bind("labFade"),
                     items = makeLabToneItems(),
                     fill_horizontal = 1,
                 }),
             }),
+            sectionTitle("Soft clip"),
+            subtitleText("Łagodzenie szczytu tonalnego: osobno światła i cienie; wartości ± doprecyzowują siłę przy włączonym soft."),
             f:row({
                 spacing = f:label_spacing(),
-                toolLabel("WhiteClip", 180),
+                toolLabel("Clip — światła", 180),
                 f:popup_menu({
                     value = bind("whiteClip"),
                     items = makeClipItems(),
@@ -527,7 +563,7 @@ local function showDialog()
             }),
             f:row({
                 spacing = f:label_spacing(),
-                toolLabel("BlackClip", 180),
+                toolLabel("Clip — cienie", 180),
                 f:popup_menu({
                     value = bind("blackClip"),
                     items = makeClipItems(),
@@ -535,16 +571,16 @@ local function showDialog()
                 }),
             }),
             f:checkbox({
-                title = "Soft Highs",
+                title = "Miękkie światła (soft highs)",
                 value = bind("softHighs"),
             }),
             f:checkbox({
-                title = "Soft Lows",
+                title = "Miękkie cienie (soft lows)",
                 value = bind("softLows"),
             }),
             f:separator({ fill_horizontal = 1 }),
             f:checkbox({
-                title = "Podglad na zywo (Develop)",
+                title = "Podgląd na żywo (Develop)",
                 value = bind("livePreview"),
             }),
             f:row({
@@ -564,7 +600,7 @@ local function showDialog()
                     end,
                 }),
                 f:push_button({
-                    title = "Przywroc stan wejsciowy",
+                    title = "Przywróć stan wejściowy",
                     action = function()
                         local restoreState = snapshotPanel2State(entryState)
                         restoreState.livePreview = (props.livePreview == true)
@@ -593,11 +629,11 @@ local function showDialog()
                     end,
                 }),
                 f:push_button({
-                    title = "Cofnij podglad",
+                    title = "Cofnij podgląd",
                     action = function()
                         LrTasks.startAsyncTask(function()
                             restoreBaseline()
-                            LrDialogs.showBezel("MindfulLens: podglad przywrocony", 1.1)
+                            LrDialogs.showBezel("MindfulLens: podgląd przywrócony", 1.1)
                         end)
                     end,
                 }),
@@ -753,15 +789,15 @@ local function showDialog()
             end
 
             if committedToPhoto then
-                LrDialogs.showBezel("MindfulLens: Panel II zapisany i zastosowany na zdjeciu", 1.6)
-                LrDialogs.message(PANEL_TITLE, savedSummary .. "\n\nZastosowano na aktywnym zdjeciu.", "info")
+                LrDialogs.showBezel("MindfulLens: Panel II zapisany i zastosowany na zdjęciu", 1.6)
+                LrDialogs.message(PANEL_TITLE, savedSummary .. "\n\nZastosowano na aktywnym zdjęciu.", "info")
             else
                 LrDialogs.showBezel("MindfulLens: ustawienia Panelu II zapisane", 1.4)
                 local fallbackMessage = savedSummary .. "\n\nZapisano globalnie."
                 if commitError then
-                    fallbackMessage = fallbackMessage .. "\nNie udalo sie zastosowac na zdjeciu: " .. commitError
+                    fallbackMessage = fallbackMessage .. "\nNie udało się zastosować na zdjęciu: " .. commitError
                 else
-                    fallbackMessage = fallbackMessage .. "\nBrak zmian do zastosowania (wartosci neutralne)."
+                    fallbackMessage = fallbackMessage .. "\nBrak zmian do zastosowania (wartości neutralne)."
                 end
                 LrDialogs.message(PANEL_TITLE, fallbackMessage, "warning")
             end
