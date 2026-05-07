@@ -1,0 +1,18 @@
+{
+  "film_id": "PHENOMENA",
+  "k_coeffs": [
+    0.81622564,
+    0.84244871,
+    0.78411053
+  ],
+  "s_coeffs": [
+    0.26441782,
+    0.28666294,
+    0.27255136
+  ],
+  "print_contrast": 1.015,
+  "optimized_from": "docs/phenomena_colorchecker_report.csv",
+  "optimization_seed": 113,
+  "optimization_iterations": 144,
+  "notes": "Dedicated Phenomena seed: grounded cinematic stock with slightly firmer contrast and controlled cool channels."
+}

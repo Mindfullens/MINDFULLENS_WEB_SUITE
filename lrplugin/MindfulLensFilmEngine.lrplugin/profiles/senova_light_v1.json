@@ -1,0 +1,18 @@
+{
+  "film_id": "SENOVA_LIGHT",
+  "k_coeffs": [
+    0.80422564,
+    0.83844871,
+    0.79211053
+  ],
+  "s_coeffs": [
+    0.29441782,
+    0.31466294,
+    0.30055136
+  ],
+  "print_contrast": 0.94,
+  "optimized_from": "docs/senova_light_colorchecker_report.csv",
+  "optimization_seed": 79,
+  "optimization_iterations": 144,
+  "notes": "Dedicated Senova Light seed: airy low-contrast editorial negative with lighter density and softened contrast."
+}

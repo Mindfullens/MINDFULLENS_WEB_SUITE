@@ -1,0 +1,111 @@
+<x:xmpmeta xmlns:x="adobe:ns:meta/" x:xmptk="Adobe XMP Core 7.0-c000 1.000000, 0000/00/00-00:00:00        ">
+ <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <rdf:Description crs:Group="MindfulLens" rdf:about=""
+    xmlns:crs="http://ns.adobe.com/camera-raw-settings/1.0/"
+   crs:PresetType="Normal"
+   crs:Cluster=""
+   crs:UUID="847F16ACC5954D93A442296634E59433"
+   crs:SupportsAmount2="True"
+   crs:SupportsAmount="True"
+   crs:SupportsColor="True"
+   crs:SupportsMonochrome="True"
+   crs:SupportsHighDynamicRange="True"
+   crs:SupportsNormalDynamicRange="True"
+   crs:SupportsSceneReferred="True"
+   crs:SupportsOutputReferred="True"
+   crs:RequiresRGBTables="False"
+   crs:ShowInPresets="True"
+   crs:ShowInQuickActions="False"
+   crs:CameraModelRestriction=""
+   crs:Copyright=""
+   crs:ContactInfo=""
+   crs:Version="18.2.2"
+   crs:CompatibleVersion="251854848"
+   crs:ProcessVersion="15.4"
+   crs:HasSettings="True" crs:Name="[03] Light Wrap">   <crs:Name>[03] Light Wrap</crs:Name>   <crs:Group>MindfulLens</crs:Group>
+
+   <crs:ShortName>
+    <rdf:Alt>
+     <rdf:li xml:lang="x-default"/>
+    </rdf:Alt>
+   </crs:ShortName>
+   <crs:SortName>
+    <rdf:Alt>
+     <rdf:li xml:lang="x-default"/>
+    </rdf:Alt>
+   </crs:SortName>
+   <crs:Description>
+    <rdf:Alt>
+     <rdf:li xml:lang="x-default"/>
+    </rdf:Alt>
+   </crs:Description>
+   <crs:MaskGroupBasedCorrections>
+    <rdf:Seq>
+     <rdf:li>
+      <rdf:Description
+       crs:What="Correction"
+       crs:CorrectionAmount="1"
+       crs:CorrectionActive="true"
+       crs:CorrectionName="Maska 1"
+       crs:CorrectionSyncID="51939AC26A974FE5B7E7165A69246988"
+       crs:LocalExposure="0"
+       crs:LocalHue="0"
+       crs:LocalSaturation="0"
+       crs:LocalContrast="0"
+       crs:LocalClarity="0"
+       crs:LocalSharpness="0"
+       crs:LocalBrightness="0"
+       crs:LocalToningHue="240"
+       crs:LocalToningSaturation="0"
+       crs:LocalExposure2012="0.036665"
+       crs:LocalContrast2012="0"
+       crs:LocalHighlights2012="0.098267"
+       crs:LocalShadows2012="0"
+       crs:LocalWhites2012="0"
+       crs:LocalBlacks2012="0"
+       crs:LocalClarity2012="-0.051465"
+       crs:LocalDehaze="0"
+       crs:LocalLuminanceNoise="0"
+       crs:LocalMoire="0"
+       crs:LocalDefringe="0"
+       crs:LocalTemperature="0"
+       crs:LocalTint="0"
+       crs:LocalTexture="0"
+       crs:LocalGrain="0"
+       crs:LocalCurveRefineSaturation="100">
+      <crs:CorrectionMasks>
+       <rdf:Seq>
+        <rdf:li
+         crs:What="Mask/Image"
+         crs:MaskActive="true"
+         crs:MaskName="Obiekt 1"
+         crs:MaskBlendMode="0"
+         crs:MaskInverted="false"
+         crs:MaskSyncID="9EC5E6DC6C4D470C88CE104065082784"
+         crs:MaskValue="1"
+         crs:MaskVersion="1"
+         crs:MaskSubType="1"
+         crs:ReferencePoint="0.500000 0.500000"
+         crs:ErrorReason="0"/>
+        <rdf:li
+         crs:What="Mask/Image"
+         crs:MaskActive="true"
+         crs:MaskName="Tło 1"
+         crs:MaskBlendMode="0"
+         crs:MaskInverted="false"
+         crs:MaskSyncID="48E756CCF20647008744A940B8C10BC5"
+         crs:MaskValue="1"
+         crs:MaskVersion="1"
+         crs:MaskSubType="0"
+         crs:MaskSubCategoryID="22"
+         crs:ReferencePoint="0.500000 0.500000"
+         crs:ErrorReason="0"/>
+       </rdf:Seq>
+      </crs:CorrectionMasks>
+      </rdf:Description>
+     </rdf:li>
+    </rdf:Seq>
+   </crs:MaskGroupBasedCorrections>
+  </rdf:Description>
+ </rdf:RDF>
+</x:xmpmeta>

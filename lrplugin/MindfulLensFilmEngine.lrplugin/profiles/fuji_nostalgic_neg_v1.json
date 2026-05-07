@@ -1,0 +1,18 @@
+{
+  "film_id": "FUJI_NOSTALGIC_NEG",
+  "k_coeffs": [
+    0.80122564,
+    0.84644871,
+    0.78811053
+  ],
+  "s_coeffs": [
+    0.23341782,
+    0.25166294,
+    0.23555136
+  ],
+  "print_contrast": 0.97,
+  "optimized_from": "docs/fuji_nostalgic_neg_colorchecker_report.csv",
+  "optimization_seed": 13,
+  "optimization_iterations": 120,
+  "notes": "Dedicated Fuji Nostalgic Neg seed: warm editorial negative with gentle highlight compression."
+}

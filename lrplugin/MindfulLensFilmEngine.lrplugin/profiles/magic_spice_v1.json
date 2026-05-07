@@ -1,0 +1,18 @@
+{
+  "film_id": "MAGIC_SPICE",
+  "k_coeffs": [
+    0.83697537,
+    0.86455941,
+    0.7941046
+  ],
+  "s_coeffs": [
+    0.28886548,
+    0.32073388,
+    0.30161789
+  ],
+  "print_contrast": 0.995,
+  "optimized_from": "docs/magic_spice_colorchecker_report.csv",
+  "optimization_seed": 61,
+  "optimization_iterations": 144,
+  "notes": "Dedicated Magic Spice seed: spicy warm negative with amber mids, friendly skin and softened cool channels."
+}

@@ -1,0 +1,18 @@
+{
+  "film_id": "GOLD_200",
+  "k_coeffs": [
+    0.81244051,
+    0.84322617,
+    0.76011824
+  ],
+  "s_coeffs": [
+    0.27410872,
+    0.29644018,
+    0.27955103
+  ],
+  "print_contrast": 1.03,
+  "optimized_from": "docs/gold_200_colorchecker_report.csv",
+  "optimization_seed": 13,
+  "optimization_iterations": 96,
+  "notes": "Gold 200 seed replacing the generic placeholder while keeping the measured warm consumer-negative baseline intact."
+}

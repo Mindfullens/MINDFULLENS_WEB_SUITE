@@ -1,0 +1,18 @@
+{
+  "film_id": "CHROMA_FADE",
+  "k_coeffs": [
+    0.76411844,
+    0.81277231,
+    0.77044166
+  ],
+  "s_coeffs": [
+    0.25544172,
+    0.27455019,
+    0.26733055
+  ],
+  "print_contrast": 0.91,
+  "optimized_from": "docs/chroma_fade_colorchecker_report.csv",
+  "optimization_seed": 37,
+  "optimization_iterations": 128,
+  "notes": "Dedicated Chroma Fade seed: faded chroma palette with lowered density, lifted shadows and washed highlights."
+}

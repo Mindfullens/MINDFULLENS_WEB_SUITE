@@ -1,0 +1,18 @@
+{
+  "film_id": "ZETRA_100",
+  "k_coeffs": [
+    0.81811844,
+    0.85077231,
+    0.79244166
+  ],
+  "s_coeffs": [
+    0.26844172,
+    0.28855019,
+    0.27433055
+  ],
+  "print_contrast": 1.005,
+  "optimized_from": "docs/zetra_100_colorchecker_report.csv",
+  "optimization_seed": 107,
+  "optimization_iterations": 144,
+  "notes": "Dedicated Zetra 100 seed: cleaner daylight stock with firmer contrast and stable highlights."
+}

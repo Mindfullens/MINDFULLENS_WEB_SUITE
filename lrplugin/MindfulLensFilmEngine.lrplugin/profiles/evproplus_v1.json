@@ -1,0 +1,18 @@
+{
+  "film_id": "EVPROPLUS",
+  "k_coeffs": [
+    0.82411844,
+    0.85277231,
+    0.76844166
+  ],
+  "s_coeffs": [
+    0.24244172,
+    0.26255019,
+    0.24833055
+  ],
+  "print_contrast": 1.06,
+  "optimized_from": "docs/evproplus_colorchecker_report.csv",
+  "optimization_seed": 59,
+  "optimization_iterations": 144,
+  "notes": "Dedicated Evpro+ seed: punchier pro chrome with firmer contrast, cleaner shadows and richer blues."
+}

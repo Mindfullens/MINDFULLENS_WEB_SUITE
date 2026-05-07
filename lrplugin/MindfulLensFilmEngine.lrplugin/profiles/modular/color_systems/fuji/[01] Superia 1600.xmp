@@ -1,0 +1,103 @@
+<x:xmpmeta xmlns:x="adobe:ns:meta/" x:xmptk="Adobe XMP Core 7.0-c000 1.000000, 0000/00/00-00:00:00        ">
+ <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <rdf:Description crs:Group="MindfulLens" rdf:about=""
+    xmlns:crs="http://ns.adobe.com/camera-raw-settings/1.0/"
+   crs:PresetType="Normal"
+   crs:Cluster=""
+   crs:UUID="22381A9E14215A9493D27D06F3495252"
+   crs:SupportsAmount2="True"
+   crs:SupportsAmount="True"
+   crs:SupportsColor="True"
+   crs:SupportsMonochrome="True"
+   crs:SupportsHighDynamicRange="True"
+   crs:SupportsNormalDynamicRange="True"
+   crs:SupportsSceneReferred="True"
+   crs:SupportsOutputReferred="True"
+   crs:RequiresRGBTables="False"
+   crs:ShowInPresets="True"
+   crs:ShowInQuickActions="False"
+   crs:CameraModelRestriction=""
+   crs:Copyright=""
+   crs:ContactInfo=""
+   crs:Version="18.2.2"
+   crs:ProcessVersion="11.0"
+   crs:WhiteBalance="Custom"
+   crs:Temperature="5200"
+   crs:Tint="-5"
+   crs:Contrast2012="+12"
+   crs:Highlights2012="-30"
+   crs:Shadows2012="+20"
+   crs:Whites2012="+8"
+   crs:Blacks2012="-12"
+   crs:Clarity2012="+5"
+   crs:Dehaze="+3"
+   crs:Vibrance="+8"
+   crs:Saturation="+2"
+   crs:HueAdjustmentRed="0"
+   crs:HueAdjustmentOrange="0"
+   crs:HueAdjustmentYellow="+8"
+   crs:HueAdjustmentGreen="+10"
+   crs:HueAdjustmentAqua="0"
+   crs:HueAdjustmentBlue="0"
+   crs:SaturationAdjustmentRed="-2"
+   crs:SaturationAdjustmentOrange="0"
+   crs:SaturationAdjustmentYellow="+8"
+   crs:SaturationAdjustmentGreen="+12"
+   crs:SaturationAdjustmentAqua="0"
+   crs:SaturationAdjustmentBlue="+6"
+   crs:LuminanceAdjustmentRed="0"
+   crs:LuminanceAdjustmentOrange="0"
+   crs:LuminanceAdjustmentYellow="0"
+   crs:LuminanceAdjustmentGreen="0"
+   crs:LuminanceAdjustmentAqua="0"
+   crs:LuminanceAdjustmentBlue="0"
+   crs:ColorGradeShadowsHue="210"
+   crs:ColorGradeShadowsSat="5"
+   crs:ColorGradeMidtoneHue="30"
+   crs:ColorGradeMidtoneSat="4"
+   crs:ColorGradeHighlightsHue="40"
+   crs:ColorGradeHighlightsSat="5"
+   crs:ColorGradeBlending="45"
+   crs:ColorGradeBalance="-5"
+   crs:RedHue="+3"
+   crs:RedSaturation="+2"
+   crs:GreenHue="-6"
+   crs:GreenSaturation="0"
+   crs:BlueHue="-10"
+   crs:BlueSaturation="+6"
+   crs:GrainAmount="30"
+   crs:GrainSize="35"
+   crs:GrainFrequency="70"
+   crs:ToneCurveName2012="Custom"
+   crs:HasSettings="True" crs:Name="[01] Superia 1600">
+   <crs:Name>[01] Superia 1600</crs:Name>
+   <crs:Group>MindfulLens</crs:Group>
+   <crs:ShortName>
+    <rdf:Alt>
+     <rdf:li xml:lang="x-default"/>
+    </rdf:Alt>
+   </crs:ShortName>
+   <crs:SortName>
+    <rdf:Alt>
+     <rdf:li xml:lang="x-default"/>
+    </rdf:Alt>
+   </crs:SortName>
+   <crs:Description>
+    <rdf:Alt>
+     <rdf:li xml:lang="x-default"/>
+    </rdf:Alt>
+   </crs:Description>
+   <crs:ToneCurvePV2012>
+    <rdf:Seq>
+     <rdf:li>0, 8</rdf:li>
+     <rdf:li>32, 26</rdf:li>
+     <rdf:li>64, 60</rdf:li>
+     <rdf:li>128, 136</rdf:li>
+     <rdf:li>192, 206</rdf:li>
+     <rdf:li>224, 220</rdf:li>
+     <rdf:li>255, 238</rdf:li>
+    </rdf:Seq>
+   </crs:ToneCurvePV2012>
+  </rdf:Description>
+ </rdf:RDF>
+</x:xmpmeta>

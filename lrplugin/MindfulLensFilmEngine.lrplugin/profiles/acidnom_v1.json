@@ -1,0 +1,18 @@
+{
+  "film_id": "ACIDNOM",
+  "k_coeffs": [
+    0.77644173,
+    0.82466215,
+    0.74811537
+  ],
+  "s_coeffs": [
+    0.26855127,
+    0.29444016,
+    0.28677215
+  ],
+  "print_contrast": 1.03,
+  "optimized_from": "docs/acidnom_colorchecker_report.csv",
+  "optimization_seed": 43,
+  "optimization_iterations": 144,
+  "notes": "Dedicated Acidnom seed: acid-leaning stylized negative with cooler greens, cyan bias and harder edge separation."
+}

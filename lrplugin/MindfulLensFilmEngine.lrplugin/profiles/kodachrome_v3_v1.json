@@ -1,0 +1,18 @@
+{
+  "film_id": "KODACHROME_V3",
+  "k_coeffs": [
+    0.85244173,
+    0.89666215,
+    0.78611537
+  ],
+  "s_coeffs": [
+    0.15255127,
+    0.16844016,
+    0.13277215
+  ],
+  "print_contrast": 1.055,
+  "optimized_from": "docs/kodachrome_v3_colorchecker_report.csv",
+  "optimization_seed": 13,
+  "optimization_iterations": 120,
+  "notes": "Dedicated Kodachrome V3 seed: slightly softer slide contrast with warmer mids."
+}

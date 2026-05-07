@@ -1,0 +1,18 @@
+{
+  "film_id": "X_TARR",
+  "k_coeffs": [
+    0.78855271,
+    0.82011742,
+    0.75899016
+  ],
+  "s_coeffs": [
+    0.27255127,
+    0.29644016,
+    0.28077215
+  ],
+  "print_contrast": 1.01,
+  "optimized_from": "docs/x_tarr_colorchecker_report.csv",
+  "optimization_seed": 151,
+  "optimization_iterations": 144,
+  "notes": "Dedicated X-Tarr seed: cross-processed editorial stock with stronger yellow-green split and tidier orange density."
+}

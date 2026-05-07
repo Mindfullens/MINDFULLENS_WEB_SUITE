@@ -1,0 +1,18 @@
+{
+  "film_id": "VEKTRO100",
+  "k_coeffs": [
+    0.81455271,
+    0.84611742,
+    0.78899016
+  ],
+  "s_coeffs": [
+    0.26655127,
+    0.28844016,
+    0.27277215
+  ],
+  "print_contrast": 1.01,
+  "optimized_from": "docs/vektro100_colorchecker_report.csv",
+  "optimization_seed": 73,
+  "optimization_iterations": 144,
+  "notes": "Dedicated Vektro100 seed: crisp daylight color with tidy blues and slightly firmer contrast."
+}

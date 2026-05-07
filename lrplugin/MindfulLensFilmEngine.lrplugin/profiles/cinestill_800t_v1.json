@@ -1,0 +1,7 @@
+{
+  "film_id": "CINESTILL_800T_v1",
+  "k_coeffs": [0.93, 0.88, 0.66],
+  "s_coeffs": [0.18, 0.20, 0.14],
+  "print_contrast": 1.18,
+  "notes": "Initial CineStill seed: tungsten bias, stronger highlight compression."
+}

@@ -1,0 +1,18 @@
+{
+  "film_id": "ACROS_X",
+  "k_coeffs": [
+    0.79222564,
+    0.81244871,
+    0.78411053
+  ],
+  "s_coeffs": [
+    0.21841782,
+    0.23666294,
+    0.25255136
+  ],
+  "print_contrast": 1.02,
+  "optimized_from": "docs/acros_x_colorchecker_report.csv",
+  "optimization_seed": 163,
+  "optimization_iterations": 144,
+  "notes": "Dedicated Acros X seed: neutral monochrome baseline with crisp mids, clean grain cadence and balanced tonal separation."
+}

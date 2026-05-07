@@ -1,0 +1,18 @@
+{
+  "film_id": "OKTAR",
+  "k_coeffs": [
+    0.82055271,
+    0.85211742,
+    0.79099016
+  ],
+  "s_coeffs": [
+    0.27055127,
+    0.29244016,
+    0.27677215
+  ],
+  "print_contrast": 1.0,
+  "optimized_from": "docs/oktar_colorchecker_report.csv",
+  "optimization_seed": 101,
+  "optimization_iterations": 144,
+  "notes": "Dedicated Oktar seed: balanced warm-neutral author stock with clean mids and gentle contrast."
+}

@@ -1,0 +1,106 @@
+<x:xmpmeta xmlns:x="adobe:ns:meta/" x:xmptk="Adobe XMP Core 7.0-c000 1.000000, 0000/00/00-00:00:00        ">
+ <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <rdf:Description crs:Group="MindfulLens" rdf:about=""
+    xmlns:crs="http://ns.adobe.com/camera-raw-settings/1.0/"
+   crs:PresetType="Normal"
+   crs:Cluster=""
+   crs:UUID="F7D4A6CAC07B42FB81D00446F27FFA63"
+   crs:SupportsAmount2="True"
+   crs:SupportsAmount="True"
+   crs:SupportsColor="True"
+   crs:SupportsMonochrome="True"
+   crs:SupportsHighDynamicRange="True"
+   crs:SupportsNormalDynamicRange="True"
+   crs:SupportsSceneReferred="True"
+   crs:SupportsOutputReferred="True"
+   crs:RequiresRGBTables="False"
+   crs:ShowInPresets="True"
+   crs:ShowInQuickActions="False"
+   crs:CameraModelRestriction=""
+   crs:Copyright=""
+   crs:ContactInfo=""
+   crs:Version="18.2.2"
+   crs:CompatibleVersion="234881024"
+   crs:ProcessVersion="15.4"
+   crs:HasSettings="True" crs:Name="[04] Deep Shadows">   <crs:Name>[04] Deep Shadows</crs:Name>   <crs:Group>MindfulLens</crs:Group>   <crs:Group>MindfulLens</crs:Group>
+
+
+   <crs:ShortName>
+    <rdf:Alt>
+     <rdf:li xml:lang="x-default"/>
+    </rdf:Alt>
+   </crs:ShortName>
+   <crs:SortName>
+    <rdf:Alt>
+     <rdf:li xml:lang="x-default"/>
+    </rdf:Alt>
+   </crs:SortName>
+   <crs:Group>MindfulLens</crs:Group>
+   <crs:Description>
+    <rdf:Alt>
+     <rdf:li xml:lang="x-default"/>
+    </rdf:Alt>
+   </crs:Description>
+   <crs:MaskGroupBasedCorrections>
+    <rdf:Seq>
+     <rdf:li>
+      <rdf:Description
+       crs:What="Correction"
+       crs:CorrectionAmount="1"
+       crs:CorrectionActive="true"
+       crs:CorrectionName="Maska 1"
+       crs:CorrectionSyncID="18EA780C313346DF9CD93D34DBFC7278"
+       crs:LocalExposure="0"
+       crs:LocalHue="0"
+       crs:LocalSaturation="0"
+       crs:LocalContrast="0"
+       crs:LocalClarity="0"
+       crs:LocalSharpness="0"
+       crs:LocalBrightness="0"
+       crs:LocalToningHue="240"
+       crs:LocalToningSaturation="0"
+       crs:LocalExposure2012="0"
+       crs:LocalContrast2012="0"
+       crs:LocalHighlights2012="0"
+       crs:LocalShadows2012="-0.14983"
+       crs:LocalWhites2012="0"
+       crs:LocalBlacks2012="-0.099783"
+       crs:LocalClarity2012="0.037129"
+       crs:LocalDehaze="0"
+       crs:LocalLuminanceNoise="0"
+       crs:LocalMoire="0"
+       crs:LocalDefringe="0"
+       crs:LocalTemperature="0"
+       crs:LocalTint="0"
+       crs:LocalTexture="0"
+       crs:LocalGrain="0"
+       crs:LocalCurveRefineSaturation="100">
+      <crs:CorrectionMasks>
+       <rdf:Seq>
+        <rdf:li>
+         <rdf:Description
+          crs:What="Mask/RangeMask"
+          crs:MaskActive="true"
+          crs:MaskName="Zakres luminancji 1"
+          crs:MaskBlendMode="0"
+          crs:MaskInverted="false"
+          crs:MaskSyncID="E615CC8D0CC74188A336DC710AE65947"
+          crs:MaskValue="1">
+         <crs:CorrectionRangeMask
+          crs:Version="3"
+          crs:Type="2"
+          crs:Invert="false"
+          crs:SampleType="0"
+          crs:LumRange="0 0.40 0.50 0.70"
+          crs:LuminanceDepthSampleInfo="0 0.346117 0.303040"/>
+         </rdf:Description>
+        </rdf:li>
+       </rdf:Seq>
+      </crs:CorrectionMasks>
+      </rdf:Description>
+     </rdf:li>
+    </rdf:Seq>
+   </crs:MaskGroupBasedCorrections>
+  </rdf:Description>
+ </rdf:RDF>
+</x:xmpmeta>

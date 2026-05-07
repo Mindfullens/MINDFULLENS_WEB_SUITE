@@ -1,0 +1,17 @@
+<x:xmpmeta xmlns:x="adobe:ns:meta/">
+ <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <rdf:Description crs:Group="MindfulLens" rdf:about=""
+    xmlns:crs="http://ns.adobe.com/camera-raw-settings/1.0/"
+    crs:PresetType="Normal"
+    crs:Cluster=""
+    crs:UUID="10EB55B5443C55369F7EB04D10EBDDA6"
+    crs:Version="16.0"
+    crs:ProcessVersion="11.0"
+    crs:HasSettings="True"
+    crs:Exposure2012="-0.30"
+    crs:Blacks2012="-15" crs:Name="[02] Shadow Open">
+   <crs:Name>[02] Shadow Open</crs:Name>
+   <crs:Group>MindfulLens</crs:Group>
+  </rdf:Description>
+ </rdf:RDF>
+</x:xmpmeta>

@@ -1,0 +1,18 @@
+{
+  "film_id": "CINESTILL_X",
+  "k_coeffs": [
+    0.78622564,
+    0.81044871,
+    0.77211053
+  ],
+  "s_coeffs": [
+    0.25241782,
+    0.27666294,
+    0.26255136
+  ],
+  "print_contrast": 0.985,
+  "optimized_from": "docs/cinestill_x_colorchecker_report.csv",
+  "optimization_seed": 137,
+  "optimization_iterations": 144,
+  "notes": "Dedicated CineStill X seed: cooler nocturnal stock with electric blues, lifted tungsten highlights and restrained warm density."
+}

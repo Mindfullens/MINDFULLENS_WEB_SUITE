@@ -1,0 +1,18 @@
+{
+  "film_id": "CINESTILL_800",
+  "k_coeffs": [
+    0.87655244,
+    0.86111873,
+    0.70833126
+  ],
+  "s_coeffs": [
+    0.22844172,
+    0.24133019,
+    0.17155205
+  ],
+  "print_contrast": 1.095,
+  "optimized_from": "docs/cinestill_800_colorchecker_report.csv",
+  "optimization_seed": 11,
+  "optimization_iterations": 120,
+  "notes": "Dedicated CineStill 800 seed: cooler scan, softer tungsten split than CineStill 800T."
+}

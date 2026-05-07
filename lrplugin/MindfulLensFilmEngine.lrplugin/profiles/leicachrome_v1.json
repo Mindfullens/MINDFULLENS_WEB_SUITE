@@ -1,0 +1,18 @@
+{
+  "film_id": "LEICACHROME",
+  "k_coeffs": [
+    0.84644173,
+    0.89266215,
+    0.79611537
+  ],
+  "s_coeffs": [
+    0.14855127,
+    0.17044016,
+    0.13677215
+  ],
+  "print_contrast": 1.045,
+  "optimized_from": "docs/leicachrome_colorchecker_report.csv",
+  "optimization_seed": 13,
+  "optimization_iterations": 120,
+  "notes": "Dedicated Leicachrome seed: crisp slide palette with cleaner neutrals and disciplined reds."
+}

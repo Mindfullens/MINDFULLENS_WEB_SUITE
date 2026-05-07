@@ -1,0 +1,18 @@
+{
+  "film_id": "FUJI_ETERNA",
+  "k_coeffs": [
+    0.79222564,
+    0.83844871,
+    0.78011053
+  ],
+  "s_coeffs": [
+    0.24641782,
+    0.26466294,
+    0.24855136
+  ],
+  "print_contrast": 0.94,
+  "optimized_from": "docs/fuji_eterna_colorchecker_report.csv",
+  "optimization_seed": 13,
+  "optimization_iterations": 120,
+  "notes": "Dedicated Fuji Eterna seed: muted cinema negative with softer contrast and cooler greens."
+}

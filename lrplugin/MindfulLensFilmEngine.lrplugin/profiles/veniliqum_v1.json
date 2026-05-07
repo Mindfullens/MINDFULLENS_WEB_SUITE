@@ -1,0 +1,18 @@
+{
+  "film_id": "VENILIQUM",
+  "k_coeffs": [
+    0.80497537,
+    0.82655941,
+    0.7761046
+  ],
+  "s_coeffs": [
+    0.25886548,
+    0.28473388,
+    0.27061789
+  ],
+  "print_contrast": 0.99,
+  "optimized_from": "docs/veniliqum_colorchecker_report.csv",
+  "optimization_seed": 157,
+  "optimization_iterations": 144,
+  "notes": "Dedicated Veniliqum seed: moody violet-teal stock with softer shoulder, calm warmth and denser twilight blues."
+}

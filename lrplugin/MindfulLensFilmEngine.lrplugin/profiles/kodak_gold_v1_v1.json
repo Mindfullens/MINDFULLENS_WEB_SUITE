@@ -1,0 +1,18 @@
+{
+  "film_id": "KODAK_GOLD_V1",
+  "k_coeffs": [
+    0.80944051,
+    0.84122617,
+    0.75811824
+  ],
+  "s_coeffs": [
+    0.27910872,
+    0.29844018,
+    0.28155103
+  ],
+  "print_contrast": 1.015,
+  "optimized_from": "docs/kodak_gold_v1_colorchecker_report.csv",
+  "optimization_seed": 17,
+  "optimization_iterations": 96,
+  "notes": "Kodak Gold V1 seed replacing the Portra fallback with a softer, earlier-gold consumer baseline."
+}

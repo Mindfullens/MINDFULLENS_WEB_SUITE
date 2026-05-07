@@ -1,0 +1,18 @@
+{
+  "film_id": "COLORPLUS_200",
+  "k_coeffs": [
+    0.80122564,
+    0.82944871,
+    0.76411053
+  ],
+  "s_coeffs": [
+    0.30141782,
+    0.31766294,
+    0.29555136
+  ],
+  "print_contrast": 0.94,
+  "optimized_from": "docs/colorplus_200_colorchecker_report.csv",
+  "optimization_seed": 13,
+  "optimization_iterations": 96,
+  "notes": "ColorPlus 200 seed replacing the generic placeholder with a softer, lower-cost consumer-negative baseline."
+}

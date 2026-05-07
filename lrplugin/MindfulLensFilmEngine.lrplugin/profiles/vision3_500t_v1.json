@@ -1,0 +1,18 @@
+{
+  "film_id": "VISION3_500T",
+  "k_coeffs": [
+    0.72611844,
+    0.80291477,
+    0.70722015
+  ],
+  "s_coeffs": [
+    0.38377162,
+    0.40744188,
+    0.39264013
+  ],
+  "print_contrast": 0.885,
+  "optimized_from": "profiles/foundation/vision3_500t_foundation.xmp",
+  "optimization_seed": 11,
+  "optimization_iterations": 96,
+  "notes": "Foundation-derived seed for Vision3 500T replacing the generic placeholder with a denser tungsten-biased baseline."
+}

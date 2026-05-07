@@ -1,0 +1,99 @@
+{
+  "schema_version": "1.0.0",
+  "emulsion": {
+    "id": "zero_mute",
+    "label": "Zero Mute",
+    "type": "color_negative",
+    "base": {
+      "dmin_ref": 0.2,
+      "dmax_ref": 2.3,
+      "orange_mask": {
+        "enabled": true,
+        "density_rgb": [
+          0.3,
+          0.26,
+          0.2
+        ],
+        "spectral_curve_ref": "mask_orange_v1"
+      }
+    },
+    "spectral": {
+      "a_lambda_ref": "zero_mute_a_lambda",
+      "layers": [
+        {
+          "name": "blue",
+          "sensitivity_curve_ref": "zero_mute_sens_blue"
+        },
+        {
+          "name": "green",
+          "sensitivity_curve_ref": "zero_mute_sens_green"
+        },
+        {
+          "name": "red",
+          "sensitivity_curve_ref": "zero_mute_sens_red"
+        }
+      ]
+    },
+    "sensitometry": {
+      "hd_curves": {
+        "blue": {
+          "toe": 0.11,
+          "gamma": 0.6,
+          "shoulder": 0.86,
+          "logE_breaks": [
+            -2.0,
+            -0.5,
+            1.2
+          ]
+        },
+        "green": {
+          "toe": 0.11,
+          "gamma": 0.6,
+          "shoulder": 0.86,
+          "logE_breaks": [
+            -2.0,
+            -0.5,
+            1.2
+          ]
+        },
+        "red": {
+          "toe": 0.11,
+          "gamma": 0.6,
+          "shoulder": 0.86,
+          "logE_breaks": [
+            -2.0,
+            -0.5,
+            1.2
+          ]
+        }
+      },
+      "interlayer_coupling": {
+        "rg": 0.03,
+        "gb": 0.02,
+        "rb": 0.01
+      }
+    },
+    "grain": {
+      "base_rms": 0.018,
+      "clumping": 0.22,
+      "size_um": [
+        7.5,
+        9.5
+      ],
+      "format_scale": {
+        "35mm": 1.0,
+        "120": 0.75,
+        "4x5": 0.45
+      }
+    },
+    "print": {
+      "paper_ref": "fuji_crystal_archive",
+      "enlarger_ref": "dichroic_head_v1"
+    }
+  },
+  "quality": {
+    "target_fidelity": 0.9,
+    "calibration_source": "color_checker",
+    "notes": "Model laboratoryjny, bez LUT."
+  }
+}

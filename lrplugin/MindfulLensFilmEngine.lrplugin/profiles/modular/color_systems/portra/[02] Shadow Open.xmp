@@ -1,0 +1,46 @@
+<x:xmpmeta xmlns:x="adobe:ns:meta/" x:xmptk="Adobe XMP Core 7.0-c000 1.000000, 0000/00/00-00:00:00        ">
+ <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <rdf:Description crs:Group="MindfulLens" rdf:about=""
+    xmlns:crs="http://ns.adobe.com/camera-raw-settings/1.0/"
+    crs:PresetType="Normal"
+    crs:Cluster=""
+    crs:UUID="SCENE-325A528B72094278B59CD9831DA1EF99"
+    crs:SupportsAmount2="True"
+    crs:SupportsAmount="True"
+    crs:SupportsColor="True"
+    crs:SupportsMonochrome="True"
+    crs:SupportsHighDynamicRange="True"
+    crs:SupportsNormalDynamicRange="True"
+    crs:SupportsSceneReferred="True"
+    crs:SupportsOutputReferred="True"
+    crs:RequiresRGBTables="False"
+    crs:ShowInPresets="True"
+    crs:ShowInQuickActions="False"
+    crs:CameraModelRestriction=""
+    crs:Copyright="© 2018 Adobe Systems, Inc."
+    crs:ContactInfo=""
+    crs:Version="18.2.2"
+    crs:CompatibleVersion="285212672"
+    crs:ProcessVersion="15.4"
+    crs:HasSettings="True"
+    crs:Active="false"
+    crs:AllowFilters="1"
+    crs:Amount="1"
+    crs:WhiteBalance="Custom"
+    crs:Temperature="6100"
+    crs:Shadows2012="+45" crs:Name="[02] Shadow Open">
+   <crs:Name>[02] Shadow Open</crs:Name>
+   <crs:Group>MindfulLens</crs:Group>
+   <crs:ShortName>
+    <rdf:Alt>
+     <rdf:li xml:lang="x-default"/>
+    </rdf:Alt>
+   </crs:ShortName>
+   <crs:SortName>
+    <rdf:Alt>
+     <rdf:li xml:lang="x-default"/>
+    </rdf:Alt>
+   </crs:SortName>
+  </rdf:Description>
+ </rdf:RDF>
+</x:xmpmeta>

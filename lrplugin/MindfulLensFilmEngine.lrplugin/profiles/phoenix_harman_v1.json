@@ -1,0 +1,18 @@
+{
+  "film_id": "PHOENIX_HARMAN",
+  "k_coeffs": [
+    0.83622564,
+    0.82844871,
+    0.75611053
+  ],
+  "s_coeffs": [
+    0.29841782,
+    0.33866294,
+    0.32255136
+  ],
+  "print_contrast": 1.075,
+  "optimized_from": "docs/phoenix_harman_colorchecker_report.csv",
+  "optimization_seed": 41,
+  "optimization_iterations": 160,
+  "notes": "Dedicated Phoenix Harman seed: vivid experimental negative with warm highlights, punchier contrast and unstable greens tamed."
+}

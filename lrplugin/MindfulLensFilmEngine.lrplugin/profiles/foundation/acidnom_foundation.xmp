@@ -1,0 +1,68 @@
+<x:xmpmeta xmlns:x="adobe:ns:meta/" x:xmptk="Adobe XMP Core 7.0-c000 1.000000, 0000/00/00-00:00:00        ">
+ <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <rdf:Description rdf:about=""
+    xmlns:crs="http://ns.adobe.com/camera-raw-settings/1.0/"
+   crs:PresetType="Normal"
+   crs:Cluster=""
+   crs:UUID="43367E2D46D9449CA3D117B03A5D3D5B"
+   crs:SupportsAmount2="True"
+   crs:SupportsAmount="True"
+   crs:SupportsColor="True"
+   crs:SupportsMonochrome="True"
+   crs:SupportsHighDynamicRange="True"
+   crs:SupportsNormalDynamicRange="True"
+   crs:SupportsSceneReferred="True"
+   crs:SupportsOutputReferred="True"
+   crs:RequiresRGBTables="False"
+   crs:ShowInPresets="True"
+   crs:ShowInQuickActions="False"
+   crs:Version="18.2.2"
+   crs:ProcessVersion="15.4"
+   crs:WhiteBalance="Custom"
+   crs:Temperature="5000"
+   crs:Tint="-6"
+   crs:Exposure2012="+0.04"
+   crs:Contrast2012="+3"
+   crs:Highlights2012="-20"
+   crs:Shadows2012="+12"
+   crs:Whites2012="-6"
+   crs:Blacks2012="-9"
+   crs:Texture="+2"
+   crs:Clarity2012="+2"
+   crs:Dehaze="+1"
+   crs:Vibrance="+2"
+   crs:Saturation="-1"
+   crs:HueAdjustmentYellow="-8"
+   crs:HueAdjustmentGreen="+12"
+   crs:HueAdjustmentAqua="+10"
+   crs:HueAdjustmentBlue="+6"
+   crs:SaturationAdjustmentOrange="-2"
+   crs:SaturationAdjustmentYellow="-5"
+   crs:SaturationAdjustmentGreen="+6"
+   crs:SaturationAdjustmentAqua="+6"
+   crs:SaturationAdjustmentBlue="+2"
+   crs:LuminanceAdjustmentGreen="-2"
+   crs:LuminanceAdjustmentBlue="-1"
+   crs:ColorGradeShadowsHue="195"
+   crs:ColorGradeShadowsSat="4"
+   crs:ColorGradeMidtoneHue="170"
+   crs:ColorGradeMidtoneSat="3"
+   crs:ColorGradeHighlightsHue="52"
+   crs:ColorGradeHighlightsSat="1"
+   crs:ColorGradeBalance="-4"
+   crs:ColorGradeBlending="43"
+   crs:GrainAmount="15"
+   crs:GrainSize="15"
+   crs:GrainFrequency="28"
+   crs:ToneCurveName2012="Custom"
+   crs:HasSettings="True">
+   <crs:Name><rdf:Alt><rdf:li xml:lang="x-default">6.ML_Acidnom</rdf:li></rdf:Alt></crs:Name>
+   <crs:Group><rdf:Alt><rdf:li xml:lang="x-default">[01] The Foundation</rdf:li></rdf:Alt></crs:Group>
+   <crs:Description><rdf:Alt><rdf:li xml:lang="x-default">Acidnom baseline with cold greens, cyan drift and punchier local separation.</rdf:li></rdf:Alt></crs:Description>
+   <crs:ToneCurvePV2012><rdf:Seq><rdf:li>0, 7</rdf:li><rdf:li>32, 28</rdf:li><rdf:li>64, 60</rdf:li><rdf:li>128, 136</rdf:li><rdf:li>192, 204</rdf:li><rdf:li>224, 220</rdf:li><rdf:li>255, 236</rdf:li></rdf:Seq></crs:ToneCurvePV2012>
+   <crs:ToneCurvePV2012Red><rdf:Seq><rdf:li>0, 5</rdf:li><rdf:li>128, 132</rdf:li><rdf:li>255, 247</rdf:li></rdf:Seq></crs:ToneCurvePV2012Red>
+   <crs:ToneCurvePV2012Green><rdf:Seq><rdf:li>0, 0</rdf:li><rdf:li>128, 124</rdf:li><rdf:li>255, 242</rdf:li></rdf:Seq></crs:ToneCurvePV2012Green>
+   <crs:ToneCurvePV2012Blue><rdf:Seq><rdf:li>0, 6</rdf:li><rdf:li>128, 120</rdf:li><rdf:li>255, 232</rdf:li></rdf:Seq></crs:ToneCurvePV2012Blue>
+  </rdf:Description>
+ </rdf:RDF>
+</x:xmpmeta>

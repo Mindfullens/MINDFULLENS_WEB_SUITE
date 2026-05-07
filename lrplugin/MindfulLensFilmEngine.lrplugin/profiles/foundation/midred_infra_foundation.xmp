@@ -1,0 +1,71 @@
+<x:xmpmeta xmlns:x="adobe:ns:meta/" x:xmptk="Adobe XMP Core 7.0-c000 1.000000, 0000/00/00-00:00:00        ">
+ <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <rdf:Description rdf:about=""
+    xmlns:crs="http://ns.adobe.com/camera-raw-settings/1.0/"
+   crs:PresetType="Normal"
+   crs:Cluster=""
+   crs:UUID="09055E802A6E422BB64D9D210C0A125B"
+   crs:SupportsAmount2="True"
+   crs:SupportsAmount="True"
+   crs:SupportsColor="True"
+   crs:SupportsMonochrome="True"
+   crs:SupportsHighDynamicRange="True"
+   crs:SupportsNormalDynamicRange="True"
+   crs:SupportsSceneReferred="True"
+   crs:SupportsOutputReferred="True"
+   crs:RequiresRGBTables="False"
+   crs:ShowInPresets="True"
+   crs:ShowInQuickActions="False"
+   crs:Version="18.2.2"
+   crs:ProcessVersion="15.4"
+   crs:WhiteBalance="Custom"
+   crs:Temperature="6200"
+   crs:Tint="+4"
+   crs:Exposure2012="+0.04"
+   crs:Contrast2012="+4"
+   crs:Highlights2012="-18"
+   crs:Shadows2012="+12"
+   crs:Whites2012="-5"
+   crs:Blacks2012="-10"
+   crs:Texture="+1"
+   crs:Clarity2012="+2"
+   crs:Dehaze="+1"
+   crs:Vibrance="+4"
+   crs:Saturation="+2"
+   crs:HueAdjustmentRed="-10"
+   crs:HueAdjustmentOrange="+6"
+   crs:HueAdjustmentYellow="+8"
+   crs:HueAdjustmentGreen="+12"
+   crs:HueAdjustmentAqua="-6"
+   crs:HueAdjustmentBlue="-12"
+   crs:SaturationAdjustmentRed="+8"
+   crs:SaturationAdjustmentOrange="+6"
+   crs:SaturationAdjustmentYellow="+2"
+   crs:SaturationAdjustmentGreen="-8"
+   crs:SaturationAdjustmentBlue="-10"
+   crs:LuminanceAdjustmentRed="+2"
+   crs:LuminanceAdjustmentOrange="+4"
+   crs:LuminanceAdjustmentBlue="-4"
+   crs:ColorGradeShadowsHue="340"
+   crs:ColorGradeShadowsSat="3"
+   crs:ColorGradeMidtoneHue="20"
+   crs:ColorGradeMidtoneSat="3"
+   crs:ColorGradeHighlightsHue="48"
+   crs:ColorGradeHighlightsSat="1"
+   crs:ColorGradeBalance="3"
+   crs:ColorGradeBlending="40"
+   crs:GrainAmount="12"
+   crs:GrainSize="13"
+   crs:GrainFrequency="22"
+   crs:ToneCurveName2012="Custom"
+   crs:HasSettings="True">
+   <crs:Name><rdf:Alt><rdf:li xml:lang="x-default">6.ML_MidRedInfra</rdf:li></rdf:Alt></crs:Name>
+   <crs:Group><rdf:Alt><rdf:li xml:lang="x-default">[01] The Foundation</rdf:li></rdf:Alt></crs:Group>
+   <crs:Description><rdf:Alt><rdf:li xml:lang="x-default">MidRed Infra baseline with infrared-leaning red warmth, shifted foliage channels and stylized highlight separation.</rdf:li></rdf:Alt></crs:Description>
+   <crs:ToneCurvePV2012><rdf:Seq><rdf:li>0, 7</rdf:li><rdf:li>32, 28</rdf:li><rdf:li>64, 59</rdf:li><rdf:li>128, 136</rdf:li><rdf:li>192, 204</rdf:li><rdf:li>224, 218</rdf:li><rdf:li>255, 234</rdf:li></rdf:Seq></crs:ToneCurvePV2012>
+   <crs:ToneCurvePV2012Red><rdf:Seq><rdf:li>0, 8</rdf:li><rdf:li>128, 138</rdf:li><rdf:li>255, 250</rdf:li></rdf:Seq></crs:ToneCurvePV2012Red>
+   <crs:ToneCurvePV2012Green><rdf:Seq><rdf:li>0, 1</rdf:li><rdf:li>128, 126</rdf:li><rdf:li>255, 241</rdf:li></rdf:Seq></crs:ToneCurvePV2012Green>
+   <crs:ToneCurvePV2012Blue><rdf:Seq><rdf:li>0, 2</rdf:li><rdf:li>128, 118</rdf:li><rdf:li>255, 228</rdf:li></rdf:Seq></crs:ToneCurvePV2012Blue>
+  </rdf:Description>
+ </rdf:RDF>
+</x:xmpmeta>

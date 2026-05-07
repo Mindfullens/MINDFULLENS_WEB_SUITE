@@ -1,0 +1,75 @@
+<x:xmpmeta xmlns:x="adobe:ns:meta/" x:xmptk="Adobe XMP Core 7.0-c000 1.000000, 0000/00/00-00:00:00        ">
+ <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <rdf:Description crs:Group="MindfulLens" rdf:about=""
+    xmlns:crs="http://ns.adobe.com/camera-raw-settings/1.0/"
+   crs:PresetType="Normal"
+   crs:Cluster=""
+   crs:UUID="44884151EA9B53EB8876BCD556CCB55B"
+   crs:SupportsAmount2="True"
+   crs:SupportsAmount="True"
+   crs:SupportsColor="True"
+   crs:SupportsMonochrome="True"
+   crs:SupportsHighDynamicRange="True"
+   crs:SupportsNormalDynamicRange="True"
+   crs:SupportsSceneReferred="True"
+   crs:SupportsOutputReferred="True"
+   crs:RequiresRGBTables="False"
+   crs:ShowInPresets="True"
+   crs:ShowInQuickActions="False"
+   crs:CameraModelRestriction=""
+   crs:Copyright=""
+   crs:ContactInfo=""
+   crs:Version="18.2.2"
+   crs:ProcessVersion="11.0"
+   crs:Contrast2012="+35"
+   crs:Highlights2012="-25"
+   crs:Shadows2012="+10"
+   crs:Whites2012="+15"
+   crs:Blacks2012="-25"
+   crs:Clarity2012="+8"
+   crs:Dehaze="+4"
+   crs:RedLuminance="+8"
+   crs:OrangeLuminance="+12"
+   crs:YellowLuminance="+8"
+   crs:GreenLuminance="-2"
+   crs:BlueLuminance="-15"
+   crs:GrainAmount="40"
+   crs:GrainSize="32"
+   crs:GrainFrequency="75"
+   crs:ToneCurveName2012="Custom"
+   crs:HasSettings="True">
+   <crs:Name>
+    <rdf:Alt>
+     <rdf:li xml:lang="x-default">01_TRIX_MASTER</rdf:li>
+    </rdf:Alt>
+   </crs:Name>
+   <crs:Group>MindfulLens</crs:Group>
+   <crs:ShortName>
+    <rdf:Alt>
+     <rdf:li xml:lang="x-default"/>
+    </rdf:Alt>
+   </crs:ShortName>
+   <crs:SortName>
+    <rdf:Alt>
+     <rdf:li xml:lang="x-default"/>
+    </rdf:Alt>
+   </crs:SortName>
+   <crs:Description>
+    <rdf:Alt>
+     <rdf:li xml:lang="x-default"/>
+    </rdf:Alt>
+   </crs:Description>
+   <crs:ToneCurvePV2012>
+    <rdf:Seq>
+     <rdf:li>0, 8</rdf:li>
+     <rdf:li>32, 20</rdf:li>
+     <rdf:li>64, 48</rdf:li>
+     <rdf:li>128, 132</rdf:li>
+     <rdf:li>192, 210</rdf:li>
+     <rdf:li>224, 226</rdf:li>
+     <rdf:li>255, 244</rdf:li>
+    </rdf:Seq>
+   </crs:ToneCurvePV2012>
+  </rdf:Description>
+ </rdf:RDF>
+</x:xmpmeta>

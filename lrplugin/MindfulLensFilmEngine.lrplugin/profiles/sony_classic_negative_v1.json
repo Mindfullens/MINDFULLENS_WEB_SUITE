@@ -1,0 +1,18 @@
+{
+  "film_id": "SONY_CLASSIC_NEGATIVE",
+  "k_coeffs": [
+    0.79822564,
+    0.83644871,
+    0.78611053
+  ],
+  "s_coeffs": [
+    0.23841782,
+    0.25866294,
+    0.24255136
+  ],
+  "print_contrast": 0.95,
+  "optimized_from": "docs/sony_classic_negative_colorchecker_report.csv",
+  "optimization_seed": 131,
+  "optimization_iterations": 144,
+  "notes": "Dedicated Sony Classic Negative seed: muted documentary palette with calm highlights, lifted shadows and restrained blue-green chroma."
+}

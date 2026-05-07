@@ -1,0 +1,18 @@
+{
+  "film_id": "ASTEROID_CITY_KODAK_VISION_T200_V2",
+  "k_coeffs": [
+    0.75244173,
+    0.89466215,
+    0.81411537
+  ],
+  "s_coeffs": [
+    0.30455127,
+    0.38844016,
+    0.35277215
+  ],
+  "print_contrast": 0.865,
+  "optimized_from": "docs/asteroid_city_kodak_vision_t200_v2_colorchecker_report.csv",
+  "optimization_seed": 17,
+  "optimization_iterations": 128,
+  "notes": "Dedicated Asteroid City v2 seed: brighter pastel cinema baseline with cleaner neutrals and cooler blues."
+}

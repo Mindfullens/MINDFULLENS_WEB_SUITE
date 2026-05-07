@@ -1,0 +1,21 @@
+<x:xmpmeta xmlns:x="adobe:ns:meta/">
+ <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <rdf:Description rdf:about=""
+    xmlns:crs="http://ns.adobe.com/camera-raw-settings/1.0/"
+    crs:Name="[02] Clean Canvas"
+    crs:PresetType="Normal"
+    crs:Cluster=""
+    crs:UUID="23F9341722304B41A917167076D9CC90"
+    crs:Version="16.0"
+    crs:ProcessVersion="11.0"
+    crs:HasSettings="True"
+    crs:Group="MindfulLens"
+    crs:SaturationAdjustmentRed="-4"
+    crs:SaturationAdjustmentOrange="-4"
+    crs:LuminanceAdjustmentOrange="6"
+   >
+    <crs:Name>[02] Clean Canvas</crs:Name>
+  <crs:Group>MindfulLens</crs:Group>
+</rdf:Description>
+ </rdf:RDF>
+</x:xmpmeta>

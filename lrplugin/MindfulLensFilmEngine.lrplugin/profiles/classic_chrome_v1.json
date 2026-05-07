@@ -1,0 +1,18 @@
+{
+  "film_id": "CLASSIC_CHROME",
+  "k_coeffs": [
+    0.78511844,
+    0.84577231,
+    0.78244166
+  ],
+  "s_coeffs": [
+    0.20844172,
+    0.22355019,
+    0.21433055
+  ],
+  "print_contrast": 0.945,
+  "optimized_from": "docs/classic_chrome_colorchecker_report.csv",
+  "optimization_seed": 11,
+  "optimization_iterations": 120,
+  "notes": "Dedicated Classic Chrome seed: restrained contrast, muted warm palette, denser blues."
+}

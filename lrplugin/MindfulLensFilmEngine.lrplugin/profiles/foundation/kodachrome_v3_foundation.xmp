@@ -1,0 +1,67 @@
+<x:xmpmeta xmlns:x="adobe:ns:meta/" x:xmptk="Adobe XMP Core 7.0-c000 1.000000, 0000/00/00-00:00:00        ">
+ <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <rdf:Description rdf:about=""
+    xmlns:crs="http://ns.adobe.com/camera-raw-settings/1.0/"
+   crs:PresetType="Normal"
+   crs:Cluster=""
+   crs:UUID="07B8D83E650A4D26BE4F385F7A527D9E"
+   crs:SupportsAmount2="True"
+   crs:SupportsAmount="True"
+   crs:SupportsColor="True"
+   crs:SupportsMonochrome="True"
+   crs:SupportsHighDynamicRange="True"
+   crs:SupportsNormalDynamicRange="True"
+   crs:SupportsSceneReferred="True"
+   crs:SupportsOutputReferred="True"
+   crs:RequiresRGBTables="False"
+   crs:ShowInPresets="True"
+   crs:ShowInQuickActions="False"
+   crs:Version="18.2.2"
+   crs:ProcessVersion="15.4"
+   crs:WhiteBalance="Custom"
+   crs:Temperature="5900"
+   crs:Tint="+1"
+   crs:Exposure2012="+0.03"
+   crs:Contrast2012="+4"
+   crs:Highlights2012="-30"
+   crs:Shadows2012="+18"
+   crs:Whites2012="-8"
+   crs:Blacks2012="-13"
+   crs:Texture="+6"
+   crs:Clarity2012="+4"
+   crs:Dehaze="+1"
+   crs:Vibrance="+6"
+   crs:Saturation="+1"
+   crs:HueAdjustmentOrange="-2"
+   crs:HueAdjustmentYellow="-6"
+   crs:HueAdjustmentGreen="-8"
+   crs:HueAdjustmentAqua="-2"
+   crs:HueAdjustmentBlue="-6"
+   crs:SaturationAdjustmentRed="+6"
+   crs:SaturationAdjustmentOrange="+1"
+   crs:SaturationAdjustmentYellow="+1"
+   crs:SaturationAdjustmentGreen="-3"
+   crs:SaturationAdjustmentAqua="+1"
+   crs:SaturationAdjustmentBlue="+8"
+   crs:LuminanceAdjustmentOrange="+2"
+   crs:LuminanceAdjustmentBlue="-10"
+   crs:ColorGradeMidtoneHue="36"
+   crs:ColorGradeMidtoneSat="3"
+   crs:ColorGradeHighlightsHue="46"
+   crs:ColorGradeHighlightsSat="2"
+   crs:ColorGradeBlending="45"
+   crs:GrainAmount="12"
+   crs:GrainSize="12"
+   crs:GrainFrequency="18"
+   crs:ToneCurveName2012="Custom"
+   crs:HasSettings="True">
+   <crs:Name><rdf:Alt><rdf:li xml:lang="x-default">7.ML_KodachromeV3</rdf:li></rdf:Alt></crs:Name>
+   <crs:Group><rdf:Alt><rdf:li xml:lang="x-default">[01] The Foundation</rdf:li></rdf:Alt></crs:Group>
+   <crs:Description><rdf:Alt><rdf:li xml:lang="x-default">Softer Kodachrome baseline with warm mids and controlled slide contrast.</rdf:li></rdf:Alt></crs:Description>
+   <crs:ToneCurvePV2012><rdf:Seq><rdf:li>0, 4</rdf:li><rdf:li>32, 18</rdf:li><rdf:li>64, 60</rdf:li><rdf:li>128, 140</rdf:li><rdf:li>192, 214</rdf:li><rdf:li>224, 234</rdf:li><rdf:li>255, 246</rdf:li></rdf:Seq></crs:ToneCurvePV2012>
+   <crs:ToneCurvePV2012Red><rdf:Seq><rdf:li>0, 6</rdf:li><rdf:li>128, 134</rdf:li><rdf:li>255, 248</rdf:li></rdf:Seq></crs:ToneCurvePV2012Red>
+   <crs:ToneCurvePV2012Green><rdf:Seq><rdf:li>0, 0</rdf:li><rdf:li>128, 126</rdf:li><rdf:li>255, 244</rdf:li></rdf:Seq></crs:ToneCurvePV2012Green>
+   <crs:ToneCurvePV2012Blue><rdf:Seq><rdf:li>0, 4</rdf:li><rdf:li>128, 120</rdf:li><rdf:li>255, 232</rdf:li></rdf:Seq></crs:ToneCurvePV2012Blue>
+  </rdf:Description>
+ </rdf:RDF>
+</x:xmpmeta>

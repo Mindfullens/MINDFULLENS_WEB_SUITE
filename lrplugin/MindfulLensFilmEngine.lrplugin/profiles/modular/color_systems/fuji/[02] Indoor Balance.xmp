@@ -1,0 +1,17 @@
+<x:xmpmeta xmlns:x="adobe:ns:meta/">
+ <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <rdf:Description crs:Group="MindfulLens" rdf:about=""
+    xmlns:crs="http://ns.adobe.com/camera-raw-settings/1.0/"
+    crs:PresetType="Normal"
+    crs:Cluster=""
+    crs:UUID="DBCC48D9731D5B0CA4813838924F7D88"
+    crs:Version="16.0"
+    crs:ProcessVersion="11.0"
+    crs:HasSettings="True"
+    crs:Exposure2012="-0.20"
+    crs:Shadows2012="+30" crs:Name="[02] Indoor Balance">
+   <crs:Name>[02] Indoor Balance</crs:Name>
+   <crs:Group>MindfulLens</crs:Group>
+  </rdf:Description>
+ </rdf:RDF>
+</x:xmpmeta>

@@ -1,0 +1,101 @@
+<x:xmpmeta xmlns:x="adobe:ns:meta/" x:xmptk="Adobe XMP Core 7.0-c000 1.000000, 0000/00/00-00:00:00        ">
+ <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <rdf:Description crs:Group="MindfulLens" rdf:about=""
+    xmlns:crs="http://ns.adobe.com/camera-raw-settings/1.0/"
+   crs:PresetType="Normal"
+   crs:Cluster=""
+   crs:UUID="857FEBF05B6D5399B151503B73A81067"
+   crs:SupportsAmount2="True"
+   crs:SupportsAmount="True"
+   crs:SupportsColor="True"
+   crs:SupportsMonochrome="True"
+   crs:SupportsHighDynamicRange="True"
+   crs:SupportsNormalDynamicRange="True"
+   crs:SupportsSceneReferred="True"
+   crs:SupportsOutputReferred="True"
+   crs:RequiresRGBTables="False"
+   crs:ShowInPresets="True"
+   crs:ShowInQuickActions="False"
+   crs:CameraModelRestriction=""
+   crs:Copyright=""
+   crs:ContactInfo=""
+   crs:Version="18.2.2"
+   crs:ProcessVersion="11.0"
+   crs:WhiteBalance="Custom"
+   crs:Temperature="5400"
+   crs:Tint="0"
+   crs:Contrast2012="0"
+   crs:Highlights2012="-40"
+   crs:Shadows2012="+30"
+   crs:Whites2012="0"
+   crs:Blacks2012="-8"
+   crs:Clarity2012="0"
+   crs:Dehaze="-1"
+   crs:Vibrance="+6"
+   crs:Saturation="-3"
+   crs:HueAdjustmentRed="0"
+   crs:HueAdjustmentOrange="0"
+   crs:HueAdjustmentYellow="-4"
+   crs:HueAdjustmentGreen="-6"
+   crs:HueAdjustmentAqua="0"
+   crs:HueAdjustmentBlue="-4"
+   crs:SaturationAdjustmentRed="-2"
+   crs:SaturationAdjustmentOrange="-4"
+   crs:SaturationAdjustmentYellow="-4"
+   crs:SaturationAdjustmentGreen="-6"
+   crs:SaturationAdjustmentAqua="0"
+   crs:SaturationAdjustmentBlue="-4"
+   crs:LuminanceAdjustmentRed="0"
+   crs:LuminanceAdjustmentOrange="0"
+   crs:LuminanceAdjustmentYellow="0"
+   crs:LuminanceAdjustmentGreen="0"
+   crs:LuminanceAdjustmentAqua="0"
+   crs:LuminanceAdjustmentBlue="0"
+   crs:ColorGradeShadowsHue="210"
+   crs:ColorGradeShadowsSat="4"
+   crs:ColorGradeMidtoneHue="32"
+   crs:ColorGradeMidtoneSat="3"
+   crs:ColorGradeHighlightsHue="40"
+   crs:ColorGradeHighlightsSat="4"
+   crs:ColorGradeBlending="45"
+   crs:ColorGradeBalance="0"
+   crs:RedHue="+2"
+   crs:RedSaturation="0"
+   crs:BlueHue="-8"
+   crs:BlueSaturation="+4"
+   crs:GrainAmount="10"
+   crs:GrainSize="11"
+   crs:GrainFrequency="20"
+   crs:ToneCurveName2012="Custom"
+   crs:HasSettings="True" crs:Name="[01] Vision3 50D">
+   <crs:Name>[01] Vision3 50D</crs:Name>
+   <crs:Group>MindfulLens</crs:Group>
+   <crs:ShortName>
+    <rdf:Alt>
+     <rdf:li xml:lang="x-default"/>
+    </rdf:Alt>
+   </crs:ShortName>
+   <crs:SortName>
+    <rdf:Alt>
+     <rdf:li xml:lang="x-default"/>
+    </rdf:Alt>
+   </crs:SortName>
+   <crs:Description>
+    <rdf:Alt>
+     <rdf:li xml:lang="x-default"/>
+    </rdf:Alt>
+   </crs:Description>
+   <crs:ToneCurvePV2012>
+    <rdf:Seq>
+     <rdf:li>0, 8</rdf:li>
+     <rdf:li>32, 30</rdf:li>
+     <rdf:li>64, 60</rdf:li>
+     <rdf:li>128, 136</rdf:li>
+     <rdf:li>192, 208</rdf:li>
+     <rdf:li>224, 228</rdf:li>
+     <rdf:li>255, 242</rdf:li>
+    </rdf:Seq>
+   </crs:ToneCurvePV2012>
+  </rdf:Description>
+ </rdf:RDF>
+</x:xmpmeta>

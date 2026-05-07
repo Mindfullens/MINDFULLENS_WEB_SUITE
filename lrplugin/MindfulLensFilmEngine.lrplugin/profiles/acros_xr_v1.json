@@ -1,0 +1,18 @@
+{
+  "film_id": "ACROS_XR",
+  "k_coeffs": [
+    0.80422564,
+    0.82044871,
+    0.78811053
+  ],
+  "s_coeffs": [
+    0.22841782,
+    0.24266294,
+    0.25655136
+  ],
+  "print_contrast": 1.04,
+  "optimized_from": "docs/acros_xr_colorchecker_report.csv",
+  "optimization_seed": 173,
+  "optimization_iterations": 144,
+  "notes": "Dedicated Acros XR seed: red-filter monochrome with deeper skies, brighter skin and punchier tonal compression."
+}

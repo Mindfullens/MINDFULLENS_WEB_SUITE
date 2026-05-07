@@ -1,0 +1,18 @@
+{
+  "film_id": "CINESTILL_50D",
+  "k_coeffs": [
+    0.80414219,
+    0.85733458,
+    0.79710574
+  ],
+  "s_coeffs": [
+    0.28444163,
+    0.30521084,
+    0.29155012
+  ],
+  "print_contrast": 0.99,
+  "optimized_from": "docs/cinestill_50d_colorchecker_report.csv",
+  "optimization_seed": 19,
+  "optimization_iterations": 96,
+  "notes": "CineStill 50D seed replacing the generic daylight fallback with a clean, daylight cinema baseline."
+}

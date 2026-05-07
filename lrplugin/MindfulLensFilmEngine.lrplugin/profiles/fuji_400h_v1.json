@@ -1,0 +1,7 @@
+{
+  "film_id": "FUJI_400H_v1",
+  "k_coeffs": [0.76, 0.82, 0.71],
+  "s_coeffs": [0.16, 0.19, 0.17],
+  "print_contrast": 1.04,
+  "notes": "Initial Fuji seed: softer contrast, cooler greens/cyans."
+}

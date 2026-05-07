@@ -1,0 +1,18 @@
+{
+  "film_id": "VELVIA_PRO",
+  "k_coeffs": [
+    0.86244173,
+    0.91866215,
+    0.80411537
+  ],
+  "s_coeffs": [
+    0.13255127,
+    0.15844016,
+    0.11877215
+  ],
+  "print_contrast": 1.08,
+  "optimized_from": "docs/velvia_pro_colorchecker_report.csv",
+  "optimization_seed": 11,
+  "optimization_iterations": 120,
+  "notes": "Dedicated Velvia Pro seed: saturated slide baseline with dense greens and deep blues."
+}

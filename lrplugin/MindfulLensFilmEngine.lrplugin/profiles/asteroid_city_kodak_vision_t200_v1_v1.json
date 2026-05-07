@@ -1,0 +1,18 @@
+{
+  "film_id": "ASTEROID_CITY_KODAK_VISION_T200_V1",
+  "k_coeffs": [
+    0.73932251,
+    0.88711223,
+    0.80731156
+  ],
+  "s_coeffs": [
+    0.31746606,
+    0.4,
+    0.36810262
+  ],
+  "print_contrast": 0.85045616,
+  "optimized_from": "docs/asteroid_city_kodak_vision_t200_v1_colorchecker_report.csv",
+  "optimization_seed": 7,
+  "optimization_iterations": 120,
+  "notes": "Patch-fit seed replacing generic analyzer fallback for asteroid_city_kodak_vision_t200_v1."
+}

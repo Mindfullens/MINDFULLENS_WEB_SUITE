@@ -1,0 +1,15 @@
+{
+  "placeholder": true,
+  "film_id": "BW_DELTA_100",
+  "k_coeffs": [
+    0.85,
+    0.92,
+    0.78
+  ],
+  "s_coeffs": [
+    0.12,
+    0.15,
+    0.1
+  ],
+  "print_contrast": 1.0
+}

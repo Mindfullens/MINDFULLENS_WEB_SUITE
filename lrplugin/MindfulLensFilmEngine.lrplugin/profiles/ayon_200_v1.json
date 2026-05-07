@@ -1,0 +1,18 @@
+{
+  "film_id": "AYON_200",
+  "k_coeffs": [
+    0.79297537,
+    0.88255941,
+    0.8221046
+  ],
+  "s_coeffs": [
+    0.33286548,
+    0.38473388,
+    0.36161789
+  ],
+  "print_contrast": 0.86566526,
+  "optimized_from": "docs/ayon_200_colorchecker_report.csv",
+  "optimization_seed": 7,
+  "optimization_iterations": 160,
+  "notes": "Patch-fit seed replacing generic analyzer fallback for ayon_200."
+}

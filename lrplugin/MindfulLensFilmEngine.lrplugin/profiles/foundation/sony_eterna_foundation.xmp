@@ -1,0 +1,67 @@
+<x:xmpmeta xmlns:x="adobe:ns:meta/" x:xmptk="Adobe XMP Core 7.0-c000 1.000000, 0000/00/00-00:00:00        ">
+ <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <rdf:Description rdf:about=""
+    xmlns:crs="http://ns.adobe.com/camera-raw-settings/1.0/"
+   crs:PresetType="Normal"
+   crs:Cluster=""
+   crs:UUID="C6A49C27D9974F768BE60817D249610A"
+   crs:SupportsAmount2="True"
+   crs:SupportsAmount="True"
+   crs:SupportsColor="True"
+   crs:SupportsMonochrome="True"
+   crs:SupportsHighDynamicRange="True"
+   crs:SupportsNormalDynamicRange="True"
+   crs:SupportsSceneReferred="True"
+   crs:SupportsOutputReferred="True"
+   crs:RequiresRGBTables="False"
+   crs:ShowInPresets="True"
+   crs:ShowInQuickActions="False"
+   crs:Version="18.2.2"
+   crs:ProcessVersion="15.4"
+   crs:WhiteBalance="Custom"
+   crs:Temperature="5280"
+   crs:Tint="0"
+   crs:Exposure2012="+0.04"
+   crs:Contrast2012="-8"
+   crs:Highlights2012="-30"
+   crs:Shadows2012="+24"
+   crs:Whites2012="-12"
+   crs:Blacks2012="-4"
+   crs:Texture="-2"
+   crs:Clarity2012="-2"
+   crs:Dehaze="-1"
+   crs:Vibrance="-4"
+   crs:Saturation="-4"
+   crs:HueAdjustmentOrange="+1"
+   crs:HueAdjustmentYellow="-2"
+   crs:HueAdjustmentGreen="+4"
+   crs:HueAdjustmentAqua="+2"
+   crs:HueAdjustmentBlue="+2"
+   crs:SaturationAdjustmentYellow="-2"
+   crs:SaturationAdjustmentGreen="-5"
+   crs:SaturationAdjustmentBlue="-3"
+   crs:LuminanceAdjustmentOrange="+4"
+   crs:LuminanceAdjustmentBlue="+1"
+   crs:ColorGradeShadowsHue="210"
+   crs:ColorGradeShadowsSat="3"
+   crs:ColorGradeMidtoneHue="32"
+   crs:ColorGradeMidtoneSat="2"
+   crs:ColorGradeHighlightsHue="40"
+   crs:ColorGradeHighlightsSat="1"
+   crs:ColorGradeBalance="-4"
+   crs:ColorGradeBlending="42"
+   crs:GrainAmount="13"
+   crs:GrainSize="14"
+   crs:GrainFrequency="24"
+   crs:ToneCurveName2012="Custom"
+   crs:HasSettings="True">
+   <crs:Name><rdf:Alt><rdf:li xml:lang="x-default">4.ML_SonyEterna</rdf:li></rdf:Alt></crs:Name>
+   <crs:Group><rdf:Alt><rdf:li xml:lang="x-default">[01] The Foundation</rdf:li></rdf:Alt></crs:Group>
+   <crs:Description><rdf:Alt><rdf:li xml:lang="x-default">Sony Eterna baseline with muted cinema contrast, calmer greens and smoother highlight rolloff.</rdf:li></rdf:Alt></crs:Description>
+   <crs:ToneCurvePV2012><rdf:Seq><rdf:li>0, 8</rdf:li><rdf:li>32, 32</rdf:li><rdf:li>64, 64</rdf:li><rdf:li>128, 140</rdf:li><rdf:li>192, 198</rdf:li><rdf:li>224, 214</rdf:li><rdf:li>255, 234</rdf:li></rdf:Seq></crs:ToneCurvePV2012>
+   <crs:ToneCurvePV2012Red><rdf:Seq><rdf:li>0, 6</rdf:li><rdf:li>128, 132</rdf:li><rdf:li>255, 248</rdf:li></rdf:Seq></crs:ToneCurvePV2012Red>
+   <crs:ToneCurvePV2012Green><rdf:Seq><rdf:li>0, 0</rdf:li><rdf:li>128, 126</rdf:li><rdf:li>255, 243</rdf:li></rdf:Seq></crs:ToneCurvePV2012Green>
+   <crs:ToneCurvePV2012Blue><rdf:Seq><rdf:li>0, 4</rdf:li><rdf:li>128, 121</rdf:li><rdf:li>255, 233</rdf:li></rdf:Seq></crs:ToneCurvePV2012Blue>
+  </rdf:Description>
+ </rdf:RDF>
+</x:xmpmeta>

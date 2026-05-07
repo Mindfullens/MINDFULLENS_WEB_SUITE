@@ -1,0 +1,7 @@
+{
+  "film_id": "PORTRA_400_v1",
+  "k_coeffs": [0.85, 0.92, 0.78],
+  "s_coeffs": [0.12, 0.15, 0.10],
+  "print_contrast": 1.12,
+  "notes": "Initial hand-tuned seed for Sprint 1"
+}

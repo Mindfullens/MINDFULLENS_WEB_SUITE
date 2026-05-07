@@ -1,0 +1,18 @@
+{
+  "film_id": "ULTRAMAX_400",
+  "k_coeffs": [
+    0.78633127,
+    0.82211594,
+    0.74866041
+  ],
+  "s_coeffs": [
+    0.33200581,
+    0.35514496,
+    0.33455107
+  ],
+  "print_contrast": 0.995,
+  "optimized_from": "docs/ultramax_400_colorchecker_report.csv",
+  "optimization_seed": 13,
+  "optimization_iterations": 96,
+  "notes": "UltraMax 400 seed introducing a dedicated, punchier consumer-speed baseline instead of falling back to Portra runtime behavior."
+}

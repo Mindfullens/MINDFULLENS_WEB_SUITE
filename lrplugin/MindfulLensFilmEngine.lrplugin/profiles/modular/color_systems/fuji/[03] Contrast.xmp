@@ -1,0 +1,17 @@
+<x:xmpmeta xmlns:x="adobe:ns:meta/">
+ <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <rdf:Description crs:Group="MindfulLens" rdf:about=""
+    xmlns:crs="http://ns.adobe.com/camera-raw-settings/1.0/"
+    crs:PresetType="Normal"
+    crs:Cluster=""
+    crs:UUID="9F7B80E0967C57C3B3F818D54F1D1E17"
+    crs:Version="16.0"
+    crs:ProcessVersion="11.0"
+    crs:HasSettings="True"
+    crs:Contrast2012="+35"
+    crs:Saturation="+15" crs:Name="[03] Contrast">
+   <crs:Name>[03] Contrast</crs:Name>
+   <crs:Group>MindfulLens</crs:Group>
+  </rdf:Description>
+ </rdf:RDF>
+</x:xmpmeta>

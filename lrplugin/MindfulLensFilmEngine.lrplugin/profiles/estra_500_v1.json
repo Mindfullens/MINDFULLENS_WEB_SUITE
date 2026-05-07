@@ -1,0 +1,18 @@
+{
+  "film_id": "ESTRA_500",
+  "k_coeffs": [
+    0.80355271,
+    0.84211742,
+    0.78299016
+  ],
+  "s_coeffs": [
+    0.29655127,
+    0.31844016,
+    0.30277215
+  ],
+  "print_contrast": 0.975,
+  "optimized_from": "docs/estra_500_colorchecker_report.csv",
+  "optimization_seed": 53,
+  "optimization_iterations": 160,
+  "notes": "Dedicated Estra 500 seed: balanced high-speed negative with soft cinema shoulder and calm blues."
+}

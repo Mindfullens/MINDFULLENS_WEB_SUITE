@@ -1,0 +1,69 @@
+<x:xmpmeta xmlns:x="adobe:ns:meta/" x:xmptk="Adobe XMP Core 7.0-c000 1.000000, 0000/00/00-00:00:00        ">
+ <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <rdf:Description rdf:about=""
+    xmlns:crs="http://ns.adobe.com/camera-raw-settings/1.0/"
+   crs:PresetType="Normal"
+   crs:Cluster=""
+   crs:UUID="8D8A23D7616546458B19A1B94842F5A2"
+   crs:SupportsAmount2="True"
+   crs:SupportsAmount="True"
+   crs:SupportsColor="True"
+   crs:SupportsMonochrome="True"
+   crs:SupportsHighDynamicRange="True"
+   crs:SupportsNormalDynamicRange="True"
+   crs:SupportsSceneReferred="True"
+   crs:SupportsOutputReferred="True"
+   crs:RequiresRGBTables="False"
+   crs:ShowInPresets="True"
+   crs:ShowInQuickActions="False"
+   crs:Version="18.2.2"
+   crs:ProcessVersion="15.4"
+   crs:WhiteBalance="Custom"
+   crs:Temperature="5325"
+   crs:Tint="+2"
+   crs:Exposure2012="+0.05"
+   crs:Contrast2012="-3"
+   crs:Highlights2012="-28"
+   crs:Shadows2012="+20"
+   crs:Whites2012="-9"
+   crs:Blacks2012="-5"
+   crs:Texture="-1"
+   crs:Clarity2012="-1"
+   crs:Dehaze="-1"
+   crs:Vibrance="-1"
+   crs:Saturation="-2"
+   crs:HueAdjustmentOrange="+1"
+   crs:HueAdjustmentYellow="-2"
+   crs:HueAdjustmentGreen="+3"
+   crs:HueAdjustmentAqua="+2"
+   crs:HueAdjustmentBlue="+1"
+   crs:SaturationAdjustmentOrange="+1"
+   crs:SaturationAdjustmentYellow="-1"
+   crs:SaturationAdjustmentGreen="-2"
+   crs:SaturationAdjustmentAqua="-1"
+   crs:SaturationAdjustmentBlue="-2"
+   crs:LuminanceAdjustmentOrange="+4"
+   crs:LuminanceAdjustmentBlue="+1"
+   crs:ColorGradeShadowsHue="215"
+   crs:ColorGradeShadowsSat="2"
+   crs:ColorGradeMidtoneHue="34"
+   crs:ColorGradeMidtoneSat="2"
+   crs:ColorGradeHighlightsHue="44"
+   crs:ColorGradeHighlightsSat="1"
+   crs:ColorGradeBalance="-2"
+   crs:ColorGradeBlending="42"
+   crs:GrainAmount="16"
+   crs:GrainSize="16"
+   crs:GrainFrequency="28"
+   crs:ToneCurveName2012="Custom"
+   crs:HasSettings="True">
+   <crs:Name><rdf:Alt><rdf:li xml:lang="x-default">4.ML_Estra500</rdf:li></rdf:Alt></crs:Name>
+   <crs:Group><rdf:Alt><rdf:li xml:lang="x-default">[01] The Foundation</rdf:li></rdf:Alt></crs:Group>
+   <crs:Description><rdf:Alt><rdf:li xml:lang="x-default">Estra 500 baseline with soft high-speed shoulder, neutral mids and calmer blue separation.</rdf:li></rdf:Alt></crs:Description>
+   <crs:ToneCurvePV2012><rdf:Seq><rdf:li>0, 8</rdf:li><rdf:li>32, 31</rdf:li><rdf:li>64, 63</rdf:li><rdf:li>128, 139</rdf:li><rdf:li>192, 202</rdf:li><rdf:li>224, 217</rdf:li><rdf:li>255, 235</rdf:li></rdf:Seq></crs:ToneCurvePV2012>
+   <crs:ToneCurvePV2012Red><rdf:Seq><rdf:li>0, 6</rdf:li><rdf:li>128, 133</rdf:li><rdf:li>255, 248</rdf:li></rdf:Seq></crs:ToneCurvePV2012Red>
+   <crs:ToneCurvePV2012Green><rdf:Seq><rdf:li>0, 0</rdf:li><rdf:li>128, 126</rdf:li><rdf:li>255, 244</rdf:li></rdf:Seq></crs:ToneCurvePV2012Green>
+   <crs:ToneCurvePV2012Blue><rdf:Seq><rdf:li>0, 4</rdf:li><rdf:li>128, 121</rdf:li><rdf:li>255, 233</rdf:li></rdf:Seq></crs:ToneCurvePV2012Blue>
+  </rdf:Description>
+ </rdf:RDF>
+</x:xmpmeta>

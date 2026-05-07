@@ -1,0 +1,103 @@
+<x:xmpmeta xmlns:x="adobe:ns:meta/" x:xmptk="Adobe XMP Core 7.0-c000 1.000000, 0000/00/00-00:00:00        ">
+ <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <rdf:Description crs:Group="MindfulLens" rdf:about=""
+    xmlns:crs="http://ns.adobe.com/camera-raw-settings/1.0/"
+   crs:PresetType="Normal"
+   crs:Cluster=""
+   crs:UUID="B07191B8A7365F10A1E7427EB3D40F62"
+   crs:SupportsAmount2="True"
+   crs:SupportsAmount="True"
+   crs:SupportsColor="True"
+   crs:SupportsMonochrome="True"
+   crs:SupportsHighDynamicRange="True"
+   crs:SupportsNormalDynamicRange="True"
+   crs:SupportsSceneReferred="True"
+   crs:SupportsOutputReferred="True"
+   crs:RequiresRGBTables="False"
+   crs:ShowInPresets="True"
+   crs:ShowInQuickActions="False"
+   crs:CameraModelRestriction=""
+   crs:Copyright=""
+   crs:ContactInfo=""
+   crs:Version="18.2.2"
+   crs:ProcessVersion="11.0"
+   crs:WhiteBalance="Custom"
+   crs:Temperature="5400"
+   crs:Tint="0"
+   crs:Contrast2012="+30"
+   crs:Highlights2012="-20"
+   crs:Shadows2012="+5"
+   crs:Whites2012="+15"
+   crs:Blacks2012="-20"
+   crs:Clarity2012="+8"
+   crs:Dehaze="+6"
+   crs:Vibrance="+20"
+   crs:Saturation="+10"
+   crs:HueAdjustmentRed="0"
+   crs:HueAdjustmentOrange="0"
+   crs:HueAdjustmentYellow="0"
+   crs:HueAdjustmentGreen="0"
+   crs:HueAdjustmentAqua="0"
+   crs:HueAdjustmentBlue="0"
+   crs:SaturationAdjustmentRed="+6"
+   crs:SaturationAdjustmentOrange="+4"
+   crs:SaturationAdjustmentYellow="+12"
+   crs:SaturationAdjustmentGreen="+15"
+   crs:SaturationAdjustmentAqua="0"
+   crs:SaturationAdjustmentBlue="+20"
+   crs:LuminanceAdjustmentRed="0"
+   crs:LuminanceAdjustmentOrange="0"
+   crs:LuminanceAdjustmentYellow="0"
+   crs:LuminanceAdjustmentGreen="0"
+   crs:LuminanceAdjustmentAqua="0"
+   crs:LuminanceAdjustmentBlue="-10"
+   crs:ColorGradeShadowsHue="220"
+   crs:ColorGradeShadowsSat="6"
+   crs:ColorGradeMidtoneHue="0"
+   crs:ColorGradeMidtoneSat="0"
+   crs:ColorGradeHighlightsHue="45"
+   crs:ColorGradeHighlightsSat="6"
+   crs:ColorGradeBlending="45"
+   crs:ColorGradeBalance="0"
+   crs:RedHue="+8"
+   crs:RedSaturation="+8"
+   crs:GreenHue="-10"
+   crs:GreenSaturation="+14"
+   crs:BlueHue="-20"
+   crs:BlueSaturation="+26"
+   crs:GrainAmount="8"
+   crs:GrainSize="10"
+   crs:GrainFrequency="20"
+   crs:ToneCurveName2012="Custom"
+   crs:HasSettings="True" crs:Name="[01] Velvia 50">
+   <crs:Name>[01] Velvia 50</crs:Name>
+   <crs:Group>MindfulLens</crs:Group>
+   <crs:ShortName>
+    <rdf:Alt>
+     <rdf:li xml:lang="x-default"/>
+    </rdf:Alt>
+   </crs:ShortName>
+   <crs:SortName>
+    <rdf:Alt>
+     <rdf:li xml:lang="x-default"/>
+    </rdf:Alt>
+   </crs:SortName>
+   <crs:Description>
+    <rdf:Alt>
+     <rdf:li xml:lang="x-default"/>
+    </rdf:Alt>
+   </crs:Description>
+   <crs:ToneCurvePV2012>
+    <rdf:Seq>
+     <rdf:li>0, 4</rdf:li>
+     <rdf:li>32, 22</rdf:li>
+     <rdf:li>64, 56</rdf:li>
+     <rdf:li>128, 136</rdf:li>
+     <rdf:li>192, 214</rdf:li>
+     <rdf:li>224, 234</rdf:li>
+     <rdf:li>255, 248</rdf:li>
+    </rdf:Seq>
+   </crs:ToneCurvePV2012>
+  </rdf:Description>
+ </rdf:RDF>
+</x:xmpmeta>

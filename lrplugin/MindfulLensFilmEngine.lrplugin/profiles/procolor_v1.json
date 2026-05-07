@@ -1,0 +1,18 @@
+{
+  "film_id": "PROCOLOR",
+  "k_coeffs": [
+    0.82355271,
+    0.87411742,
+    0.81699016
+  ],
+  "s_coeffs": [
+    0.28655127,
+    0.30844016,
+    0.29477215
+  ],
+  "print_contrast": 0.985,
+  "optimized_from": "docs/procolor_colorchecker_report.csv",
+  "optimization_seed": 29,
+  "optimization_iterations": 144,
+  "notes": "Dedicated ProColor seed: balanced professional color negative with stable skin tones and moderate contrast."
+}

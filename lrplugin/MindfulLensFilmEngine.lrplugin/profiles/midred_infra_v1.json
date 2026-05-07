@@ -1,0 +1,18 @@
+{
+  "film_id": "MIDRED_INFRA",
+  "k_coeffs": [
+    0.76822564,
+    0.79844871,
+    0.75011053
+  ],
+  "s_coeffs": [
+    0.28841782,
+    0.31266294,
+    0.29855136
+  ],
+  "print_contrast": 1.025,
+  "optimized_from": "docs/midred_infra_colorchecker_report.csv",
+  "optimization_seed": 149,
+  "optimization_iterations": 144,
+  "notes": "Dedicated MidRed Infra seed: infrared-leaning red-warm stock with shifted foliage channels, denser mids and stylized highlight separation."
+}

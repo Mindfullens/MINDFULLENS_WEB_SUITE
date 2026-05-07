@@ -1,0 +1,18 @@
+{
+  "film_id": "ROSE_SPECTRA",
+  "k_coeffs": [
+    0.83497537,
+    0.85055941,
+    0.7821046
+  ],
+  "s_coeffs": [
+    0.27286548,
+    0.29873388,
+    0.28461789
+  ],
+  "print_contrast": 0.985,
+  "optimized_from": "docs/rose_spectra_colorchecker_report.csv",
+  "optimization_seed": 109,
+  "optimization_iterations": 144,
+  "notes": "Dedicated Rose Spectra seed: rose-forward stylized negative with warmer mids and elegant pink-red separation."
+}

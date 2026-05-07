@@ -1,0 +1,18 @@
+{
+  "film_id": "CLASSIC_CINEMA",
+  "k_coeffs": [
+    0.79855271,
+    0.83811742,
+    0.77599016
+  ],
+  "s_coeffs": [
+    0.29155127,
+    0.30944016,
+    0.29377215
+  ],
+  "print_contrast": 0.975,
+  "optimized_from": "docs/classic_cinema_colorchecker_report.csv",
+  "optimization_seed": 19,
+  "optimization_iterations": 96,
+  "notes": "Classic Cinema seed replacing the generic fallback with a softer, classic warm-cinema baseline."
+}

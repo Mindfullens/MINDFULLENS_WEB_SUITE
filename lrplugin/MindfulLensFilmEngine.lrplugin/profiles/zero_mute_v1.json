@@ -1,0 +1,18 @@
+{
+  "film_id": "ZERO_MUTE",
+  "k_coeffs": [
+    0.76822564,
+    0.80644871,
+    0.76011053
+  ],
+  "s_coeffs": [
+    0.22641782,
+    0.24466294,
+    0.23255136
+  ],
+  "print_contrast": 0.9,
+  "optimized_from": "docs/zero_mute_colorchecker_report.csv",
+  "optimization_seed": 103,
+  "optimization_iterations": 144,
+  "notes": "Dedicated Zero Mute seed: heavily muted palette with soft contrast, lowered chroma and quiet mids."
+}

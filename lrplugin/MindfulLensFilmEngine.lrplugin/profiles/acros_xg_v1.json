@@ -1,0 +1,18 @@
+{
+  "film_id": "ACROS_XG",
+  "k_coeffs": [
+    0.78622564,
+    0.80844871,
+    0.78211053
+  ],
+  "s_coeffs": [
+    0.22041782,
+    0.23866294,
+    0.24855136
+  ],
+  "print_contrast": 0.99,
+  "optimized_from": "docs/acros_xg_colorchecker_report.csv",
+  "optimization_seed": 179,
+  "optimization_iterations": 144,
+  "notes": "Dedicated Acros XG seed: green-filter monochrome with brighter foliage, softer skin and a slightly more open shoulder."
+}

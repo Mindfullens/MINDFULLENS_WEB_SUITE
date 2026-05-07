@@ -1,0 +1,18 @@
+{
+  "film_id": "SONY_STANDARD_CL",
+  "k_coeffs": [
+    0.82611844,
+    0.85677231,
+    0.79844166
+  ],
+  "s_coeffs": [
+    0.27444172,
+    0.29255019,
+    0.27833055
+  ],
+  "print_contrast": 0.99,
+  "optimized_from": "docs/sony_standard_cl_colorchecker_report.csv",
+  "optimization_seed": 71,
+  "optimization_iterations": 144,
+  "notes": "Dedicated Sony Standard CL seed: balanced clean standard look with gentle contrast and reliable neutral skin rendering."
+}

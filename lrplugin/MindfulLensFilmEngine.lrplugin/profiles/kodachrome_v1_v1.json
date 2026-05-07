@@ -1,0 +1,18 @@
+{
+  "film_id": "KODACHROME_V1",
+  "k_coeffs": [
+    0.86844173,
+    0.90666215,
+    0.78211537
+  ],
+  "s_coeffs": [
+    0.14255127,
+    0.16244016,
+    0.12677215
+  ],
+  "print_contrast": 1.07,
+  "optimized_from": "docs/kodachrome_v1_colorchecker_report.csv",
+  "optimization_seed": 13,
+  "optimization_iterations": 120,
+  "notes": "Dedicated Kodachrome V1 seed: rich reds, dense blues, classic slide contrast."
+}

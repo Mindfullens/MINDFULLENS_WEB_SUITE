@@ -1,0 +1,18 @@
+{
+  "film_id": "VISION3_200T",
+  "k_coeffs": [
+    0.75344188,
+    0.81977412,
+    0.74588657
+  ],
+  "s_coeffs": [
+    0.33688224,
+    0.36544119,
+    0.34677841
+  ],
+  "print_contrast": 0.905,
+  "optimized_from": "profiles/foundation/vision3_200t_foundation.xmp",
+  "optimization_seed": 11,
+  "optimization_iterations": 96,
+  "notes": "Foundation-derived seed for Vision3 200T replacing the generic placeholder with a cleaner tungsten baseline."
+}

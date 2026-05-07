@@ -1,0 +1,18 @@
+<x:xmpmeta xmlns:x="adobe:ns:meta/">
+ <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <rdf:Description crs:Group="MindfulLens" rdf:about=""
+    xmlns:crs="http://ns.adobe.com/camera-raw-settings/1.0/"
+    crs:PresetType="Normal"
+    crs:Cluster=""
+    crs:UUID="306C7CE771144111AD003DA43B959881"
+    crs:Version="16.0"
+    crs:ProcessVersion="11.0"
+    crs:HasSettings="True"
+    crs:Saturation="-4"
+    crs:Contrast2012="-15"
+    crs:Blacks2012="-3" crs:Name="[03] Soft">
+   <crs:Name>[03] Soft</crs:Name>
+   <crs:Group>MindfulLens</crs:Group>
+  </rdf:Description>
+ </rdf:RDF>
+</x:xmpmeta>

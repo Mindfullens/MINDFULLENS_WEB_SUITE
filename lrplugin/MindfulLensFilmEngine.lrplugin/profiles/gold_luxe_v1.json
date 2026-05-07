@@ -1,0 +1,18 @@
+{
+  "film_id": "GOLD_LUXE",
+  "k_coeffs": [
+    0.81844051,
+    0.84622617,
+    0.76411824
+  ],
+  "s_coeffs": [
+    0.28610872,
+    0.30244018,
+    0.28355103
+  ],
+  "print_contrast": 1.045,
+  "optimized_from": "docs/gold_luxe_colorchecker_report.csv",
+  "optimization_seed": 17,
+  "optimization_iterations": 96,
+  "notes": "Gold Luxe seed replacing the Portra fallback with a warmer, smoother consumer-gold baseline."
+}

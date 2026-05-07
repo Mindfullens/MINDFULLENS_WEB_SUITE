@@ -1,0 +1,81 @@
+<x:xmpmeta xmlns:x="adobe:ns:meta/" x:xmptk="Adobe XMP Core 7.0-c000 1.000000, 0000/00/00-00:00:00        ">
+ <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <rdf:Description crs:Group="MindfulLens" rdf:about=""
+    xmlns:crs="http://ns.adobe.com/camera-raw-settings/1.0/"
+   crs:PresetType="Normal"
+   crs:Cluster=""
+   crs:UUID="065881CCD3675CE398BAA88C2A3BF58B"
+   crs:SupportsAmount2="True"
+   crs:SupportsAmount="True"
+   crs:SupportsColor="True"
+   crs:SupportsMonochrome="True"
+   crs:SupportsHighDynamicRange="True"
+   crs:SupportsNormalDynamicRange="True"
+   crs:SupportsSceneReferred="True"
+   crs:SupportsOutputReferred="True"
+   crs:RequiresRGBTables="False"
+   crs:ShowInPresets="True"
+   crs:ShowInQuickActions="False"
+   crs:CameraModelRestriction=""
+   crs:Copyright=""
+   crs:ContactInfo=""
+   crs:Version="18.2.2"
+   crs:ProcessVersion="11.0"
+   crs:Contrast2012="+25"
+   crs:Highlights2012="-30"
+   crs:Shadows2012="+20"
+   crs:Whites2012="+10"
+   crs:Blacks2012="-20"
+   crs:Clarity2012="+5"
+   crs:Dehaze="+2"
+   crs:RedHue="0"
+   crs:OrangeHue="0"
+   crs:YellowHue="0"
+   crs:GreenHue="0"
+   crs:BlueHue="0"
+   crs:RedSaturation="0"
+   crs:OrangeSaturation="0"
+   crs:YellowSaturation="0"
+   crs:GreenSaturation="0"
+   crs:BlueSaturation="0"
+   crs:RedLuminance="+10"
+   crs:OrangeLuminance="+15"
+   crs:YellowLuminance="+10"
+   crs:GreenLuminance="0"
+   crs:BlueLuminance="-10"
+   crs:GrainAmount="35"
+   crs:GrainSize="30"
+   crs:GrainFrequency="70"
+   crs:ToneCurveName2012="Custom"
+   crs:HasSettings="True" crs:Name="[01] HP5">
+   <crs:Name>[01] HP5</crs:Name>
+   <crs:Group>MindfulLens</crs:Group>
+   <crs:ShortName>
+    <rdf:Alt>
+     <rdf:li xml:lang="x-default"/>
+    </rdf:Alt>
+   </crs:ShortName>
+   <crs:SortName>
+    <rdf:Alt>
+     <rdf:li xml:lang="x-default"/>
+    </rdf:Alt>
+   </crs:SortName>
+   <crs:Description>
+    <rdf:Alt>
+     <rdf:li xml:lang="x-default"/>
+    </rdf:Alt>
+   </crs:Description>
+   <crs:ToneCurvePV2012>
+    <rdf:Seq>
+     <rdf:li>0, 8</rdf:li>
+     <rdf:li>32, 24</rdf:li>
+     <rdf:li>64, 56</rdf:li>
+     <rdf:li>128, 136</rdf:li>
+     <rdf:li>192, 208</rdf:li>
+     <rdf:li>224, 220</rdf:li>
+     <rdf:li>255, 240</rdf:li>
+    </rdf:Seq>
+   </crs:ToneCurvePV2012>
+  </rdf:Description>
+ </rdf:RDF>
+</x:xmpmeta>

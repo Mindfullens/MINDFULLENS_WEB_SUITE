@@ -1,0 +1,18 @@
+{
+  "film_id": "DREAMNEG",
+  "k_coeffs": [
+    0.80697537,
+    0.86055941,
+    0.8141046
+  ],
+  "s_coeffs": [
+    0.31286548,
+    0.37073388,
+    0.34561789
+  ],
+  "print_contrast": 0.89,
+  "optimized_from": "docs/dreamneg_colorchecker_report.csv",
+  "optimization_seed": 31,
+  "optimization_iterations": 160,
+  "notes": "Dedicated DreamNeg seed: airy low-contrast negative with gentle warmth, softer texture and lifted chroma."
+}

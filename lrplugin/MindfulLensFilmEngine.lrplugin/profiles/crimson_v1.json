@@ -1,0 +1,18 @@
+{
+  "film_id": "CRIMSON",
+  "k_coeffs": [
+    0.82844173,
+    0.84666215,
+    0.76211537
+  ],
+  "s_coeffs": [
+    0.26655127,
+    0.29244016,
+    0.27877215
+  ],
+  "print_contrast": 1.045,
+  "optimized_from": "docs/crimson_colorchecker_report.csv",
+  "optimization_seed": 67,
+  "optimization_iterations": 144,
+  "notes": "Dedicated Crimson seed: red-forward dramatic negative with warm mids, denser blacks and restrained cools."
+}

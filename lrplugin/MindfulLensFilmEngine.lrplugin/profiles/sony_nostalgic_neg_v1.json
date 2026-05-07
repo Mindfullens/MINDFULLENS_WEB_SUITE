@@ -1,0 +1,18 @@
+{
+  "film_id": "SONY_NOSTALGIC_NEG",
+  "k_coeffs": [
+    0.80622564,
+    0.84844871,
+    0.79011053
+  ],
+  "s_coeffs": [
+    0.23841782,
+    0.25666294,
+    0.24055136
+  ],
+  "print_contrast": 0.97,
+  "optimized_from": "docs/sony_nostalgic_neg_colorchecker_report.csv",
+  "optimization_seed": 89,
+  "optimization_iterations": 144,
+  "notes": "Dedicated Sony Nostalgic Neg seed: warm nostalgic negative with lifted orange skin and gentle highlight compression."
+}

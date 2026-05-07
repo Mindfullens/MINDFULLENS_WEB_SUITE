@@ -1,0 +1,18 @@
+{
+  "film_id": "VISION3_250D",
+  "k_coeffs": [
+    0.78755421,
+    0.84420873,
+    0.78133644
+  ],
+  "s_coeffs": [
+    0.31410572,
+    0.34355981,
+    0.32540866
+  ],
+  "print_contrast": 0.94,
+  "optimized_from": "profiles/foundation/vision3_250d_foundation.xmp",
+  "optimization_seed": 11,
+  "optimization_iterations": 96,
+  "notes": "Foundation-derived seed for Vision3 250D replacing the generic placeholder until measured patch-fit data is available."
+}

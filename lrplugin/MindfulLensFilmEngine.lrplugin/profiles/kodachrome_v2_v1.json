@@ -1,0 +1,18 @@
+{
+  "film_id": "KODACHROME_V2",
+  "k_coeffs": [
+    0.87944173,
+    0.91466215,
+    0.77411537
+  ],
+  "s_coeffs": [
+    0.13655127,
+    0.15844016,
+    0.12077215
+  ],
+  "print_contrast": 1.085,
+  "optimized_from": "docs/kodachrome_v2_colorchecker_report.csv",
+  "optimization_seed": 13,
+  "optimization_iterations": 120,
+  "notes": "Dedicated Kodachrome V2 seed: punchier contrast, hotter reds and denser blue shadows."
+}

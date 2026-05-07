@@ -1,0 +1,18 @@
+{
+  "film_id": "ACROS_XY",
+  "k_coeffs": [
+    0.79822564,
+    0.81844871,
+    0.78611053
+  ],
+  "s_coeffs": [
+    0.22441782,
+    0.24066294,
+    0.25455136
+  ],
+  "print_contrast": 1.01,
+  "optimized_from": "docs/acros_xy_colorchecker_report.csv",
+  "optimization_seed": 167,
+  "optimization_iterations": 144,
+  "notes": "Dedicated Acros XY seed: yellow-filter monochrome with brighter foliage, calmer skies and classic daylight separation."
+}

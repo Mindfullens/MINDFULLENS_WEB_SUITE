@@ -1,0 +1,18 @@
+{
+  "film_id": "CINECHROME",
+  "k_coeffs": [
+    0.78111844,
+    0.84277231,
+    0.77644166
+  ],
+  "s_coeffs": [
+    0.21444172,
+    0.22955019,
+    0.22133055
+  ],
+  "print_contrast": 0.955,
+  "optimized_from": "docs/cinechrome_colorchecker_report.csv",
+  "optimization_seed": 23,
+  "optimization_iterations": 144,
+  "notes": "Dedicated CineChrome seed: cool editorial chrome with restrained contrast, cyan drift and denser shadows."
+}

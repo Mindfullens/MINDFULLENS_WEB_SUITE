@@ -1,0 +1,18 @@
+{
+  "film_id": "VISION3_50D",
+  "k_coeffs": [
+    0.80614219,
+    0.85933458,
+    0.79910574
+  ],
+  "s_coeffs": [
+    0.28144163,
+    0.30321084,
+    0.28955012
+  ],
+  "print_contrast": 0.985,
+  "optimized_from": "docs/vision3_50d_colorchecker_report.csv",
+  "optimization_seed": 11,
+  "optimization_iterations": 96,
+  "notes": "Foundation-aligned seed for Vision3 50D replacing generic placeholder coefficients while keeping the already-good daylight baseline gentle."
+}

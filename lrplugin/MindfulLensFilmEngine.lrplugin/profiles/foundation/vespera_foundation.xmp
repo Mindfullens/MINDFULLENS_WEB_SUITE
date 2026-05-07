@@ -1,0 +1,68 @@
+<x:xmpmeta xmlns:x="adobe:ns:meta/" x:xmptk="Adobe XMP Core 7.0-c000 1.000000, 0000/00/00-00:00:00        ">
+ <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <rdf:Description rdf:about=""
+    xmlns:crs="http://ns.adobe.com/camera-raw-settings/1.0/"
+   crs:PresetType="Normal"
+   crs:Cluster=""
+   crs:UUID="77C25A8C8A7C40C1B7A0B8342A4A6871"
+   crs:SupportsAmount2="True"
+   crs:SupportsAmount="True"
+   crs:SupportsColor="True"
+   crs:SupportsMonochrome="True"
+   crs:SupportsHighDynamicRange="True"
+   crs:SupportsNormalDynamicRange="True"
+   crs:SupportsSceneReferred="True"
+   crs:SupportsOutputReferred="True"
+   crs:RequiresRGBTables="False"
+   crs:ShowInPresets="True"
+   crs:ShowInQuickActions="False"
+   crs:Version="18.2.2"
+   crs:ProcessVersion="15.4"
+   crs:WhiteBalance="Custom"
+   crs:Temperature="5050"
+   crs:Tint="-2"
+   crs:Exposure2012="+0.03"
+   crs:Contrast2012="+6"
+   crs:Highlights2012="-20"
+   crs:Shadows2012="+12"
+   crs:Whites2012="-5"
+   crs:Blacks2012="-11"
+   crs:Texture="+2"
+   crs:Clarity2012="+2"
+   crs:Dehaze="+1"
+   crs:Vibrance="+3"
+   crs:Saturation="0"
+   crs:HueAdjustmentOrange="-2"
+   crs:HueAdjustmentYellow="-4"
+   crs:HueAdjustmentGreen="+3"
+   crs:HueAdjustmentAqua="+2"
+   crs:HueAdjustmentBlue="+3"
+   crs:SaturationAdjustmentOrange="+1"
+   crs:SaturationAdjustmentYellow="-1"
+   crs:SaturationAdjustmentGreen="-2"
+   crs:SaturationAdjustmentBlue="+2"
+   crs:LuminanceAdjustmentOrange="+1"
+   crs:LuminanceAdjustmentBlue="-2"
+   crs:ColorGradeShadowsHue="220"
+   crs:ColorGradeShadowsSat="3"
+   crs:ColorGradeMidtoneHue="34"
+   crs:ColorGradeMidtoneSat="2"
+   crs:ColorGradeHighlightsHue="44"
+   crs:ColorGradeHighlightsSat="1"
+   crs:ColorGradeBalance="-2"
+   crs:ColorGradeBlending="44"
+   crs:GrainAmount="12"
+   crs:GrainSize="13"
+   crs:GrainFrequency="22"
+   crs:ToneCurveName2012="Custom"
+   crs:HasSettings="True">
+   <crs:Name><rdf:Alt><rdf:li xml:lang="x-default">6.ML_Vespera</rdf:li></rdf:Alt></crs:Name>
+   <crs:Group><rdf:Alt><rdf:li xml:lang="x-default">[01] The Foundation</rdf:li></rdf:Alt></crs:Group>
+   <crs:Description><rdf:Alt><rdf:li xml:lang="x-default">Vespera baseline with cooler dusk tonality, denser blacks and controlled evening blues.</rdf:li></rdf:Alt></crs:Description>
+   <crs:ToneCurvePV2012><rdf:Seq><rdf:li>0, 6</rdf:li><rdf:li>32, 28</rdf:li><rdf:li>64, 59</rdf:li><rdf:li>128, 136</rdf:li><rdf:li>192, 206</rdf:li><rdf:li>224, 217</rdf:li><rdf:li>255, 231</rdf:li></rdf:Seq></crs:ToneCurvePV2012>
+   <crs:ToneCurvePV2012Red><rdf:Seq><rdf:li>0, 4</rdf:li><rdf:li>128, 130</rdf:li><rdf:li>255, 242</rdf:li></rdf:Seq></crs:ToneCurvePV2012Red>
+   <crs:ToneCurvePV2012Green><rdf:Seq><rdf:li>0, 1</rdf:li><rdf:li>128, 125</rdf:li><rdf:li>255, 240</rdf:li></rdf:Seq></crs:ToneCurvePV2012Green>
+   <crs:ToneCurvePV2012Blue><rdf:Seq><rdf:li>0, 4</rdf:li><rdf:li>128, 123</rdf:li><rdf:li>255, 235</rdf:li></rdf:Seq></crs:ToneCurvePV2012Blue>
+  </rdf:Description>
+ </rdf:RDF>
+</x:xmpmeta>

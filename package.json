@@ -19,6 +19,8 @@
   "scripts": {
     "start": "npm run dev",
     "profiles:generate": "node scripts/generate-film-profiles.mjs",
+    "sync:lr-plugin": "bash scripts/sync-lr-plugin.sh",
+    "install:lr-plugin": "bash scripts/install-lr-plugin-from-repo.sh",
     "profiles:verify-source": "node scripts/release-gate.mjs",
     "profiles:export:zip": "node scripts/export-curated-profiles-zip.mjs",
     "profiles:export:xmp:zip": "node scripts/export-curated-xmp-zip.mjs",

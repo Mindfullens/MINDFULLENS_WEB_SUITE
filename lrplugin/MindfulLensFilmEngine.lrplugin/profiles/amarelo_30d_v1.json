@@ -1,0 +1,18 @@
+{
+  "film_id": "AMARELO_30D",
+  "k_coeffs": [
+    0.84222564,
+    0.87444871,
+    0.79211053
+  ],
+  "s_coeffs": [
+    0.27441782,
+    0.29866294,
+    0.28055136
+  ],
+  "print_contrast": 0.96,
+  "optimized_from": "docs/amarelo_30d_colorchecker_report.csv",
+  "optimization_seed": 47,
+  "optimization_iterations": 144,
+  "notes": "Dedicated Amarelo 30D seed: warm yellow daylight look with softened contrast and luminous highlights."
+}
