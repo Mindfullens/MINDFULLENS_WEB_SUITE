@@ -746,7 +746,7 @@ local function showDialog()
                         if catalog then
                             local okWrite, writeErr = catalogWrite.run(
                                 catalog,
-                                "MindfulLens Apply Panel II",
+                                "Analog Signature — apply Panel II",
                                 function()
                                     targetPhoto:applyDevelopSettings(commitSettings)
                                 end,

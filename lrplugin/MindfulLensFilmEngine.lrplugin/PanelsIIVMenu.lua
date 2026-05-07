@@ -56,7 +56,7 @@ local function applySettingsWithFallback(photo, catalog, settings, actionName)
     if string.find(lowered, "yielding is not allowed", 1, true) then
         local okCatalog, errCatalog = catalogWrite.run(
             catalog,
-            tostring(actionName or "MindfulLens Apply Panel III-V (fallback)"),
+            tostring(actionName or "Analog Signature — apply Panel III-V (fallback)"),
             function()
                 photo:applyDevelopSettings(settings)
             end,
@@ -748,7 +748,7 @@ local function showPanelsDialog(targetPanel)
                         photo,
                         catalog,
                         settingsSnapshot,
-                        "MindfulLens Apply Panel III-V"
+                        "Analog Signature — apply Panel III-V"
                     )
                     if not okWrite then
                         lastErr = tostring(errWrite or "apply_failed")

@@ -584,7 +584,7 @@ local function applyDevelopSettings(photo, baseSettings, analyzerData, emulsion,
 
 	    local writeOk, writeErr = catalogWrite.run(
 	        catalog,
-	        "MindfulLens Apply Film Settings",
+	        "Analog Signature — apply film settings",
 	        function()
 	        local function isMonochromeEmulsion()
 	            if emulsion and emulsion.bw == true then
@@ -1652,7 +1652,7 @@ local function applyDevelopSettings(photo, baseSettings, analyzerData, emulsion,
         { attempts = 20, sleep = 0.10, sleepMax = 0.50 }
     )
     if not writeOk then
-        error(tostring(writeErr or "MindfulLens Apply Film Settings failed"))
+        error(tostring(writeErr or "Analog Signature — apply film settings failed"))
     end
 
     if applyCameraProfile and profileName and profileName ~= "" then

@@ -386,7 +386,7 @@ local function showDialog()
                 for attempt = 1, 2 do
                     local okApply, errApply = applySettingsDeterministic(
                         targetPhoto, catalog, finalSettings,
-                        "MindfulLens Panel IX — Chemia Klimat Epoki"
+                        "Analog Signature — Panel IX: chemia, klimat, epoki"
                     )
                     if not okApply then
                         lastErr = tostring(errApply or "apply_failed")

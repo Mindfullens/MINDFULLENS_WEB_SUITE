@@ -494,7 +494,7 @@ local function applySettingsDeterministic(photo, catalog, settings, actionName)
     if string.find(string.lower(errText), "yielding is not allowed", 1, true) then
         local okCat, errCat = catalogWrite.run(
             catalog,
-            tostring(actionName or "MindfulLens Panel V"),
+            tostring(actionName or "Analog Signature — Panel V"),
             function() photo:applyDevelopSettings(settings) end,
             { attempts = 12, sleep = 0.08, sleepMax = 0.40 }
         )
