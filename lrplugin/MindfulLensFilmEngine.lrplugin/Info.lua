@@ -67,7 +67,7 @@ return {
         major = 0,
         minor = 2,
         revision = 1,
-        build = 12,
+        build = 13,
     },
 
     LrInitPlugin = "PluginInit.lua",

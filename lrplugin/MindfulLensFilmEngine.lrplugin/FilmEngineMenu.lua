@@ -311,11 +311,11 @@ end
 local function makeSourceScaleItems(source)
     local map = {
         ["auto"] = "Auto (wykryj z aparatu)",
-        ["full_frame"] = "Pelna klatka",
+        ["full_frame"] = "Pełna klatka",
         ["aps_c"] = "APS-C",
         ["micro_four_thirds"] = "Micro 4/3",
-        ["compact_small"] = "Mala matryca / kompakt",
-        ["digital_mf"] = "Cyfrowy sredni format",
+        ["compact_small"] = "Mała matryca / kompakt",
+        ["digital_mf"] = "Cyfrowy średni format",
     }
     local items = {}
     for _, value in ipairs(source or {}) do
@@ -546,8 +546,8 @@ local function showDialogAndRun()
         local function refreshSelectedEmulsionInfo()
             local selected = config.findEmulsion(props.emulsion)
             if not selected then
-                props.emulsionFamilyTitle = "Rodzina zastosowania: baza zdjecia"
-                props.emulsionFamilyDescription = "Ta opcja nie naklada charakteru filmu i pozostawia biezacy stan zdjecia."
+                props.emulsionFamilyTitle = "Rodzina zastosowania: baza zdjęcia"
+                props.emulsionFamilyDescription = "Ta opcja nie nakłada charakteru filmu i pozostawia bieżący stan zdjęcia."
                 props.emulsionTagLine = "Tagi: neutralne • wejscie"
                 return
             end
@@ -779,13 +779,13 @@ local function showDialogAndRun()
 
         local photo = catalog:getTargetPhoto()
         if not photo then
-            LrDialogs.message(PANEL1_TITLE, "Najpierw wybierz zdjecie.", "critical")
+            LrDialogs.message(PANEL1_TITLE, "Najpierw wybierz zdjęcie.", "critical")
             return
         end
 
         if props.emulsion == ORIGINAL_EMULSION_ID then
             if not ensureDevelopModuleForOriginalReset() then
-                LrDialogs.message(PANEL1_TITLE, "Reset ORYGINAL dziala tylko w module Develop.", "critical")
+                LrDialogs.message(PANEL1_TITLE, "Reset [ORYGINAL] działa tylko w module Develop.", "critical")
                 return
             end
 
@@ -793,14 +793,14 @@ local function showDialogAndRun()
                 local okReset, errReset = resetPhotoToOriginal()
                 if not okReset then
                     logger.error("Original reset failed", { error = tostring(errReset or "") })
-                    LrDialogs.message(PANEL1_TITLE, "Nie mozna przywrocic oryginalu zdjecia: " .. tostring(errReset), "critical")
+                    LrDialogs.message(PANEL1_TITLE, "Nie można przywrócić oryginału zdjęcia: " .. tostring(errReset), "critical")
                     return
                 end
 
                 prefs.lastFormat = props.format
                 prefs.lastSourceScale = props.sourceScale
                 prefs.lastEmulsion = props.emulsion
-                LrDialogs.message(PANEL1_RESULT_TITLE, "Przywrocono oryginal zdjecia.", "info")
+                LrDialogs.message(PANEL1_RESULT_TITLE, "Przywrócono oryginał zdjęcia.", "info")
             end)
             return
         end
